@@ -199,43 +199,37 @@ class GatewayClient():
         _LOGGER.debug(f'URL request to: {url}')
         return urllib.request.urlopen(url, context=self._empty_context)
 
-    def verify(self):
+    def _try_request(self, url, only_tickle:bool=True):
         try:
-            self._url_request(self.base_url+_ROUTE_VALIDATE)
+            self._url_request(url)
             return True
         except HTTPError as e:
-            if e.code == 401:
+            if e.code == 401 and not only_tickle:
                 return False
             else: # todo: possibly other codes could appear when not authenticated
                 return True
         except URLError as e:
-            if 'No connection could be made because the target machine actively refused it' in str(e.reason):
-                return False
-            else:
-                _LOGGER.exception(e)
-
-    def tickle(self):
-        try:
-            self._url_request(self.base_url+_ROUTE_TICKLE)
-            return True
-        except HTTPError:
-            return True
-        except URLError as e:
             # print(e.reason)
             reason = str(e.reason)
-            if 'No connection could be made because the target machine actively refused it' in reason\
-            or 'Cannot assign requested address' in reason\
-            or '[Errno 0] Error' in reason:
+            if 'No connection could be made because the target machine actively refused it' in reason \
+                    or 'Cannot assign requested address' in reason \
+                    or '[Errno 0] Error' in reason:
                 return False
             else:
                 _LOGGER.exception(e)
         except Exception as e:
             _LOGGER.exception(e)
 
+    def verify(self) -> bool:
+        return self._try_request(self.base_url+_ROUTE_VALIDATE, False)
+
+    def tickle(self) -> bool:
+        return self._try_request(self.base_url+_ROUTE_TICKLE, True)
+
     def user(self):
         try:
             response = self._url_request(self.base_url+_ROUTE_USER)
-            _LOGGER.info(response)
+            _LOGGER.info(response.read())
         except Exception as e:
             _LOGGER.exception(e)
 
