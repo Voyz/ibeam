@@ -30,6 +30,7 @@ config.initialize()
 
 _GATEWAY_STARTUP_SECONDS = os.environ.get('GATEWAY_STARTUP_SECONDS', 3)
 _BASE_URL = os.environ.get('IB_PROXY_URL', "https://localhost:5000")
+_ROUTE_USER = os.environ.get('ROUTE_USER', '/v1/api/one/user')
 _ROUTE_VALIDATE = os.environ.get('IB_VALIDATE_ROUTE', '/v1/portal/sso/validate')
 _ROUTE_TICKLE = os.environ.get('IB_TICKLE_ROUTE', '/v1/api/tickle')
 _USER_NAME_EL_ID = os.environ.get('USER_NAME_EL_ID', 'user_name')
@@ -137,7 +138,7 @@ class GatewayClient():
         if not self.tickle():
             _LOGGER.info('Gateway not found, starting new one.')
 
-            creationflags = None
+            creationflags = 0
 
             if sys.platform == 'win32':
                 args = ["cmd", "/k", r"bin\run.bat", r"root\conf.yaml"]
@@ -195,6 +196,7 @@ class GatewayClient():
         return authenticate_gateway(driver, self.account, self.password, self.key, self.base_url)
 
     def _url_request(self, url):
+        _LOGGER.debug(f'URL request to: {url}')
         return urllib.request.urlopen(url, context=self._empty_context)
 
     def verify(self):
@@ -219,10 +221,21 @@ class GatewayClient():
         except HTTPError:
             return True
         except URLError as e:
-            if 'No connection could be made because the target machine actively refused it' in str(e.reason):
+            # print(e.reason)
+            reason = str(e.reason)
+            if 'No connection could be made because the target machine actively refused it' in reason\
+            or 'Cannot assign requested address' in reason\
+            or '[Errno 0] Error' in reason:
                 return False
             else:
                 _LOGGER.exception(e)
+        except Exception as e:
+            _LOGGER.exception(e)
+
+    def user(self):
+        try:
+            response = self._url_request(self.base_url+_ROUTE_USER)
+            _LOGGER.info(response)
         except Exception as e:
             _LOGGER.exception(e)
 
