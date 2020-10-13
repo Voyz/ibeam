@@ -12,7 +12,6 @@ from getpass import getpass
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 
-from _queue import Empty
 from cryptography.fernet import Fernet
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
@@ -162,27 +161,6 @@ class GatewayClient():
                 creationflags=creationflags,
                 stdout=subprocess.PIPE,
             )
-
-            # while True:
-            #     line = self.server_process.stdout.readline()
-            #     print(line)
-            #     print(self.server_process.stderr.readline())
-            #     if line and 'App demo is available after you login under' in line:
-            #         break
-            #     time.sleep(0.5)
-
-            # self.server_process, q = run_subprocess(args=args, cwd=self.gateway_path)
-            #
-            # while True:
-            #     try:
-            #         line = q.get_nowait()  # or q.get(timeout=.1)
-            #     except Empty:
-            #         print('no output yet')
-            #         time.sleep(1)
-            #     else:  # got line
-            #         print(line)
-            #         if line and b'App demo is available after you login under' in line:
-            #             break
 
             _LOGGER.debug(f'Gateway started with process id: {self.server_process.pid}')
 
