@@ -15,7 +15,7 @@
     </a>
 </p>
 
-IBeam is an authentication and maintenance tool used for the Interactive Brokers Client Portal Web API Gateway.
+IBeam is an authentication and maintenance tool used for the [Interactive Brokers Client Portal Web API Gateway.][gateway]
 
 Features:
 
@@ -29,7 +29,7 @@ Features:
 
 Docker image (recommended):
 ```bash
-docker pull ibeam 
+docker pull voyz/ibeam
 ```
 
 Standalone:
@@ -39,18 +39,18 @@ pip install ibeam
 
 ## Startup
 
-#### Using Docker image (recommended)
+### Using Docker image (recommended)
 
-IBeam's Docker image is configured to work out of the box. Run the IBeam image exposing the default port 8081 and providing the environment variable credentials either directly or through a file.
+IBeam's Docker image is configured to work out of the box. Run the IBeam image [exposing the port 8081](#proxy) and providing the environment variable credentials either directly or through a file.
 
 Using env.list file:
 ```
-docker run --env-file env.list -p 8081:8081 ibeam
+docker run --env-file env.list -p 8081:8081 voyz/ibeam
 ```
 
 Providing environment variables directly:
 ```
-docker run --env IB_ACCOUNT=your_account123 --env IB_PASSWORD=your_password123 -p 8081:8081 ibeam
+docker run --env IB_ACCOUNT=your_account123 --env IB_PASSWORD=your_password123 -p 8081:8081 voyz/ibeam
 ```
 
 Verify the Gateway is running by calling:
@@ -61,7 +61,7 @@ curl -x localhost:8081 -X GET "https://localhost:5000/v1/api/one/user" -k
 Note that IBeam image uses a proxy to expose the communication with the Gateway. It is the port to that proxy you need to expose when running a container, not the Gateway's. Read more about it in [Why proxy?](#proxy).
 
 
-#### Standalone 
+### Standalone 
 
 The entrypoint of IBeam is the `ibeam_starter.py` script. When called without any arguments, the script will start the Gateway (if not currently running) and will attempt to authenticate (if not currently authenticated).
 
@@ -90,7 +90,7 @@ You will need additional environment requirements to run IBeam standalone. Read 
 
 ## Runtime environment requirements
 
-#### Credentials
+### Credentials
 Whether running using an image or as standalone, IBeam expects IBKR credentials to be provided as environment variables.
 
 * `IB_ACCOUNT` - IBKR account name 
@@ -108,14 +108,14 @@ print(f'IB_PASSWORD={password}, IB_KEY={key}')
 
 If any of the required credentials environment variables is not found, user will be prompted to enter them directly in the terminal.
 
-#### <a name="standalone-requirements"></a>Standalone environment 
+### <a name="standalone-requirements"></a>Standalone environment 
 
 When running standalone, IBeam requires the following to be set up:
 
-* IBKR Client Portal API Gateway
-* Java JRE capable of running the Gateway
-* Google Chrome
-* Chrome Driver
+* [IBKR Client Portal API Gateway][gateway]
+* [Java JRE capable of running the Gateway][jre]
+* [Google Chrome][chrome]
+* [Chrome Driver][chrome-driver]
 
 Additionally, the following environment variables:
 
@@ -124,7 +124,7 @@ Additionally, the following environment variables:
 
 Note that you can chose to not use the `ibeam_starter.py` script and instantiate and use the `ibeam.gateway_client.GatewayClient` directly in your script instead. This way you will be able to provide any of the credentials, as well as the Chrome Driver and Gateway paths directly upon construction of the `GatewayClient`.
 
-#### Optional environment variables
+### Optional environment variables
 
 To facilitate custom usage and become more future-proof, IBeam expects the following environment variables altering its behaviour:
 
@@ -145,7 +145,7 @@ To facilitate custom usage and become more future-proof, IBeam expects the follo
 ## <a name="security"></a>Security
 Please feel free to suggest improvements to the security risks currently present in IBeam and the Gateway by [opening an issue][issues] on GitHub.
 
-#### Credentials
+### Credentials
 
 The Gateway requires credentials to be provided on a regular basis. The only way to avoid manually having to input them every time is to store the credentials somewhere. This alone is a security risk.
 
@@ -153,7 +153,7 @@ Currently, IBeam expects the credentials to be available as environment variable
 
 We considered providing a possibility to read the credentials from an external credentials store, such as GCP Secrets, yet that would require some authentication credentials too, which brings back the same issue it was to solve.
 
-#### Certificates
+### Certificates
 
 Currently IBeam does not support TLS certificates, and as such HTTPS.
 
@@ -171,6 +171,13 @@ The Gateway doesn't seem to allow requests sent from a different host than the o
 
 By default the proxy listens to port `8081`, although this can be altered by changing the `PROXY_PORT` environment variable. Make sure you expose the correct port when running the image.
 
+## Roadmap
+
+* Include TLS certificates
+* Remove necessity to install Java.
+* Remove necessity to install Chrome or find a lighter replacement.
+* Add usage examples
+
 
 ## Licence
 
@@ -178,8 +185,14 @@ See [LICENSE](https://github.com/Voyz/ibeam/blob/master/LICENSE)
 
 ----
 
-IBeam is not built, maintained, or endorsed by the Interactive Brokers.
+## Disclaimer
+
+IBeam is not built, maintained, or endorsed by the Interactive Brokers. 
 
 [issues]: https://github.com/Voyz/ibeam/issues
 [fernet]: https://cryptography.io/en/latest/fernet/
 [proxypy]: https://github.com/abhinavsingh/proxy.py
+[gateway]: https://interactivebrokers.github.io/cpwebapi/
+[jre]: https://www.java.com/en/download/
+[chrome]: https://www.google.com/chrome/
+[chrome-driver]: https://chromedriver.chromium.org/downloads
