@@ -27,20 +27,40 @@ from ibeam import config
 config.initialize()
 
 _GATEWAY_STARTUP_SECONDS = os.environ.get('GATEWAY_STARTUP_SECONDS', 3)
-_BASE_URL = os.environ.get('IB_PROXY_URL', "https://localhost:5000")
+"""How many seconds to wait before attempting to communicate with the gateway after its startup."""
+
+_GATEWAY_BASE_URL = os.environ.get('GATEWAY_BASE_URL', "https://localhost:5000")
+"""Base URL of the gateway."""
+
 _ROUTE_AUTH = os.environ.get('ROUTE_AUTH', '/sso/Login?forwardTo=22&RL=1&ip2loc=on')
+"""Gateway route with authentication page."""
+
 _ROUTE_USER = os.environ.get('ROUTE_USER', '/v1/api/one/user')
-_ROUTE_VALIDATE = os.environ.get('IB_VALIDATE_ROUTE', '/v1/portal/sso/validate')
-_ROUTE_TICKLE = os.environ.get('IB_TICKLE_ROUTE', '/v1/api/tickle')
+"""Gateway route with user information."""
+
+_ROUTE_VALIDATE = os.environ.get('ROUTE_VALIDATE', '/v1/portal/sso/validate')
+"""Gateway route with validation call."""
+
+_ROUTE_TICKLE = os.environ.get('ROUTE_TICKLE', '/v1/api/tickle')
+"""Gateway route with tickle call."""
+
 _USER_NAME_EL_ID = os.environ.get('USER_NAME_EL_ID', 'user_name')
+"""HTML element id containing the username input field."""
+
 _PASSWORD_EL_ID = os.environ.get('PASSWORD_EL_ID', 'password')
+"""HTML element id containing the password input field."""
+
 _SUBMIT_EL_ID = os.environ.get('SUBMIT_EL_ID', 'submitForm')
+"""HTML element id containing the submit button."""
+
 _SUCCESS_EL_TEXT = os.environ.get('SUCCESS_EL_TEXT', 'Client login succeeds')
+"""HTML element text indicating successful authentication."""
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
 
 def new_chrome_driver(driver_path, headless: bool = True):
+    """Creates a new chrome driver."""
     options = webdriver.ChromeOptions()
     if headless: options.add_argument('headless')
     options.add_argument('--no-sandbox')
@@ -52,7 +72,14 @@ def new_chrome_driver(driver_path, headless: bool = True):
 
 
 def authenticate_gateway(driver, account, password, key: str = None, base_url: str = None):
-    if base_url is None: base_url = _BASE_URL
+    """
+    Authenticates the currently running gateway.
+
+    If both password and key are provided, cryptography.fernet decryption will be used.
+
+    :return: Whether authentication was successful.
+    """
+    if base_url is None: base_url = _GATEWAY_BASE_URL
     display = None
     try:
         if sys.platform == 'linux':
@@ -106,6 +133,7 @@ def authenticate_gateway(driver, account, password, key: str = None, base_url: s
 
 
 class GatewayClient():
+
     def __init__(self,
                  account: str = None,
                  password: str = None,
@@ -114,13 +142,22 @@ class GatewayClient():
                  driver_path: str = None,
                  base_url: str = None):
 
-        self.base_url = base_url if base_url is not None else _BASE_URL
+        self.base_url = base_url if base_url is not None else _GATEWAY_BASE_URL
 
         self.account = account if account is not None else os.environ.get('IB_ACCOUNT')
+        """IBKR account name."""
+
         self.password = password if password is not None else os.environ.get('IB_PASSWORD')
+        """IBKR password."""
+
         self.key = key if key is not None else os.environ.get('IB_KEY')
-        self.gateway_path = gateway_path if gateway_path is not None else os.environ.get('IB_CLIENTPORTAL_GW')
+        """Key to the IBKR password."""
+
+        self.gateway_path = gateway_path if gateway_path is not None else os.environ.get('GATEWAY_PATH')
+        """Path to the root of the IBKR Gateway."""
+
         self.driver_path = driver_path if driver_path is not None else os.environ.get('CHROME_DRIVER_PATH')
+        """Path to the Chrome Driver executable file."""
 
         if self.account is None:
             self.account = input('Account: ')
@@ -136,7 +173,7 @@ class GatewayClient():
         if not self.tickle():
             _LOGGER.info('Gateway not found, starting new one.')
 
-            creationflags = 0
+            creationflags = 0  # when not on Windows, we send 0 to avoid errors.
 
             if sys.platform == 'win32':
                 args = ["cmd", "/k", r"bin\run.bat", r"root\conf.yaml"]
@@ -152,13 +189,12 @@ class GatewayClient():
                 _LOGGER.debug(f'Starting Linux process with params: {args}')
 
             else:
-                raise OSError(f'Unknown platform: {sys.platform}')
+                raise EnvironmentError(f'Unknown platform: {sys.platform}')
 
             self.server_process = subprocess.Popen(
                 args=args,
                 cwd=self.gateway_path,
-                creationflags=creationflags,
-                stdout=subprocess.PIPE,
+                creationflags=creationflags
             )
 
             _LOGGER.debug(f'Gateway started with process id: {self.server_process.pid}')
@@ -174,9 +210,11 @@ class GatewayClient():
 
     def _url_request(self, url):
         _LOGGER.debug(f'URL request to: {url}')
+        # Empty context allows us to ignore certificates, given we're on the same network. This may be a bad idea.
         return urllib.request.urlopen(url, context=self._empty_context)
 
     def _try_request(self, url, only_tickle: bool = True):
+        """Attempts a HTTP request and returns a boolean flag indicating whether it was successful."""
         try:
             self._url_request(url)
             return True
@@ -188,6 +226,13 @@ class GatewayClient():
         except URLError as e:
             # print(e.reason)
             reason = str(e.reason)
+
+            """
+                No connection... - happens when port isn't open
+                Cannot assign... - happens when calling a port taken by Docker but not served, when called from within the container.
+                Errno 0... - happens when calling a port taken by Docker but not served, when called from the host machine.
+            """
+
             if 'No connection could be made because the target machine actively refused it' in reason \
                     or 'Cannot assign requested address' in reason \
                     or '[Errno 0] Error' in reason:
@@ -197,7 +242,7 @@ class GatewayClient():
         except Exception as e:
             _LOGGER.exception(e)
 
-    def verify(self) -> bool:
+    def validate(self) -> bool:
         return self._try_request(self.base_url + _ROUTE_VALIDATE, False)
 
     def tickle(self) -> bool:
@@ -211,9 +256,11 @@ class GatewayClient():
             _LOGGER.exception(e)
 
     def start_and_authenticate(self):
+        """Starts the gateway and authenticates using the credentials stored."""
+
         self.start()
 
-        if not self.verify():
+        if not self.validate():
             _LOGGER.info('Authenticating.')
             time.sleep(_GATEWAY_STARTUP_SECONDS)
 
@@ -222,7 +269,7 @@ class GatewayClient():
             if not success:
                 return False
 
-        if self.verify():
+        if self.validate():
             _LOGGER.info('Gateway running and authenticated.')
             return True
         else:

@@ -18,12 +18,13 @@ _LOGGER = logging.getLogger('ibeam')
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Start, authenticate and verify the IB Gateway.')
-    parser.add_argument('-a', '--only-authenticate', action='store_true',
+    parser.add_argument('-a', '--authenticate', action='store_true',
                         help='Only authenticates the existing gateway.')
-    parser.add_argument('-s', '--only-start', action='store_true', help='Only start the gateway.')
-    parser.add_argument('-v', '--verify', action='store_true', help='Verify authentication.')
+    parser.add_argument('-s', '--start', action='store_true', help='Only start the gateway.')
+    parser.add_argument('-l', '--validate', action='store_true', help='Validate authentication.')
     parser.add_argument('-t', '--tickle', action='store_true', help='Tickle the gateway.')
     parser.add_argument('-u', '--user', action='store_true', help='Get the user.')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output.')
 
     args = parser.parse_args()
     return args
@@ -34,13 +35,16 @@ if __name__ == '__main__':
     # print(args)
     client = GatewayClient()
 
-    if args.only_start:
+    if args.verbose:
+        _LOGGER.setLevel(logging.DEBUG)
+
+    if args.start:
         client.start()
-    elif args.only_authenticate:
+    elif args.authenticate:
         success = client.authenticate()
         _LOGGER.info(f'Authentication {"succeeded" if success else "failed"}')
-    elif args.verify:
-        success = client.verify()
+    elif args.validate:
+        success = client.validate()
         _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
     elif args.tickle:
         success = client.tickle()

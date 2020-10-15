@@ -18,10 +18,10 @@ def copyPackages(c):
 
 @task
 def copy_clientportal(c):
-    source_path = os.environ['IB_CLIENTPORTAL_GW']
+    source_path = os.environ['GATEWAY_PATH']
 
     if not os.path.exists(source_path):
-        raise RuntimeError(f'IB_CLIENTPORTAL_GW module not found: {source_path}')
+        raise RuntimeError(f'GATEWAY_PATH module not found: {source_path}')
 
     _copy_directory(source_path, os.path.join(PROJECT_ROOT, 'copy_cache/clientportal.gw'), c)
 
@@ -40,4 +40,3 @@ def copy_chrome_driver(c):
 @task
 def copySourcesToDocker(c):
     c.run(f'docker cp {os.path.join(PROJECT_ROOT, "ibeam")} ibeam:/srv', hide='out')
-   

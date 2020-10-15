@@ -39,7 +39,7 @@ ENV GROUP_ID=1000 \
     GROUP_NAME=basic_group \
     SRC_ROOT=/srv/ibeam
 
-ENV IB_CLIENTPORTAL_GW='/srv/clientportal.gw'
+ENV GATEWAY_PATH='/srv/clientportal.gw'
 ENV CHROME_DRIVER_PATH='/srv/chrome_driver/chromedriver'
 ENV CHROME_DRIVER_DIR='/srv/chrome_driver'
 
@@ -48,14 +48,14 @@ RUN addgroup -gid $GROUP_ID $GROUP_NAME
 RUN adduser -disabled-password -u $USER_ID -gid $GROUP_ID $USER_NAME -shell /bin/sh
 
 RUN mkdir -p $SRC_ROOT
-RUN mkdir -p $IB_CLIENTPORTAL_GW
+RUN mkdir -p $GATEWAY_PATH
 RUN mkdir -p $CHROME_DRIVER_DIR
 RUN chown -R $USER_NAME:$GROUP_NAME $SRC_ROOT
 
-COPY copy_cache/clientportal.gw $IB_CLIENTPORTAL_GW
+COPY copy_cache/clientportal.gw $GATEWAY_PATH
 COPY copy_cache/chrome_driver $CHROME_DRIVER_DIR
 
-RUN chown -R $USER_NAME:$GROUP_NAME $IB_CLIENTPORTAL_GW
+RUN chown -R $USER_NAME:$GROUP_NAME $GATEWAY_PATH
 RUN chown -R $USER_NAME:$GROUP_NAME $CHROME_DRIVER_DIR
 
 ENV PYTHONPATH "${PYTHONPATH}:/srv/:/srv/ibeam"
