@@ -1,2 +1,2 @@
 #!/bin/sh
-python gateway_starter.py
+python ibeam_starter.py

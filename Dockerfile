@@ -70,7 +70,7 @@ WORKDIR $SRC_ROOT
 USER $USER_NAME
 
 #CMD python -c "while True: import time; time.sleep(60)"
-#CMD python ./gateway_starter.py
+#CMD python ./ibeam_starter.py
 
 #ENTRYPOINT ["bash"]
 CMD ["/bin/sh", "/srv/ibeam/run.sh"]

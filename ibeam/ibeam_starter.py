@@ -18,9 +18,8 @@ _LOGGER = logging.getLogger('ibeam')
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Start, authenticate and verify the IB Gateway.')
-    parser.add_argument('-a', '--authenticate', action='store_true',
-                        help='Only authenticates the existing gateway.')
-    parser.add_argument('-s', '--start', action='store_true', help='Only start the gateway.')
+    parser.add_argument('-a', '--authenticate', action='store_true', help='Authenticates the existing gateway.')
+    parser.add_argument('-s', '--start', action='store_true', help='Start the gateway.')
     parser.add_argument('-l', '--validate', action='store_true', help='Validate authentication.')
     parser.add_argument('-t', '--tickle', action='store_true', help='Tickle the gateway.')
     parser.add_argument('-u', '--user', action='store_true', help='Get the user.')
