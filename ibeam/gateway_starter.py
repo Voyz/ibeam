@@ -8,6 +8,7 @@ _this_filedir = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, str(Path(_this_filedir).parent))
 
 from ibeam import config
+
 config.initialize()
 
 from ibeam.src.gateway_client import GatewayClient
@@ -17,7 +18,8 @@ _LOGGER = logging.getLogger('ibeam')
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Start, authenticate and verify the IB Gateway.')
-    parser.add_argument('-a', '--only-authenticate', action='store_true', help='Only authenticates the existing gateway.')
+    parser.add_argument('-a', '--only-authenticate', action='store_true',
+                        help='Only authenticates the existing gateway.')
     parser.add_argument('-s', '--only-start', action='store_true', help='Only start the gateway.')
     parser.add_argument('-v', '--verify', action='store_true', help='Verify authentication.')
     parser.add_argument('-t', '--tickle', action='store_true', help='Tickle the gateway.')
@@ -25,6 +27,7 @@ def parse_args():
 
     args = parser.parse_args()
     return args
+
 
 if __name__ == '__main__':
     args = parse_args()

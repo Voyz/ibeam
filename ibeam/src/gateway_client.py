@@ -20,7 +20,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from pyvirtualdisplay import Display
 from selenium.webdriver.support.wait import WebDriverWait
 
-
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from ibeam import config
@@ -29,6 +28,7 @@ config.initialize()
 
 _GATEWAY_STARTUP_SECONDS = os.environ.get('GATEWAY_STARTUP_SECONDS', 3)
 _BASE_URL = os.environ.get('IB_PROXY_URL', "https://localhost:5000")
+_ROUTE_AUTH = os.environ.get('ROUTE_AUTH', '/sso/Login?forwardTo=22&RL=1&ip2loc=on')
 _ROUTE_USER = os.environ.get('ROUTE_USER', '/v1/api/one/user')
 _ROUTE_VALIDATE = os.environ.get('IB_VALIDATE_ROUTE', '/v1/portal/sso/validate')
 _ROUTE_TICKLE = os.environ.get('IB_TICKLE_ROUTE', '/v1/api/tickle')
@@ -37,11 +37,10 @@ _PASSWORD_EL_ID = os.environ.get('PASSWORD_EL_ID', 'password')
 _SUBMIT_EL_ID = os.environ.get('SUBMIT_EL_ID', 'submitForm')
 _SUCCESS_EL_TEXT = os.environ.get('SUCCESS_EL_TEXT', 'Client login succeeds')
 
+_LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
-_LOGGER = logging.getLogger('ibeam.'+Path(__file__).stem)
 
-
-def new_chrome_driver(driver_path, headless:bool=True):
+def new_chrome_driver(driver_path, headless: bool = True):
     options = webdriver.ChromeOptions()
     if headless: options.add_argument('headless')
     options.add_argument('--no-sandbox')
@@ -52,7 +51,7 @@ def new_chrome_driver(driver_path, headless:bool=True):
     return webdriver.Chrome(driver_path, options=options)
 
 
-def authenticate_gateway(driver, account, password, key:str=None, base_url:str=None):
+def authenticate_gateway(driver, account, password, key: str = None, base_url: str = None):
     if base_url is None: base_url = _BASE_URL
     display = None
     try:
@@ -61,7 +60,7 @@ def authenticate_gateway(driver, account, password, key:str=None, base_url:str=N
             display.start()
 
         try:
-            driver.get(base_url+'/sso/Login?forwardTo=22&RL=1&ip2loc=on')
+            driver.get(base_url + _ROUTE_AUTH)
         except WebDriverException as e:
             if 'net::ERR_CONNECTION_REFUSED' in e.msg:
                 _LOGGER.error('Connection to Gateway refused. This could indicate IB Gateway is not running.')
@@ -108,12 +107,12 @@ def authenticate_gateway(driver, account, password, key:str=None, base_url:str=N
 
 class GatewayClient():
     def __init__(self,
-                    account: str = None,
-                    password: str = None,
-                    key: str = None,
-                    gateway_path: str = None,
-                    driver_path: str = None,
-                    base_url:str=None):
+                 account: str = None,
+                 password: str = None,
+                 key: str = None,
+                 gateway_path: str = None,
+                 driver_path: str = None,
+                 base_url: str = None):
 
         self.base_url = base_url if base_url is not None else _BASE_URL
 
@@ -177,14 +176,14 @@ class GatewayClient():
         _LOGGER.debug(f'URL request to: {url}')
         return urllib.request.urlopen(url, context=self._empty_context)
 
-    def _try_request(self, url, only_tickle:bool=True):
+    def _try_request(self, url, only_tickle: bool = True):
         try:
             self._url_request(url)
             return True
         except HTTPError as e:
             if e.code == 401 and not only_tickle:
                 return False
-            else: # todo: possibly other codes could appear when not authenticated
+            else:  # todo: possibly other codes could appear when not authenticated, fix when necessary
                 return True
         except URLError as e:
             # print(e.reason)
@@ -199,14 +198,14 @@ class GatewayClient():
             _LOGGER.exception(e)
 
     def verify(self) -> bool:
-        return self._try_request(self.base_url+_ROUTE_VALIDATE, False)
+        return self._try_request(self.base_url + _ROUTE_VALIDATE, False)
 
     def tickle(self) -> bool:
-        return self._try_request(self.base_url+_ROUTE_TICKLE, True)
+        return self._try_request(self.base_url + _ROUTE_TICKLE, True)
 
     def user(self):
         try:
-            response = self._url_request(self.base_url+_ROUTE_USER)
+            response = self._url_request(self.base_url + _ROUTE_USER)
             _LOGGER.info(response.read())
         except Exception as e:
             _LOGGER.exception(e)
@@ -232,4 +231,3 @@ class GatewayClient():
             else:
                 _LOGGER.error('Gateway not running and not authenticated.')
             return False
-
