@@ -95,7 +95,7 @@ Once the Gateway is running and authenticated you can communicate with it like y
 ## Runtime environment requirements
 
 ### Credentials
-Whether running using an image or as standalone, IBeam expects IBKR credentials to be provided as environment variables.
+Whether running using an image or as standalone, IBeam expects IBKR credentials to be provided as environment variables. We recommend you start using IBeam with your [paper account credentials][paper-account], and only switch to production account once you're ready to trade.
 
 * `IB_ACCOUNT` - IBKR account name 
 * `IB_PASSWORD` - IBKR account password
@@ -193,6 +193,10 @@ See [LICENSE](https://github.com/Voyz/ibeam/blob/master/LICENSE)
 
 IBeam is not built, maintained, or endorsed by the Interactive Brokers. 
 
+Use at own discretion. IBeam and its authors give no guarantee of uninterrupted run of and access to the Interactive Brokers Client Portal Web API Gateway. You should prepare for breaks in connectivity to IBKR servers and should not depend on continuous uninterrupted run of the Gateway. IBeam requires your private credentials to be exposed to a security risk, potentially resulting in, although not limited to interruptions, loss of capital and loss of access to your account. To partially reduce the potential risk use Paper Account credentials.
+
+IBeam is provided on an AS IS and AS AVAILABLE basis without any representation or endorsement made and without warranty of any kind whether express or implied, including but not limited to the implied warranties of satisfactory quality, fitness for a particular purpose, non-infringement, compatibility, security and accuracy.  To the extent permitted by law, IBeam's authors will not be liable for any indirect or consequential loss or damage whatever (including without limitation loss of business, opportunity, data, profits) arising out of or in connection with the use of IBeam.  IBeam's authors make no warranty that the functionality of IBeam will be uninterrupted or error free, that defects will be corrected or that IBeam or the server that makes it available are free of viruses or anything else which may be harmful or destructive.
+
 [issues]: https://github.com/Voyz/ibeam/issues
 [fernet]: https://cryptography.io/en/latest/fernet/
 [proxypy]: https://github.com/abhinavsingh/proxy.py
@@ -201,3 +205,4 @@ IBeam is not built, maintained, or endorsed by the Interactive Brokers.
 [chrome]: https://www.google.com/chrome/
 [chrome-driver]: https://chromedriver.chromium.org/downloads
 [docker-envs]: https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables--e---env---env-file
+[paper-account]: https://guides.interactivebrokers.com/am/am/manageaccount/aboutpapertradingaccounts.htm
