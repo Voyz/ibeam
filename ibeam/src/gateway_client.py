@@ -167,6 +167,12 @@ class GatewayClient():
             if self.key is None:
                 self.key = getpass('Key: ') or None
 
+        if self.gateway_path is None:
+            self.gateway_path = input('Gateway root path: ')
+
+        if self.driver_path is None:
+            self.driver_path = input('Chrome Driver executable path: ')
+
         self._empty_context = ssl.SSLContext()
 
     def start(self):
