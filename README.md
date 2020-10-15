@@ -28,12 +28,12 @@ Features:
 ## Installation
 
 Docker image (recommended):
-```properties
+```posh
 docker pull voyz/ibeam
 ```
 
 Standalone:
-```properties
+```posh
 pip install ibeam
 ```
 
