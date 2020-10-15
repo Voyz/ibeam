@@ -44,17 +44,17 @@ pip install ibeam
 IBeam's Docker image is configured to work out of the box. Run the IBeam image [exposing the port 8081](#proxy) and providing the environment variable credentials either [directly or through a file][docker-envs].
 
 Using env.list file:
-```
+```posh
 docker run --env-file env.list -p 8081:8081 voyz/ibeam
 ```
 
 Providing environment variables directly:
-```
+```posh
 docker run --env IB_ACCOUNT=your_account123 --env IB_PASSWORD=your_password123 -p 8081:8081 voyz/ibeam
 ```
 
 Verify the Gateway is running inside of the container by calling:
-```
+```posh
 curl -x localhost:8081 -X GET "https://localhost:5000/v1/api/one/user" -k
 ```
 
@@ -65,7 +65,7 @@ Note that IBeam image uses a proxy to expose the communication with the Gateway.
 
 The entrypoint of IBeam is the `ibeam_starter.py` script. When called without any arguments, the script will start the Gateway (if not currently running) and will attempt to authenticate (if not currently authenticated).
 
-```
+```posh
 python ibeam_starter.py
 ```
 
@@ -82,7 +82,7 @@ Additionally the following flag can be supplied with any other flags to log addi
 * `-v`, `--verbose` - More verbose output.
 
 Verify the Gateway is running as standalone by calling:
-```
+```posh
 curl -X GET "https://localhost:5000/v1/api/one/user" -k
 ```
 
