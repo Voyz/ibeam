@@ -1,3 +1,4 @@
+*This library is currently being beta-tested. See something that's broken? Did we get something wrong? [Create an issue and let us know!][issues]*
 
 # IBeam
 
@@ -10,9 +11,21 @@ Features:
 * No physical display required.
 * No interaction from the user required.
 * Built to be run within a Docker container, although it can be used as standalone too.
-* Not so secure. Yupp, you'll need to store the credentials somewhere, and that's a risk. Read more about it here.
+* Not so secure. Yupp, you'll need to store the credentials somewhere, and that's a risk. Read more about it in [Security](#security).
 
-## Usage
+## Installation
+
+Docker image (recommended):
+```bash
+docker pull ibeam 
+```
+
+Standalone:
+```bash
+pip install ibeam
+```
+
+## Startup
 
 #### Using Docker image (recommended)
 
@@ -33,7 +46,7 @@ Verify the Gateway is running by calling:
 curl -x localhost:8081 -X GET "https://localhost:5000/v1/api/one/user" -k
 ```
 
-Note that IBeam uses a proxy to expose the communication with the Gateway. Read more about it here.
+Note that IBeam uses a proxy to expose the communication with the Gateway. Read more about it in [Why proxy?](#proxy).
 
 
 #### Standalone 
@@ -56,6 +69,13 @@ Additionally the following flag can be supplied with any other flags to log addi
 
 * `-v`, `--verbose` - More verbose output.
 
+Verify the Gateway is running by calling:
+```
+curl -X GET "https://localhost:5000/v1/api/one/user" -k
+```
+
+You will need additional environment requirements to run IBeam standalone. Read more about it in [Standalone Requirements](#standalone-requirements)
+
 ## Runtime environment requirements
 
 #### Credentials
@@ -76,7 +96,7 @@ print(f'IB_PASSWORD={password}, IB_KEY={key}')
 
 If any of the required credentials environment variables is not found, user will be prompted to enter them directly in the terminal.
 
-#### Standalone environment 
+#### <a name="standalone-requirements"></a>Standalone environment 
 
 When running standalone, IBeam requires the following to be set up:
 
@@ -110,4 +130,40 @@ To facilitate custom usage and become more future-proof, IBeam expects the follo
 | `SUBMIT_EL_ID` | submitForm | HTML element id containing the submit button. |
 | `SUCCESS_EL_TEXT` | Client login succeeds | HTML element text indicating successful authentication. |
 
+## <a name="security"></a>Security
+Please feel free to suggest improvements to the security risks currently present in IBeam and the Gateway by [opening an issue][issues] on GitHub.
+
+#### Credentials
+
+The Gateway requires credentials to be provided on a regular basis. The only way to avoid manually having to input them every time is to store the credentials somewhere. This alone is a security risk.
+
+Currently, IBeam expects the credentials to be available as environment variables during runtime. Whether running IBeam in a container or directly on a host machine, an unwanted user may gain access to these credentials. If your setup is exposed to a risk of someone unauthorised reading the credentials, you may want to look for other solutions than IBeam or use the Gateway standalone and authenticate manually each time.
+
+We considered providing a possibility to read the credentials from an external credentials store, such as GCP Secrets, yet that would require some authentication credentials too, which brings back the same issue it was to solve.
+
+#### Certificates
+
+Currently IBeam does not support TLS certificates, and as such HTTPS.
+
+From IBKR documentation:
+
+> Since the gateway is running on your premises the certificate needs to be created/self-signed by you, or officially signed by a 3rd party. The gateway is similar to another webserver such as Tomcat which doesn't provide a certificate along with the release.
+
+This means that anyone could send unauthorised requests to the authenticated Gateway running using IBeam. Make sure the Gateway is securely isolated and that your firewall rules prevent any unauthorised requests from reaching it.
+
+We're considering adding the TLS certificates support in the future. Please feel free to contribute changes that would enable TLS certificates support.
+
+## <a name="proxy"></a>Why proxy?
+
+The Gateway doesn't seem to allow requests sent from a different host than the one it is running on. While there is no information on this behaviour in IBKR documentation, it is most likely motivated by security concerns. In order to containerise IBeam, a proxy is running in parallel to the Gateway using the [proxy.py][proxypy] package. 
+
+By default the proxy listens to port `8081`, although this can be altered by changing the `PROXY_PORT` environment variable. Make sure you expose the correct port when running the image.
+
+
+----
+
+IBeam is not built, maintained, or endorsed by the Interactive Brokers.
+
+[issues]: https://github.com/Voyz/ibeam/issues
 [fernet]: https://cryptography.io/en/latest/fernet/
+[proxypy]: https://github.com/abhinavsingh/proxy.py
