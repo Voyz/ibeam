@@ -1,17 +1,29 @@
 *This library is currently being beta-tested. See something that's broken? Did we get something wrong? [Create an issue and let us know!][issues]*
 
-# IBeam
+<p align="center">
+    <a id="ibeam" href="#ibeam">
+        <img src="https://github.com/Voyz/ibeam/blob/master/media/ibeam_logo.png" alt="IBeam logo" title="IBeam logo" width="600"/>
+    </a>
+</p>
+
+<p align="center">
+    <a href="https://opensource.org/licenses/Apache-2.0">
+        <img src="https://img.shields.io/badge/License-Apache%202.0-blue.svg"/> 
+    </a>
+    <a href="https://github.com/Voyz/ibeam/releases">
+        <img src="https://img.shields.io/pypi/v/ibeam?label=version"/> 
+    </a>
+</p>
 
 IBeam is an authentication and maintenance tool used for the Interactive Brokers Client Portal Web API Gateway.
 
 Features:
 
-* Facilitates continuous headless run of the Gateway.
-* Executes automated injection of IBKR credentials into the authentication page used by the Gateway.
-* No physical display required.
-* No interaction from the user required.
-* Built to be run within a Docker container, although it can be used as standalone too.
-* Not so secure. Yupp, you'll need to store the credentials somewhere, and that's a risk. Read more about it in [Security](#security).
+* **Facilitates continuous headless run of the Gateway.**
+* **No physical display required** - virtual display buffer can be used instead.
+* **No interaction from the user required** - automated injection of IBKR credentials into the authentication page used by the Gateway. 
+* **Containerised using Docker** - it's a plug and play image, although IBeam can be used as standalone too.
+* **Not so secure** - Yupp, you'll need to store the credentials somewhere, and that's a risk. Read more about it in [Security](#security).
 
 ## Installation
 
@@ -46,7 +58,7 @@ Verify the Gateway is running by calling:
 curl -x localhost:8081 -X GET "https://localhost:5000/v1/api/one/user" -k
 ```
 
-Note that IBeam uses a proxy to expose the communication with the Gateway. Read more about it in [Why proxy?](#proxy).
+Note that IBeam image uses a proxy to expose the communication with the Gateway. It is the port to that proxy you need to expose when running a container, not the Gateway's. Read more about it in [Why proxy?](#proxy).
 
 
 #### Standalone 
@@ -159,6 +171,10 @@ The Gateway doesn't seem to allow requests sent from a different host than the o
 
 By default the proxy listens to port `8081`, although this can be altered by changing the `PROXY_PORT` environment variable. Make sure you expose the correct port when running the image.
 
+
+## Licence
+
+See [LICENSE](https://github.com/Voyz/ibeam/blob/master/LICENSE)
 
 ----
 
