@@ -28,12 +28,12 @@ Features:
 ## Installation
 
 Docker image (recommended):
-```bash
+```console
 docker pull voyz/ibeam
 ```
 
 Standalone:
-```bash
+```shell
 pip install ibeam
 ```
 
@@ -41,7 +41,7 @@ pip install ibeam
 
 ### Using Docker image (recommended)
 
-IBeam's Docker image is configured to work out of the box. Run the IBeam image [exposing the port 8081](#proxy) and providing the environment variable credentials either directly or through a file.
+IBeam's Docker image is configured to work out of the box. Run the IBeam image [exposing the port 8081](#proxy) and providing the environment variable credentials either [directly or through a file][docker-envs].
 
 Using env.list file:
 ```
@@ -53,7 +53,7 @@ Providing environment variables directly:
 docker run --env IB_ACCOUNT=your_account123 --env IB_PASSWORD=your_password123 -p 8081:8081 voyz/ibeam
 ```
 
-Verify the Gateway is running by calling:
+Verify the Gateway is running inside of the container by calling:
 ```
 curl -x localhost:8081 -X GET "https://localhost:5000/v1/api/one/user" -k
 ```
@@ -81,12 +81,16 @@ Additionally the following flag can be supplied with any other flags to log addi
 
 * `-v`, `--verbose` - More verbose output.
 
-Verify the Gateway is running by calling:
+Verify the Gateway is running as standalone by calling:
 ```
 curl -X GET "https://localhost:5000/v1/api/one/user" -k
 ```
 
-You will need additional environment requirements to run IBeam standalone. Read more about it in [Standalone Requirements](#standalone-requirements)
+You will need additional environment requirements to run IBeam standalone. Read more about it in [Standalone Environment](#standalone-environment)
+
+### Once started
+
+Once the Gateway is running and authenticated you can communicate with it like you would normally. Please refer to [Interactive Brokers' documentation][gateway] for more.
 
 ## Runtime environment requirements
 
@@ -108,7 +112,7 @@ print(f'IB_PASSWORD={password}, IB_KEY={key}')
 
 If any of the required credentials environment variables is not found, user will be prompted to enter them directly in the terminal.
 
-### <a name="standalone-requirements"></a>Standalone environment 
+### <a name="standalone-environment"></a>Standalone environment 
 
 When running standalone, IBeam requires the following to be set up:
 
@@ -196,3 +200,4 @@ IBeam is not built, maintained, or endorsed by the Interactive Brokers.
 [jre]: https://www.java.com/en/download/
 [chrome]: https://www.google.com/chrome/
 [chrome-driver]: https://chromedriver.chromium.org/downloads
+[docker-envs]: https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables--e---env---env-file
