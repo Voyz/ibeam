@@ -275,12 +275,12 @@ class GatewayClient():
             if not success:
                 return False
 
-        if self.validate():
-            _LOGGER.info('Gateway running and authenticated.')
-            return True
-        else:
-            if self.tickle():
-                _LOGGER.error('Gateway running but not authenticated.')
-            else:
-                _LOGGER.error('Gateway not running and not authenticated.')
-            return False
+            if not self.validate():
+                if self.tickle():
+                    _LOGGER.error('Gateway running but not authenticated.')
+                else:
+                    _LOGGER.error('Gateway not running and not authenticated.')
+                return False
+
+        _LOGGER.info('Gateway running and authenticated.')
+        return True
