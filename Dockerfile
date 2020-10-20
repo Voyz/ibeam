@@ -1,6 +1,5 @@
 FROM python:3.7.7-slim-buster
 
-# We will install packages to venv and then copy it
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
@@ -8,25 +7,34 @@ RUN mkdir -p /usr/share/man/man1
 
 RUN apt-get update && \
     apt-get install -y default-jre && \
-    apt-get install -y ant && \
-    apt-get clean;
+    apt-get -y install dbus-x11 xfonts-base xfonts-100dpi xfonts-75dpi xfonts-cyrillic xfonts-scalable && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y install xorg xvfb gtk2-engines-pixbuf && \
+    rm -rf /var/lib/apt/lists/*
+
 
 # Setup JAVA_HOME -- useful for docker commandline
 ENV JAVA_HOME /usr/lib/jvm/java-8-openjdk-amd64/
 RUN export JAVA_HOME
 
-RUN apt-get install -y wget
 WORKDIR /srv
-RUN wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+RUN apt-get update && \
+    apt-get install -y wget && \
+    wget https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb && \
+    apt-get purge -y --auto-remove wget && \
+    apt install -y /srv/google-chrome-stable_current_amd64.deb && \
+    rm -rf /srv/google-chrome-stable_current_amd64.deb
 
-#COPY copy_cache/google-chrome-stable_current_amd64.deb /srv/google-chrome-stable_current_amd64.deb
-RUN apt install -y /srv/google-chrome-stable_current_amd64.deb
-RUN DEBIAN_FRONTEND=noninteractive apt-get -y install xorg xvfb gtk2-engines-pixbuf
-RUN apt-get -y install dbus-x11 xfonts-base xfonts-100dpi xfonts-75dpi xfonts-cyrillic xfonts-scalable
+
 
 RUN apt-get install -y nano && \
     apt -y install curl && \
     apt-get -y install iputils-ping
+
+
+RUN apt-get install -y gcc && \
+    pip install psutil==5.* && \
+    apt-get purge -y --auto-remove gcc && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt /srv/requirements.txt
 RUN pip install -r /srv/requirements.txt
@@ -70,5 +78,5 @@ WORKDIR $SRC_ROOT
 USER $USER_NAME
 
 #CMD python ./ibeam_starter.py
-#ENTRYPOINT ["bash"]
-CMD ["/bin/sh", "/srv/ibeam/run.sh"]
+ENTRYPOINT ["bash"]
+#CMD ["/bin/sh", "/srv/ibeam/run.sh"]
