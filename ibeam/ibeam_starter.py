@@ -19,6 +19,7 @@ _LOGGER = logging.getLogger('ibeam')
 def parse_args():
     parser = argparse.ArgumentParser(description='Start, authenticate and verify the IB Gateway.')
     parser.add_argument('-a', '--authenticate', action='store_true', help='Authenticates the existing gateway.')
+    parser.add_argument('-k', '--kill', action='store_true', help='Kill the gateway.')
     parser.add_argument('-m', '--maintain', action='store_true', help='Maintain the gateway.')
     parser.add_argument('-s', '--start', action='store_true', help='Start the gateway.')
     parser.add_argument('-t', '--tickle', action='store_true', help='Tickle the gateway.')
@@ -41,10 +42,13 @@ if __name__ == '__main__':
     if args.start:
         pid = client.try_starting()
         success = pid is not None
-        _LOGGER.info(f'Startup {"succeeded" if success else "failed"}.')
+        if success:
+            _LOGGER.info(f'Gateway running with pid: {pid}')
+        else:
+            _LOGGER.info(f'Gateway not running.')
     elif args.authenticate:
         success = client.try_authenticating()
-        _LOGGER.info(f'Authentication {"succeeded" if success else "failed"}.')
+        _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
     elif args.validate:
         success = client.validate()
         _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
@@ -55,6 +59,9 @@ if __name__ == '__main__':
         client.user()
     elif args.maintain:
         client.maintain()
+    elif args.kill:
+        success = client.kill()
+        _LOGGER.info(f'Gateway {"" if success else "not "}killed.')
     else:
         success = client.start_and_authenticate()
         if success:

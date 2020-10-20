@@ -10,8 +10,10 @@ import urllib.request
 from getpass import getpass
 
 from pathlib import Path
+from typing import Optional
 from urllib.error import HTTPError, URLError
 
+import psutil
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
@@ -33,6 +35,9 @@ _GATEWAY_STARTUP_SECONDS = os.environ.get('GATEWAY_STARTUP_SECONDS', 3)
 """How many seconds to wait before attempting to communicate with the gateway after its startup."""
 
 _GATEWAY_BASE_URL = os.environ.get('GATEWAY_BASE_URL', "https://localhost:5000")
+"""Base URL of the gateway."""
+
+_GATEWAY_PROCESS_MATCH = os.environ.get('GATEWAY_PROCESS_MATCH', 'ibgroup.web.core.clientportal.gw.GatewayStart')
 """Base URL of the gateway."""
 
 _ROUTE_AUTH = os.environ.get('ROUTE_AUTH', '/sso/Login?forwardTo=22&RL=1&ip2loc=on')
@@ -70,6 +75,26 @@ logging.getLogger('ibeam').setLevel(getattr(logging, _LOG_LEVEL))
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
 
+# from https://stackoverflow.com/questions/550653/cross-platform-way-to-get-pids-by-process-name-in-python/2241047
+def find_procs_by_name(name):
+    "Return a list of processes matching 'name'."
+    assert name, name
+    ls = []
+    for p in psutil.process_iter():
+        name_, exe, cmdline = "", "", []
+        try:
+            # name_ = p.name()
+            cmdline = p.cmdline()
+            exe = p.exe()
+        except (psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+        except psutil.NoSuchProcess:
+            continue
+        if name in ' '.join(cmdline) or name in os.path.basename(exe):
+            ls.append(p)
+    return ls
+
+
 def new_chrome_driver(driver_path, headless: bool = True):
     """Creates a new chrome driver."""
     options = webdriver.ChromeOptions()
@@ -97,11 +122,13 @@ def authenticate_gateway(driver, account, password, key: str = None, base_url: s
             display = Display(visible=0, size=(800, 600))
             display.start()
 
+        _LOGGER.debug(f'Loading auth page at {base_url + _ROUTE_AUTH}')
         try:
             driver.get(base_url + _ROUTE_AUTH)
         except WebDriverException as e:
             if 'net::ERR_CONNECTION_REFUSED' in e.msg:
-                _LOGGER.error('Connection to Gateway refused. This could indicate IB Gateway is not running.')
+                _LOGGER.error(
+                    'Connection to Gateway refused. This could indicate IB Gateway is not running. Consider increasing GATEWAY_STARTUP_SECONDS wait buffer.')
                 return False
             else:
                 raise e
@@ -206,24 +233,31 @@ class GatewayClient():
         else:
             raise EnvironmentError(f'Unknown platform: {sys.platform}')
 
-        self.server_process = subprocess.Popen(
+        subprocess.Popen(
             args=args,
             cwd=self.gateway_path,
             creationflags=creationflags
         )
-        return self.server_process
 
-    def try_starting(self):
-        if not self.tickle():
-            _LOGGER.info('Gateway not found, starting new one.')
+    def try_starting(self) -> Optional[int]:
+        processes = find_procs_by_name(_GATEWAY_PROCESS_MATCH)
+        if not processes:
+            _LOGGER.info('Gateway not found, starting new one...')
 
             self._start()
 
-            _LOGGER.debug(f'Gateway started with process id: {self.server_process.pid}')
+            time.sleep(_GATEWAY_STARTUP_SECONDS)
 
-            return self.server_process.pid
+            processes = find_procs_by_name(_GATEWAY_PROCESS_MATCH)
+            success = len(processes) != 0
+            if not success:
+                return None
+
+            self.server_process = processes[0].pid
+            _LOGGER.info(f'Gateway started with pid: {self.server_process}')
+
             # _LOGGER.debug('Gateway is already running.')
-        return None
+        return processes[0].pid
 
     def _authenticate(self):
         driver = new_chrome_driver(self.driver_path)
@@ -231,11 +265,10 @@ class GatewayClient():
 
     def try_authenticating(self):
         if not self.validate():
-            _LOGGER.info('Authenticating.')
-            time.sleep(_GATEWAY_STARTUP_SECONDS)
+            _LOGGER.info('Gateway not authenticated, authenticating...')
 
             success = self._authenticate()
-            _LOGGER.info(f'Authentication {"succeeded" if success else "failed"}')
+            _LOGGER.info(f'Authentication {"succeeded" if success else "failed"}.')
             if not success:
                 return False
 
@@ -250,7 +283,7 @@ class GatewayClient():
     def _url_request(self, url):
         _LOGGER.debug(f'URL request to: {url}')
         # Empty context allows us to ignore certificates, given we're on the same network. This may be a bad idea.
-        return urllib.request.urlopen(url, context=self._empty_context)
+        return urllib.request.urlopen(url, context=self._empty_context, timeout=15)
 
     def _try_request(self, url, only_tickle: bool = True):
         """Attempts a HTTP request and returns a boolean flag indicating whether it was successful."""
@@ -315,3 +348,17 @@ class GatewayClient():
         _LOGGER.debug('Maintenance')
 
         self.start_and_authenticate()
+
+    def kill(self) -> bool:
+        processes = find_procs_by_name(_GATEWAY_PROCESS_MATCH)
+        if processes:
+            processes[0].terminate()
+
+            time.sleep(1)
+
+            # double check we succeeded
+            processes = find_procs_by_name(_GATEWAY_PROCESS_MATCH)
+            if processes:
+                return False
+
+        return True
