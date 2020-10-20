@@ -148,6 +148,7 @@ To facilitate custom usage and become more future-proof, IBeam expects the follo
 | ---  | ----- | --- |
 | `GATEWAY_STARTUP_SECONDS` | 3 | How many seconds to wait before attempting to communicate with the gateway after  its startup. |
 | `GATEWAY_BASE_URL` | `https://localhost:5000` | Base URL of the gateway. |
+| `GATEWAY_PROCESS_MATCH` | ibgroup.web.core.clientportal.gw.GatewayStart | The gateway process' name to match against |
 | `ROUTE_AUTH` | /sso/Login?forwardTo=22&RL=1&ip2loc=on | Gateway route with authentication page.
 | `ROUTE_USER` | /v1/api/one/user | Gateway route | with user information. |
 | `ROUTE_VALIDATE` | /v1/portal/sso/validate | Gateway route with validation call. |
@@ -202,6 +203,7 @@ In a standard startup IBeam performs the following:
     1. Wait for the login confirmation and quit the website.
     1. Verify once again if Gateway is running and authenticated.
 1. **Start the proxy** (if run as a Docker image).
+1. **Start the maintenance**, attempting to keep the Gateway alive and authenticated.
 
 
 ## Roadmap

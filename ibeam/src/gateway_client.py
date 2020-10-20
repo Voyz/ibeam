@@ -38,7 +38,7 @@ _GATEWAY_BASE_URL = os.environ.get('GATEWAY_BASE_URL', "https://localhost:5000")
 """Base URL of the gateway."""
 
 _GATEWAY_PROCESS_MATCH = os.environ.get('GATEWAY_PROCESS_MATCH', 'ibgroup.web.core.clientportal.gw.GatewayStart')
-"""Base URL of the gateway."""
+"""The gateway process' name to match against."""
 
 _ROUTE_AUTH = os.environ.get('ROUTE_AUTH', '/sso/Login?forwardTo=22&RL=1&ip2loc=on')
 """Gateway route with authentication page."""
