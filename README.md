@@ -20,10 +20,21 @@ IBeam is an authentication and maintenance tool used for the [Interactive Broker
 Features:
 
 * **Facilitates continuous headless run of the Gateway.**
+
 * **No physical display required** - virtual display buffer can be used instead.
 * **No interaction from the user required** - automated injection of IBKR credentials into the authentication page used by the Gateway. 
 * **Containerised using Docker** - it's a plug and play image, although IBeam can be used as standalone too.
 * **Not so secure** - Yupp, you'll need to store the credentials somewhere, and that's a risk. Read more about it in [Security](#security).
+
+Documentation:
+
+* [Installation](installation)
+* [Startup](startup)
+* [Runtime environment requirements](runtime-environment)
+* [Security](security)
+* [Why Proxy?](why-proxy)
+* [How does IBeam work?](how-ibeam-works)
+* [Roadmap](roadmap)
 
 ## Installation
 
@@ -92,7 +103,7 @@ You will need additional environment requirements to run IBeam standalone. Read 
 
 Once the Gateway is running and authenticated you can communicate with it like you would normally. Please refer to [Interactive Brokers' documentation][gateway] for more.
 
-## Runtime environment requirements
+## <a name="runtime-environment"></a>Runtime environment requirements
 
 ### Credentials
 Whether running using an image or as standalone, IBeam expects IBKR credentials to be provided as environment variables. We recommend you start using IBeam with your [paper account credentials][paper-account], and only switch to production account once you're ready to trade.
@@ -175,13 +186,33 @@ The Gateway doesn't seem to allow requests sent from a different host than the o
 
 By default the proxy listens to port `8081`, although this can be altered by changing the `PROXY_PORT` environment variable. Make sure you expose the correct port when running the image.
 
+## How does IBeam work?
+
+In a standard startup IBeam performs the following:
+
+1. **Ensure the Gateway is running** by calling the tickle endpoint. If not:
+    1. Start the Gateway in a new shell.
+1. **Ensure the Gateway is authenticated** by calling the validation endpoint. If not:
+    1. Create a new Chrome Driver instance using `selenium`.
+    1. Start a virtual display using `pyvirtualdisplay`.
+    1. Access the Gateway's authentication website.
+    1. Once loaded, input username and password and submit the form.
+    1. Wait for the login confirmation and quit the website.
+    1. Verify once again if Gateway is running and authenticated.
+1. **Start the proxy** (if run as a Docker image).
+
+
 ## Roadmap
 
-* Include TLS certificates
+IBeam was built by traders just like you. We made it open source in order to collectively build a reliable solution. If you enjoy using IBeam, we encourage you to attempt implementing one of the following tasks:
+
+* Include TLS certificates.
 * Remove necessity to install Java.
 * Remove necessity to install Chrome or find a lighter replacement.
-* Add usage examples
+* Add usage examples.
+* Full test coverage.
 
+Read the [CONTRIBUTING](https://github.com/Voyz/ibeam/blob/master/CONTRIBUTING.md) guideline to get started.
 
 ## Licence
 
