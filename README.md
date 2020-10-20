@@ -29,7 +29,7 @@ Features:
 Documentation:
 
 * [Installation](#installation)
-* [Startup](startup)
+* [Startup](#startup)
 * [Runtime environment requirements](#runtime-environment)
 * [Security](#security)
 * [Why Proxy?](#proxy)
@@ -74,7 +74,7 @@ Note that IBeam image uses a proxy to expose the communication with the Gateway.
 
 ### Standalone 
 
-The entrypoint of IBeam is the `ibeam_starter.py` script. When called without any arguments, the script will start the Gateway (if not currently running) and will attempt to authenticate (if not currently authenticated).
+The entrypoint of IBeam is the `ibeam_starter.py` script. When called without any arguments, the script will start the Gateway (if not currently running) and will attempt to _authenticate (if not currently authenticated).
 
 ```posh
 python ibeam_starter.py
@@ -82,7 +82,7 @@ python ibeam_starter.py
 
 Following exclusive flags can be provided when running the starter script:
 
-* `-a`, `--authenticate` - Authenticate the currently running gateway.
+* `-a`, `--_authenticate` - Authenticate the currently running gateway.
 * `-s`, `--start` - Start the gateway if not already running.
 * `-l`, `--validate` - Validate authentication.
 * `-t`, `--tickle` - Tickle the gateway.
@@ -125,7 +125,7 @@ If any of the required credentials environment variables is not found, user will
 
 ### <a name="standalone-environment"></a>Standalone environment 
 
-When running standalone, IBeam requires the following to be set up:
+When running standalone, IBeam requires the following to be present:
 
 * [IBKR Client Portal API Gateway][gateway]
 * [Java JRE capable of running the Gateway][jre]
@@ -156,6 +156,8 @@ To facilitate custom usage and become more future-proof, IBeam expects the follo
 | `PASSWORD_EL_ID` | password | HTML element id containing the password input field. |
 | `SUBMIT_EL_ID` | submitForm | HTML element id containing the submit button. |
 | `SUCCESS_EL_TEXT` | Client login succeeds | HTML element text indicating successful authentication. |
+| `MAINTENANCE_INTERVAL` | 60 | How many seconds between each maintenance. |
+| `LOG_LEVEL` | INFO | Verbosity level of the logger used. |
 
 ## <a name="security"></a>Security
 Please feel free to suggest improvements to the security risks currently present in IBeam and the Gateway by [opening an issue][issues] on GitHub.
@@ -164,7 +166,7 @@ Please feel free to suggest improvements to the security risks currently present
 
 The Gateway requires credentials to be provided on a regular basis. The only way to avoid manually having to input them every time is to store the credentials somewhere. This alone is a security risk.
 
-Currently, IBeam expects the credentials to be available as environment variables during runtime. Whether running IBeam in a container or directly on a host machine, an unwanted user may gain access to these credentials. If your setup is exposed to a risk of someone unauthorised reading the credentials, you may want to look for other solutions than IBeam or use the Gateway standalone and authenticate manually each time.
+Currently, IBeam expects the credentials to be available as environment variables during runtime. Whether running IBeam in a container or directly on a host machine, an unwanted user may gain access to these credentials. If your setup is exposed to a risk of someone unauthorised reading the credentials, you may want to look for other solutions than IBeam or use the Gateway standalone and _authenticate manually each time.
 
 We considered providing a possibility to read the credentials from an external credentials store, such as GCP Secrets, yet that would require some authentication credentials too, which brings back the same issue it was to solve.
 
@@ -211,14 +213,17 @@ IBeam was built by traders just like you. We made it open source in order to col
 * Remove necessity to install Chrome or find a lighter replacement.
 * Add usage examples.
 * Full test coverage.
+* Improve the security issues.
 
 Read the [CONTRIBUTING](https://github.com/Voyz/ibeam/blob/master/CONTRIBUTING.md) guideline to get started.
+
+----
 
 ## Licence
 
 See [LICENSE](https://github.com/Voyz/ibeam/blob/master/LICENSE)
 
-----
+
 
 ## Disclaimer
 
