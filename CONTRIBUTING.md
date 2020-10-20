@@ -47,18 +47,7 @@ Before you submit your issue search the archive, maybe your question was already
 
 If your issue appears to be a bug, and hasn't been reported, open a new issue.
 Help us to maximize the effort we can spend fixing issues and adding new
-features, by not reporting duplicate issues.  Providing the following information will increase the
-chances of your issue being dealt with quickly:
-
-* **Describe the bug** - A clear and concise description of what the bug is.
-* **To Reproduce**-  Steps to reproduce the behavior.
-* **Expected behavior** - A clear and concise description of what you expected to happen.
-* **Environment**
-  IBeam version:
-  Python version:
-  OS:
-* **Suggest a Fix** - if you can't fix the bug yourself, perhaps you can point to what might be
-  causing the problem (line of code or commit)
+features, by not reporting duplicate issues.
 
 Here's a template to get you started:
 
