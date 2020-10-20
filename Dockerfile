@@ -1,4 +1,4 @@
-FROM python:3.7.7-slim-buster AS ib-cpapi-compile
+FROM python:3.7.7-slim-buster
 
 # We will install packages to venv and then copy it
 RUN python -m venv /opt/venv
