@@ -28,13 +28,13 @@ Features:
 
 Documentation:
 
-* [Installation](installation)
+* [Installation](#installation)
 * [Startup](startup)
-* [Runtime environment requirements](runtime-environment)
-* [Security](security)
-* [Why Proxy?](why-proxy)
-* [How does IBeam work?](how-ibeam-works)
-* [Roadmap](roadmap)
+* [Runtime environment requirements](#runtime-environment)
+* [Security](#security)
+* [Why Proxy?](#proxy)
+* [How does IBeam work?](#how-ibeam-works)
+* [Roadmap](#roadmap)
 
 ## Installation
 
@@ -186,7 +186,7 @@ The Gateway doesn't seem to allow requests sent from a different host than the o
 
 By default the proxy listens to port `8081`, although this can be altered by changing the `PROXY_PORT` environment variable. Make sure you expose the correct port when running the image.
 
-## How does IBeam work?
+## <a name="how-ibeam-works"></a>How does IBeam work?
 
 In a standard startup IBeam performs the following:
 
