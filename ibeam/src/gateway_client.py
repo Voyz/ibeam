@@ -12,6 +12,9 @@ from getpass import getpass
 from pathlib import Path
 from urllib.error import HTTPError, URLError
 
+from apscheduler.executors.pool import ThreadPoolExecutor
+from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.triggers.interval import IntervalTrigger
 from cryptography.fernet import Fernet
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException
@@ -55,6 +58,14 @@ _SUBMIT_EL_ID = os.environ.get('SUBMIT_EL_ID', 'submitForm')
 
 _SUCCESS_EL_TEXT = os.environ.get('SUCCESS_EL_TEXT', 'Client login succeeds')
 """HTML element text indicating successful authentication."""
+
+_MAINTENANCE_INTERVAL = os.environ.get('MAINTENANCE_INTERVAL', 60)
+"""How many seconds between each maintenance."""
+
+_LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+"""Verbosity level of the logger used."""
+
+logging.getLogger('ibeam').setLevel(getattr(logging, _LOG_LEVEL))
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
@@ -174,45 +185,67 @@ class GatewayClient():
             self.driver_path = input('Chrome Driver executable path: ')
 
         self._empty_context = ssl.SSLContext()
+        self._threads = 4
 
-    def start(self):
+    def _start(self):
+        creationflags = 0  # when not on Windows, we send 0 to avoid errors.
+
+        if sys.platform == 'win32':
+            args = ["cmd", "/k", r"bin\run.bat", r"root\conf.yaml"]
+            _LOGGER.debug(f'Starting Windows process with params: {args}')
+            creationflags = subprocess.CREATE_NEW_CONSOLE
+
+        elif sys.platform == 'darwin':
+            args = ["open", "-F", "-a", "Terminal", r"bin/run.sh", r"root/conf.yaml"]
+            _LOGGER.debug(f'Starting Mac process with params: {args}')
+
+        elif sys.platform == 'linux':
+            args = ["bash", r"bin/run.sh", r"root/conf.yaml"]
+            _LOGGER.debug(f'Starting Linux process with params: {args}')
+
+        else:
+            raise EnvironmentError(f'Unknown platform: {sys.platform}')
+
+        self.server_process = subprocess.Popen(
+            args=args,
+            cwd=self.gateway_path,
+            creationflags=creationflags
+        )
+        return self.server_process
+
+    def try_starting(self):
         if not self.tickle():
             _LOGGER.info('Gateway not found, starting new one.')
 
-            creationflags = 0  # when not on Windows, we send 0 to avoid errors.
-
-            if sys.platform == 'win32':
-                args = ["cmd", "/k", r"bin\run.bat", r"root\conf.yaml"]
-                _LOGGER.debug(f'Starting Windows process with params: {args}')
-                creationflags = subprocess.CREATE_NEW_CONSOLE
-
-            elif sys.platform == 'darwin':
-                args = ["open", "-F", "-a", "Terminal", r"bin/run.sh", r"root/conf.yaml"]
-                _LOGGER.debug(f'Starting Mac process with params: {args}')
-
-            elif sys.platform == 'linux':
-                args = ["bash", r"bin/run.sh", r"root/conf.yaml"]
-                _LOGGER.debug(f'Starting Linux process with params: {args}')
-
-            else:
-                raise EnvironmentError(f'Unknown platform: {sys.platform}')
-
-            self.server_process = subprocess.Popen(
-                args=args,
-                cwd=self.gateway_path,
-                creationflags=creationflags
-            )
+            self._start()
 
             _LOGGER.debug(f'Gateway started with process id: {self.server_process.pid}')
 
             return self.server_process.pid
-        else:
-            _LOGGER.debug('Gateway is already running.')
-            return None
+            # _LOGGER.debug('Gateway is already running.')
+        return None
 
-    def authenticate(self):
+    def _authenticate(self):
         driver = new_chrome_driver(self.driver_path)
         return authenticate_gateway(driver, self.account, self.password, self.key, self.base_url)
+
+    def try_authenticating(self):
+        if not self.validate():
+            _LOGGER.info('Authenticating.')
+            time.sleep(_GATEWAY_STARTUP_SECONDS)
+
+            success = self._authenticate()
+            _LOGGER.info(f'Authentication {"succeeded" if success else "failed"}')
+            if not success:
+                return False
+
+            if not self.validate():  # double check if authenticated
+                if self.tickle():
+                    _LOGGER.error('Gateway running but not authenticated.')
+                else:
+                    _LOGGER.error('Gateway not running and not authenticated.')
+                return False
+        return True
 
     def _url_request(self, url):
         _LOGGER.debug(f'URL request to: {url}')
@@ -261,26 +294,24 @@ class GatewayClient():
         except Exception as e:
             _LOGGER.exception(e)
 
-    def start_and_authenticate(self):
+    def start_and_authenticate(self) -> bool:
         """Starts the gateway and authenticates using the credentials stored."""
 
-        self.start()
+        self.try_starting()
 
-        if not self.validate():
-            _LOGGER.info('Authenticating.')
-            time.sleep(_GATEWAY_STARTUP_SECONDS)
+        success = self.try_authenticating()
 
-            success = self.authenticate()
-            _LOGGER.info(f'Authentication {"succeeded" if success else "failed"}')
-            if not success:
-                return False
+        return success
 
-            if not self.validate():
-                if self.tickle():
-                    _LOGGER.error('Gateway running but not authenticated.')
-                else:
-                    _LOGGER.error('Gateway not running and not authenticated.')
-                return False
+    def maintain(self):
+        executors = {'default': ThreadPoolExecutor(self._threads)}
+        job_defaults = {'coalesce': False, 'max_instances': self._threads}
+        self._scheduler = BlockingScheduler(executors=executors, job_defaults=job_defaults, timezone='UTC')
+        self._scheduler.add_job(self._maintenance, trigger=IntervalTrigger(seconds=_MAINTENANCE_INTERVAL))
+        _LOGGER.info(f'Starting maintenance with interval {_MAINTENANCE_INTERVAL} seconds.')
+        self._scheduler.start()
 
-        _LOGGER.info('Gateway running and authenticated.')
-        return True
+    def _maintenance(self):
+        _LOGGER.debug('Maintenance')
+
+        self.start_and_authenticate()

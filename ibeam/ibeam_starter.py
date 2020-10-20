@@ -19,10 +19,11 @@ _LOGGER = logging.getLogger('ibeam')
 def parse_args():
     parser = argparse.ArgumentParser(description='Start, authenticate and verify the IB Gateway.')
     parser.add_argument('-a', '--authenticate', action='store_true', help='Authenticates the existing gateway.')
+    parser.add_argument('-m', '--maintain', action='store_true', help='Maintain the gateway.')
     parser.add_argument('-s', '--start', action='store_true', help='Start the gateway.')
-    parser.add_argument('-l', '--validate', action='store_true', help='Validate authentication.')
     parser.add_argument('-t', '--tickle', action='store_true', help='Tickle the gateway.')
     parser.add_argument('-u', '--user', action='store_true', help='Get the user.')
+    parser.add_argument('-l', '--validate', action='store_true', help='Validate authentication.')
     parser.add_argument('-v', '--verbose', action='store_true', help='Verbose output.')
 
     args = parser.parse_args()
@@ -38,10 +39,12 @@ if __name__ == '__main__':
         _LOGGER.setLevel(logging.DEBUG)
 
     if args.start:
-        client.start()
+        pid = client.try_starting()
+        success = pid is not None
+        _LOGGER.info(f'Startup {"succeeded" if success else "failed"}.')
     elif args.authenticate:
-        success = client.authenticate()
-        _LOGGER.info(f'Authentication {"succeeded" if success else "failed"}')
+        success = client.try_authenticating()
+        _LOGGER.info(f'Authentication {"succeeded" if success else "failed"}.')
     elif args.validate:
         success = client.validate()
         _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
@@ -50,5 +53,9 @@ if __name__ == '__main__':
         _LOGGER.info(f'Gateway {"" if success else "not "}running.')
     elif args.user:
         client.user()
+    elif args.maintain:
+        client.maintain()
     else:
-        client.start_and_authenticate()
+        success = client.start_and_authenticate()
+        if success:
+            _LOGGER.info('Gateway running and authenticated.')
