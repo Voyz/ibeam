@@ -171,17 +171,6 @@ Currently, IBeam expects the credentials to be available as environment variable
 We considered providing a possibility to read the credentials from an external credentials store, such as GCP Secrets, yet that would require some authentication credentials too, which brings back the same issue it was to solve.
 
 ### Certificates
-<del>
-Currently IBeam does not support TLS certificates, and as such HTTPS.
-
-From IBKR documentation:
-
-> Since the gateway is running on your premises the certificate needs to be created/self-signed by you, or officially signed by a 3rd party. The gateway is similar to another webserver such as Tomcat which doesn't provide a certificate along with the release.
-
-This means that anyone could send unauthorised requests to the authenticated Gateway running using IBeam. Make sure the Gateway is securely isolated and that your firewall rules prevent any unauthorised requests from reaching it.
-
-We're considering adding the TLS certificates support in the future. Please feel free to contribute changes that would enable TLS certificates support.
-</del>
 
 Certificates support is currently in development.
 
