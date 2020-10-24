@@ -1,4 +1,5 @@
-*This library is currently being beta-tested. See something that's broken? Did we get something wrong? [Create an issue and let us know!][issues]*
+# Warning: Pre-alpha version in active development - may not function as described below. 
+*We expect to release a working version by the end of 2020.*
 
 <p align="center">
     <a id="ibeam" href="#ibeam">
@@ -32,7 +33,6 @@ Documentation:
 * [Startup](#startup)
 * [Runtime environment requirements](#runtime-environment)
 * [Security](#security)
-* [Why Proxy?](#proxy)
 * [How does IBeam work?](#how-ibeam-works)
 * [Roadmap](#roadmap)
 
@@ -52,25 +52,22 @@ pip install ibeam
 
 ### Using Docker image (recommended)
 
-IBeam's Docker image is configured to work out of the box. Run the IBeam image [exposing the port 8081](#proxy) and providing the environment variable credentials either [directly or through a file][docker-envs].
+IBeam's Docker image is configured to work out of the box. Run the IBeam image exposing the port 5000 and providing the environment variable credentials either [directly or through a file][docker-envs].
 
 Using env.list file:
 ```posh
-docker run --env-file env.list -p 8081:8081 voyz/ibeam
+docker run --env-file env.list -p 5000:5000 voyz/ibeam
 ```
 
 Providing environment variables directly:
 ```posh
-docker run --env IB_ACCOUNT=your_account123 --env IB_PASSWORD=your_password123 -p 8081:8081 voyz/ibeam
+docker run --env IB_ACCOUNT=your_account123 --env IB_PASSWORD=your_password123 -p 5000:5000 voyz/ibeam
 ```
 
 Verify the Gateway is running inside of the container by calling:
 ```posh
-curl -x localhost:8081 -X GET "https://localhost:5000/v1/api/one/user" -k
+curl -X GET "https://localhost:5000/v1/api/one/user" -k
 ```
-
-Note that IBeam image uses a proxy to expose the communication with the Gateway. It is the port to that proxy you need to expose when running a container, not the Gateway's. Read more about it in [Why proxy?](#proxy).
-
 
 ### Standalone 
 
@@ -169,12 +166,12 @@ Please feel free to suggest improvements to the security risks currently present
 
 The Gateway requires credentials to be provided on a regular basis. The only way to avoid manually having to input them every time is to store the credentials somewhere. This alone is a security risk.
 
-Currently, IBeam expects the credentials to be available as environment variables during runtime. Whether running IBeam in a container or directly on a host machine, an unwanted user may gain access to these credentials. If your setup is exposed to a risk of someone unauthorised reading the credentials, you may want to look for other solutions than IBeam or use the Gateway standalone and _authenticate manually each time.
+Currently, IBeam expects the credentials to be available as environment variables during runtime. Whether running IBeam in a container or directly on a host machine, an unwanted user may gain access to these credentials. If your setup is exposed to a risk of someone unauthorised reading the credentials, you may want to look for other solutions than IBeam or use the Gateway standalone and authenticate manually each time.
 
 We considered providing a possibility to read the credentials from an external credentials store, such as GCP Secrets, yet that would require some authentication credentials too, which brings back the same issue it was to solve.
 
 ### Certificates
-
+<del>
 Currently IBeam does not support TLS certificates, and as such HTTPS.
 
 From IBKR documentation:
@@ -184,12 +181,10 @@ From IBKR documentation:
 This means that anyone could send unauthorised requests to the authenticated Gateway running using IBeam. Make sure the Gateway is securely isolated and that your firewall rules prevent any unauthorised requests from reaching it.
 
 We're considering adding the TLS certificates support in the future. Please feel free to contribute changes that would enable TLS certificates support.
+</del>
 
-## <a name="proxy"></a>Why proxy?
+Certificates support is currently in development.
 
-The Gateway doesn't seem to allow requests sent from a different host than the one it is running on. While there is no information on this behaviour in IBKR documentation, it is most likely motivated by security concerns. In order to containerise IBeam, a proxy is running in parallel to the Gateway using the [proxy.py][proxypy] package. 
-
-By default the proxy listens to port `8081`, although this can be altered by changing the `PROXY_PORT` environment variable. Make sure you expose the correct port when running the image.
 
 ## <a name="how-ibeam-works"></a>How does IBeam work?
 
@@ -204,7 +199,6 @@ In a standard startup IBeam performs the following:
     1. Once loaded, input username and password and submit the form.
     1. Wait for the login confirmation and quit the website.
     1. Verify once again if Gateway is running and authenticated.
-1. **Start the proxy** (if run as a Docker image).
 1. **Start the maintenance**, attempting to keep the Gateway alive and authenticated.
 
 
@@ -212,7 +206,7 @@ In a standard startup IBeam performs the following:
 
 IBeam was built by traders just like you. We made it open source in order to collectively build a reliable solution. If you enjoy using IBeam, we encourage you to attempt implementing one of the following tasks:
 
-* Include TLS certificates.
+* ~~Include TLS certificates.~~
 * Remove necessity to install Java.
 * Remove necessity to install Chrome or find a lighter replacement.
 * Add usage examples.
@@ -239,7 +233,6 @@ IBeam is provided on an AS IS and AS AVAILABLE basis without any representation 
 
 [issues]: https://github.com/Voyz/ibeam/issues
 [fernet]: https://cryptography.io/en/latest/fernet/
-[proxypy]: https://github.com/abhinavsingh/proxy.py
 [gateway]: https://interactivebrokers.github.io/cpwebapi/
 [jre]: https://www.java.com/en/download/
 [chrome]: https://www.google.com/chrome/
