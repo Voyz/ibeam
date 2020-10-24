@@ -83,10 +83,12 @@ python ibeam_starter.py
 Following exclusive flags can be provided when running the starter script:
 
 * `-a`, `--_authenticate` - Authenticate the currently running gateway.
+* `-k`, `--kill` - Kill the gateway.
+* `-m`, `--maintain` - Maintain the gateway.
 * `-s`, `--start` - Start the gateway if not already running.
-* `-l`, `--validate` - Validate authentication.
 * `-t`, `--tickle` - Tickle the gateway.
 * `-u`, `--user` - Get the user info.
+* `-l`, `--validate` - Validate authentication.
 
 Additionally the following flag can be supplied with any other flags to log additional runtime information:
 
