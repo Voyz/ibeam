@@ -71,7 +71,7 @@ curl -X GET "https://localhost:5000/v1/api/one/user" -k
 
 ### Standalone 
 
-The entrypoint of IBeam is the `ibeam_starter.py` script. When called without any arguments, the script will start the Gateway (if not currently running) and will attempt to _authenticate (if not currently authenticated).
+The entrypoint of IBeam is the `ibeam_starter.py` script. When called without any arguments, the script will start the Gateway (if not currently running) and will attempt to authenticate (if not currently authenticated).
 
 ```posh
 python ibeam_starter.py
@@ -79,7 +79,7 @@ python ibeam_starter.py
 
 Following exclusive flags can be provided when running the starter script:
 
-* `-a`, `--_authenticate` - Authenticate the currently running gateway.
+* `-a`, `--authenticate` - Authenticate the currently running gateway.
 * `-k`, `--kill` - Kill the gateway.
 * `-m`, `--maintain` - Maintain the gateway.
 * `-s`, `--start` - Start the gateway if not already running.
