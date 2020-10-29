@@ -2,6 +2,8 @@
 
 This is a guide on setting up TLS certificates in IBeam.
 
+See [IBeam's GitHub][ibeam-github] page for the remaining documentation.
+
 
 Gateway (and as such IBeam) supports providing your own certificate and using it for authentication. Unfortunately, it isn't very straightforward. Make sure to familiarize yourself with the following before proceeding:
 
@@ -10,12 +12,9 @@ Gateway (and as such IBeam) supports providing your own certificate and using it
 
 In short, to enable custom certificates' support you will need to:
 
-* Generate the `cacert.jks` and `cacert.pem` certificates
-* Alter the `conf.yaml`
-* Provide these three files to IBeam using the Inputs Directory
-  * conf.yaml
-  * cacert.jks
-  * cacert.pem
+1. Generate the `cacert.jks` and `cacert.pem` certificates.
+1. Alter the `conf.yaml`.
+1. Provide these three files to IBeam using the Inputs Directory.
 ## <a name="two-certificates"></a>Two certificates
 
 Gateway is a Java application which requires a [Java KeyStore][jks] (.jks) certificate. However, most modern clients use other formats, such as [Privacy-Enhanced Mail][pem] (.pem) or [Public-Key Cryptography Standards][pkcs] (.p12). 
@@ -48,12 +47,14 @@ Such altered `conf.yaml` needs to be stored in the same Input Directory as the `
 
 ## <a name="generating-certificates"></a>Generating Certificates
 
-You can generate your own self-signed certificates in two ways:
+You can generate your own self-signed certificate in two ways:
 
 * [Using Keytool](#using-keytool) to generate `cacert.jks`
 * [Using OpenSSL](#using-openssl) to generate `cacert.pem`
 
 Either way you chose, you will then need to convert one certificate into the other and provide IBeam with both. Therefore, you will need both [Keytool][jre] and [OpenSSL][openssl] to generate your certificates.
+
+Note that you can't generate `cacert.jks` and `cacert.pem` independently. You must generate only one certificate first using either method and then convert it into the other format.
 
 ### <a name="using-keytool"></a>Using Keytool
 
@@ -120,19 +121,62 @@ You should now have `cacert.jks`, `cacert.p12` and `cacert.pem`. You will only n
 
 #### Generate PEM
 
-```posh
-openssl req -x509 -days 730 -newkey rsa:2048 -keyout key.pem -out cert.pem
-```
+1. To generate a `cacert.pem` using OpenSSL run:
+
+    ```posh
+    openssl req -x509 -days 730 -newkey rsa:2048 -keyout key.pem -out cert.pem
+    ```
+   
+    Optionally, you may want to add additional option to provide Subject Alternative Names (SAN) in order for the certificate to accept requests from your client hosts. To do so, you must create a `san.cnf` used as a configuration file for openssl, and add the following to the openssl command line:
+    
+    ```posh
+    -config san.cnf
+    ```
+   
+   Your `san.cnf` can take multiple forms, yet to support SAN it requires the subjectAltName field. For your convinence, we prepared a template [san.cnf](support/san.cnf) file that you can use as a basis to specify your SANs.
+   
+   For instance, if the server with IBeam is to be communicated with from two client machines, one with IP address of `10.148.0.0` and one with DNS of `my-client.machine.com`, your `san.cnf` should contain:
+   
+   ```cfg
+   [alt_names]
+   IP.1 = 10.148.0.0
+   DNS.1 = my-client.machine.com
+   ```
+   
+1. You will be asked for a password. This is the password you will need to [provide in the `sslPwd` field of the `conf.yaml`](#certificates-in-conf-yaml). You will need to use this same password in later steps.
+
+1. You should now have `key.pem` and `cert.pem`files in your current directory.
+
+1. Combine `key.pem` and `cert.pem` to create `cacert.pem`:
+
+    ```posh
+    cat key.pem cert.pem > cacert.pem 
+    ```
+   
+   You can also merge these two files manually if you prefer.
+   
+1. You should now have `cacert.pem`, `key.pem` and `cert.pem`. You will only need the `cacert.pem` file. You may delete the redundant `key.pem` and `cert.pem` files.
 
 #### PEM to JKS
 
-```posh
-cat key.pem cert.pem | openssl pkcs12 -export -out cacert.p12
-```
+To convert a `cacert.pem` to `cacert.jsk` file you need to:
 
-```posh
-keytool -importkeystore -srckeystore cacert.p12 -srcstoretype pkcs12 -destkeystore cacert.jks
-```
+
+1. Convert `cacert.pem` to `cacert.p12` using OpenSSL:
+    ```posh
+    openssl pkcs12 -export -in cacert.pem -out cacert.p12
+    ```
+   
+    You will be asked for a new password for `cacert.p12`, as well as for the original password of `cacert.pem`. Ensure you use the same password as when generating the `cacert.pem`.
+
+1. Convert `cacert.p12` to `cacert.jks` using Keytool:
+    ```posh
+    keytool -importkeystore -srckeystore cacert.p12 -srcstoretype pkcs12 -destkeystore cacert.jks
+    ```
+   
+    Again, you will be asked for a new password for `cacert.jks`, as well as for the original password of `cacert.p12`. Ensure you use the same password as when generating the `cacert.pem` and `cacert.p12`.
+
+1. You should now have the `cacert.jks` file generated in your current directory.
 
 You should now have `cacert.pem`, `cacert.p12` and `cacert.jks`. You will only need the `.jks` and `.pem` files. You may delete the redundant `cacert.p12` file.
 
@@ -141,3 +185,4 @@ You should now have `cacert.pem`, `cacert.p12` and `cacert.jks`. You will only n
 [pkcs]: https://en.wikipedia.org/wiki/PKCS
 [jks]: https://en.wikipedia.org/wiki/Java_KeyStore
 [openssl]: https://www.openssl.org/
+[ibeam-github]: https://github.com/Voyz/ibeam
