@@ -261,6 +261,23 @@ Currently, IBeam expects the credentials to be available as environment variable
 
 We considered providing a possibility to read the credentials from an external credentials store, such as GCP Secrets, yet that would require some authentication credentials too, which brings back the same issue it was to solve.
 
+## Troubleshooting
+
+#### Access Denied.
+
+`Access Denied.` is a cryptic message that Gateway sends when it receives a request from an IP address it doesn't allow requests from. To fix it specify your client's IP address in the `conf.yaml` under `ips/allow` and ensure your IP is not listed in `ips/deny`.
+
+Eg.:
+
+```yaml
+ips:
+  allow:
+    10.148.0.0
+    10.149.*
+```
+
+Learn how to provide IBeam with a custom `conf.yaml` in [Conf.yaml section](#conf-yaml).
+
 ## Roadmap
 
 IBeam was built by traders just like you. We made it open source in order to collectively build a reliable solution. If you enjoy using IBeam, we encourage you to attempt implementing one of the following tasks:
