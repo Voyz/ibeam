@@ -1,4 +1,4 @@
-#IBeam Proprietary TLS Certificates
+# IBeam Proprietary TLS Certificates
 
 This is a guide on setting up TLS certificates in IBeam.
 
@@ -16,7 +16,7 @@ In short, to enable custom certificates' support you will need to:
   * conf.yaml
   * cacert.jks
   * cacert.pem
-#### <a name="two-certificates"></a>Two certificates
+## <a name="two-certificates"></a>Two certificates
 
 Gateway is a Java application which requires a [Java KeyStore][jks] (.jks) certificate. However, most modern clients use other formats, such as [Privacy-Enhanced Mail][pem] (.pem) or [Public-Key Cryptography Standards][pkcs] (.p12). 
 
@@ -26,7 +26,7 @@ Upon startup, IBeam will look for `cacert.jks` and `cacert.pem` files in the [In
 
 You can read more about generating right certificates in [Generating Certificates](#generating-certificates).
 
-#### <a name="certificates-in-conf-yaml"></a>Certificates in Conf.yaml
+## <a name="certificates-in-conf-yaml"></a>Certificates in Conf.yaml
 
 Apart from [providing the certificates](#two-certificates) using the Inputs Directory, you also need to [provide an altered `conf.yaml`](#conf-yaml) file to tell Gateway to use your `cacert.jks` certificate instead of the default one.
 
@@ -46,7 +46,7 @@ sslPwd: "YOUR_CERTIFICATE_PASSWORD"
 
 Such altered `conf.yaml` needs to be stored in the same Input Directory as the `cacert.jks` and `cacert.pem` certificates.
 
-### <a name="generating-certificates"></a>Generating Certificates
+## <a name="generating-certificates"></a>Generating Certificates
 
 You can generate your own self-signed certificates in two ways:
 
@@ -55,9 +55,9 @@ You can generate your own self-signed certificates in two ways:
 
 Either way you chose, you will then need to convert one certificate into the other and provide IBeam with both. Therefore, you will need both [Keytool][jre] and [OpenSSL][openssl] to generate your certificates.
 
-#### <a name="using-keytool"></a>Using Keytool
+### <a name="using-keytool"></a>Using Keytool
 
-##### Generate JKS
+#### Generate JKS
 
 Keytool is a Java tool shipped with [Java Runtime Environment][jre] (JRE). It can be found in `JRE_ROOT/bin/keytool`.
 
@@ -114,7 +114,7 @@ To convert a `cacert.jks` to `cacert.pem` file you need to:
 
 1. You should now have the `cacert.pem` file generated in your current directory.
 
-#### <a name="using-openssl"></a>Using OpenSSL
+### <a name="using-openssl"></a>Using OpenSSL
 
 #### Generate PEM
 
