@@ -28,7 +28,7 @@ You can read more about generating right certificates in [Generating Certificate
 
 ## <a name="certificates-in-conf-yaml"></a>Certificates in Conf.yaml
 
-Apart from [providing the certificates](#two-certificates) using the Inputs Directory, you also need to [provide an altered `conf.yaml`](#conf-yaml) file to tell Gateway to use your `cacert.jks` certificate instead of the default one.
+Apart from [providing the certificates](#two-certificates) using the Inputs Directory, you also need to [provide an altered `conf.yaml`](https://github.com/Voyz/ibeam#conf-yaml) file to tell Gateway to use your `cacert.jks` certificate instead of the default one.
 
 To do so, change the following two fields in `conf.yaml`:
 
@@ -74,7 +74,7 @@ Keytool is a Java tool shipped with [Java Runtime Environment][jre] (JRE). It ca
     -ext SAN=ip:10.147.0.0,dns:my-client.machine.com
     ```
 
-2. Upon running the above line, you will be asked the following questions which you may chose to ignore:
+1. Upon running command from Step 1, you will be asked the following questions which you may chose to ignore:
     * What is your first and last name?
     * What is the name of your organizational unit?
     * What is the name of your organization?
@@ -82,15 +82,15 @@ Keytool is a Java tool shipped with [Java Runtime Environment][jre] (JRE). It ca
     * What is the name of your State or Province?
     * What is the two-letter country code for this unit?
 
-3. Eventually, Keytool will ask for your confirmation, along the lines of:
+1. Eventually, Keytool will ask for your confirmation, along the lines of:
     
     > Is CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown correct?
 
     Type `yes` to continue if the information is correct.
 
-4. Finally, Keytool will ask you for the key password. You may simply hit return to use the same password as specified in the `-storepass` flag above. DO NOT provide a different password than YOUR_CERTIFICATE_PASSWORD specified above.
+1. Finally, Keytool will ask you for the key password. You may simply hit return to use the same password as specified in the `-storepass` flag in Step 1. DO NOT provide a different password than YOUR_CERTIFICATE_PASSWORD specified above.
 
-5. You should now have the `cacert.jsk` file generated in your current directory.
+1. You should now have the `cacert.jsk` file generated in your current directory.
 
 
 
@@ -100,7 +100,7 @@ Keytool is a Java tool shipped with [Java Runtime Environment][jre] (JRE). It ca
 
 To convert a `cacert.jks` to `cacert.pem` file you need to:
 
-1. Convert `cacert.jsk` to `cacert.p12`:
+1. Convert `cacert.jsk` to `cacert.p12` using Keytool:
     ```posh
     keytool -importkeystore -srckeystore cacert.jks -destkeystore cacert.p12 -srcstoretype jks -deststoretype pkcs12
     ```
@@ -113,6 +113,8 @@ To convert a `cacert.jks` to `cacert.pem` file you need to:
    Again, you will be asked for a new password for `cacert.pam`, as well as for the original password of `cacert.p12`. Ensure you use the same password as when generating the `cacert.jsk` and `cacert.p12`.
 
 1. You should now have the `cacert.pem` file generated in your current directory.
+
+You should now have `cacert.jks`, `cacert.p12` and `cacert.pem`. You will only need the `.jks` and `.pem` files. You may delete the redundant `cacert.p12` file.
 
 ### <a name="using-openssl"></a>Using OpenSSL
 
@@ -131,6 +133,8 @@ cat key.pem cert.pem | openssl pkcs12 -export -out cacert.p12
 ```posh
 keytool -importkeystore -srckeystore cacert.p12 -srcstoretype pkcs12 -destkeystore cacert.jks
 ```
+
+You should now have `cacert.pem`, `cacert.p12` and `cacert.jks`. You will only need the `.jks` and `.pem` files. You may delete the redundant `cacert.p12` file.
 
 [jre]: https://www.java.com/en/download/
 [pem]: https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail
