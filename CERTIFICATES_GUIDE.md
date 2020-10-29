@@ -32,7 +32,7 @@ Gateway is a Java application which requires a [Java KeyStore][jks] (.jks) certi
 
 As a result you will need to provide both `cacert.jks` and `cacert.pem` certificates. The `cacert.jks` is used by the Gateway, while the `cacert.pem` is used by IBeam to communicate with the Gateway.
 
-Upon startup, IBeam will look for `cacert.jks` and `cacert.pem` files in the [Inputs Directory](#inputs-directory). If none are found, IBeam will use the [default TLS certificate](https://github.com/Voyz/ibeam#default-tls-certificate) and ignore certificate verification.
+Upon startup, IBeam will look for `cacert.jks` and `cacert.pem` files in the [Inputs Directory](https://github.com/Voyz/ibeam#inputs-directory). If none are found, IBeam will use the [default TLS certificate](https://github.com/Voyz/ibeam#default-tls-certificate) and ignore certificate verification.
 
 You can read more about generating right certificates in [Generating Certificates](#generating-certificates).
 
@@ -80,7 +80,7 @@ Keytool is a Java tool shipped with [Java Runtime Environment][jre] (JRE). It ca
     
     Note the YOUR_CERTIFICATE_PASSWORD field. Replace it which certificate password you want to use. This is the password you will need to [provide in the `sslPwd` field of the `conf.yaml`](#certificates-in-conf-yaml). You will need to use this same password in later steps.
     
-    Optionally, you may want to add additional option to provide Subject Alternative Names in order for the certificate to accept requests from your client hosts. For instance, if the server with IBeam is to be communicated with from two client machines, one with IP address of `10.148.0.0` and one with DNS of `my-client.machine.com`, your keytool command line should include:
+    Optionally, you may want to add additional option to provide Subject Alternative Names (SAN) in order for the certificate to accept requests from your client hosts. For instance, if the server with IBeam is to be communicated with from two client machines, one with IP address of `10.148.0.0` and one with DNS of `my-client.machine.com`, your keytool command line should include:
         
     ```posh
     -ext SAN=ip:10.147.0.0,dns:my-client.machine.com
