@@ -24,6 +24,7 @@ Features:
 
 * **No physical display required** - virtual display buffer can be used instead.
 * **No interaction from the user required** - automated injection of IBKR credentials into the authentication page used by the Gateway. 
+* **TLS certificate support** - you can provide your own certificates.
 * **Containerised using Docker** - it's a plug and play image, although IBeam can be used as standalone too.
 * **Not so secure** - Yupp, you'll need to store the credentials somewhere, and that's a risk. Read more about it in [Security](#security).
 
@@ -159,16 +160,6 @@ To facilitate custom usage and become more future-proof, IBeam expects the follo
 | `MAINTENANCE_INTERVAL` | 60 | How many seconds between each maintenance. |
 | `LOG_LEVEL` | INFO | Verbosity level of the logger used. |
 
-## <a name="security"></a>Security
-Please feel free to suggest improvements to the security risks currently present in IBeam and the Gateway by [opening an issue][issues] on GitHub.
-
-### Credentials
-
-The Gateway requires credentials to be provided on a regular basis. The only way to avoid manually having to input them every time is to store the credentials somewhere. This alone is a security risk.
-
-Currently, IBeam expects the credentials to be available as environment variables during runtime. Whether running IBeam in a container or directly on a host machine, an unwanted user may gain access to these credentials. If your setup is exposed to a risk of someone unauthorised reading the credentials, you may want to look for other solutions than IBeam or use the Gateway standalone and authenticate manually each time.
-
-We considered providing a possibility to read the credentials from an external credentials store, such as GCP Secrets, yet that would require some authentication credentials too, which brings back the same issue it was to solve.
 
 ## <a name="inputs-directory"></a>Inputs Directory
 
@@ -249,6 +240,7 @@ Please see [CERTIFICATES_GUIDE](CERTIFICATES_GUIDE.md) to learn how to enable cu
 
 In a standard startup IBeam performs the following:
 
+1. **Copy inputs** from the Inputs Directory to Gateway's `root` folder (if provided).
 1. **Ensure the Gateway is running** by calling the tickle endpoint. If not:
     1. Start the Gateway in a new shell.
 1. **Ensure the Gateway is authenticated** by calling the validation endpoint. If not:
@@ -260,6 +252,17 @@ In a standard startup IBeam performs the following:
     1. Verify once again if Gateway is running and authenticated.
 1. **Start the maintenance**, attempting to keep the Gateway alive and authenticated.
 
+
+## <a name="security"></a>Security
+Please feel free to suggest improvements to the security risks currently present in IBeam and the Gateway by [opening an issue][issues] on GitHub.
+
+### Credentials
+
+The Gateway requires credentials to be provided on a regular basis. The only way to avoid manually having to input them every time is to store the credentials somewhere. This alone is a security risk.
+
+Currently, IBeam expects the credentials to be available as environment variables during runtime. Whether running IBeam in a container or directly on a host machine, an unwanted user may gain access to these credentials. If your setup is exposed to a risk of someone unauthorised reading the credentials, you may want to look for other solutions than IBeam or use the Gateway standalone and authenticate manually each time.
+
+We considered providing a possibility to read the credentials from an external credentials store, such as GCP Secrets, yet that would require some authentication credentials too, which brings back the same issue it was to solve.
 
 ## Roadmap
 
@@ -301,7 +304,4 @@ IBeam is provided on an AS IS and AS AVAILABLE basis without any representation 
 [curl-k]: https://curl.haxx.se/docs/manpage.html#-k
 [urllib3]: https://urllib3.readthedocs.io/en/latest/
 [requests-ssl]: https://2.python-requests.org/en/master/user/advanced/#ssl-cert-verification
-[pem]: https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail
-[pkcs]: https://en.wikipedia.org/wiki/PKCS
-[jks]: https://en.wikipedia.org/wiki/Java_KeyStore
 [docker-volumes]: https://docs.docker.com/storage/volumes/
