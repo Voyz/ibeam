@@ -227,12 +227,9 @@ Gateway (and as such IBeam) supports providing your own certificate and using it
 
 In short, to enable custom certificates' support you will need to:
 
-* Generate the `cacert.jks` and `cacert.pem` certificates
-* Alter the `conf.yaml`
-* Provide these three files to IBeam using the Inputs Directory
-  * conf.yaml
-  * cacert.jks
-  * cacert.pem
+1. Generate the `cacert.jks` and `cacert.pem` certificates.
+1. Alter the `conf.yaml`.
+1. Provide these three files to IBeam using the Inputs Directory.
 
 Please see [CERTIFICATES_GUIDE](CERTIFICATES_GUIDE.md) to learn how to enable custom certificates.
 
