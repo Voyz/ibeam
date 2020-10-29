@@ -4,8 +4,18 @@ This is a guide on setting up TLS certificates in IBeam.
 
 See [IBeam's GitHub][ibeam-github] page for the remaining documentation.
 
+This documentation includes:
 
-Gateway (and as such IBeam) supports providing your own certificate and using it for authentication. Unfortunately, it isn't very straightforward. Make sure to familiarize yourself with the following before proceeding:
+* [Overview](#overview)
+* [Why two certificates?](#two-certificates)
+* [Certificates in Conf.yaml](#certificates-in-conf-yaml)
+* [Generating Certificates](#generating-certificates)
+* [Summary](#summary)
+* [Use your certificate](#use-your-certificate)
+
+
+## <a name="overview"></a>Overview 
+Gateway (and as such IBeam) supports providing your own certificate and using it for HTTPS verification. Unfortunately, it isn't very straightforward. Make sure to familiarize yourself with the following before proceeding:
 
 * [Inputs Directory](https://github.com/Voyz/ibeam#inputs-directory)
 * [Conf.yaml](https://github.com/Voyz/ibeam#conf-yaml)
@@ -14,12 +24,13 @@ In short, to enable custom certificates' support you will need to:
 
 1. Generate the `cacert.jks` and `cacert.pem` certificates.
 1. Alter the `conf.yaml`.
-1. Provide these three files to IBeam using the Inputs Directory.
-## <a name="two-certificates"></a>Two certificates
+1. Provide these three files to IBeam using the Inputs Directory before startup.
+
+## <a name="two-certificates"></a>Why two certificates?
 
 Gateway is a Java application which requires a [Java KeyStore][jks] (.jks) certificate. However, most modern clients use other formats, such as [Privacy-Enhanced Mail][pem] (.pem) or [Public-Key Cryptography Standards][pkcs] (.p12). 
 
-As a result you will need to provide both `cacert.jsk` and `cacert.pem` certificates. The `cacert.jks` is used by the Gateway, while the `cacert.pem` is used by IBeam to communicate with the Gateway.
+As a result you will need to provide both `cacert.jks` and `cacert.pem` certificates. The `cacert.jks` is used by the Gateway, while the `cacert.pem` is used by IBeam to communicate with the Gateway.
 
 Upon startup, IBeam will look for `cacert.jks` and `cacert.pem` files in the [Inputs Directory](#inputs-directory). If none are found, IBeam will use the [default TLS certificate](https://github.com/Voyz/ibeam#default-tls-certificate) and ignore certificate verification.
 
@@ -91,7 +102,7 @@ Keytool is a Java tool shipped with [Java Runtime Environment][jre] (JRE). It ca
 
 1. Finally, Keytool will ask you for the key password. You may simply hit return to use the same password as specified in the `-storepass` flag in Step 1. DO NOT provide a different password than YOUR_CERTIFICATE_PASSWORD specified above.
 
-1. You should now have the `cacert.jsk` file generated in your current directory.
+1. You should now have the `cacert.jks` file generated in your current directory.
 
 
 
@@ -101,17 +112,17 @@ Keytool is a Java tool shipped with [Java Runtime Environment][jre] (JRE). It ca
 
 To convert a `cacert.jks` to `cacert.pem` file you need to:
 
-1. Convert `cacert.jsk` to `cacert.p12` using Keytool:
+1. Convert `cacert.jks` to `cacert.p12` using Keytool:
     ```posh
     keytool -importkeystore -srckeystore cacert.jks -destkeystore cacert.p12 -srcstoretype jks -deststoretype pkcs12
     ```
-   You will be asked for a new password for `cacert.p12`, as well as for the original password of `cacert.jsk`. Ensure you use the same password as when generating the `cacert.jsk`.
+   You will be asked for a new password for `cacert.p12`, as well as for the original password of `cacert.jks`. Ensure you use the same password as when generating the `cacert.jks`.
 
 1. Convert `cacert.p12` to `cacert.pem` using OpenSSL:
     ```posh
     openssl pkcs12 -in cacert.p12 -out cacert.pem
     ```
-   Again, you will be asked for a new password for `cacert.pam`, as well as for the original password of `cacert.p12`. Ensure you use the same password as when generating the `cacert.jsk` and `cacert.p12`.
+   Again, you will be asked for a new password for `cacert.pem`, as well as for the original password of `cacert.p12`. Ensure you use the same password as when generating the `cacert.jks` and `cacert.p12`.
 
 1. You should now have the `cacert.pem` file generated in your current directory.
 
@@ -159,7 +170,7 @@ You should now have `cacert.jks`, `cacert.p12` and `cacert.pem`. You will only n
 
 #### PEM to JKS
 
-To convert a `cacert.pem` to `cacert.jsk` file you need to:
+To convert a `cacert.pem` to `cacert.jks` file you need to:
 
 
 1. Convert `cacert.pem` to `cacert.p12` using OpenSSL:
@@ -180,9 +191,50 @@ To convert a `cacert.pem` to `cacert.jsk` file you need to:
 
 You should now have `cacert.pem`, `cacert.p12` and `cacert.jks`. You will only need the `.jks` and `.pem` files. You may delete the redundant `cacert.p12` file.
 
+## <a name="summary"></a>Summary
+
+To provide proprietary TLS certificate you need to:
+
+1. Generate `cacert.pem` and `cacert.jks` files.
+1. Modify the `conf.yaml` to point at the `cacert.jks` file and to provide its password.
+1. Use the Input Directory to provide IBeam with these three files.
+1. Start IBeam.
+
+## <a name="use-your-certificate"></a>Use your certificate
+
+Once IBeam started the Gateway successfully using the the certificates and `conf.yaml` you provided, you may communicate with the Gateway using the `cacert.pem`.
+
+#### cURL
+
+cURL accepts `--cacert` flag that can be used to pass the certificate. See [cURL documentation][curl-ssl] for more.
+```posh
+curl -X GET "https://localhost:5000/v1/api/one/user" --cacert cacert.pem
+```
+
+#### Python urllib3
+
+Python [urllib3][urllib3] library allows you to specify a SSL context through which you can specify the location of your certificate.
+
+```python
+context = ssl.create_default_context()
+context.verify_mode = ssl.CERT_REQUIRED
+context.check_hostname = True
+context.load_verify_locations('cacert.pem')
+urllib.request.urlopen("https://localhost:5000/v1/api/one/user", context=context)
+```
+
+#### Python requests
+Python [requests][requests-ssl] library allows you to set the `verify` parameter to specify the location of your certificate.  
+```python
+requests.get("https://localhost:5000/v1/api/one/user", verify='cacert.pem')
+```
+
 [jre]: https://www.java.com/en/download/
 [pem]: https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail
 [pkcs]: https://en.wikipedia.org/wiki/PKCS
 [jks]: https://en.wikipedia.org/wiki/Java_KeyStore
 [openssl]: https://www.openssl.org/
 [ibeam-github]: https://github.com/Voyz/ibeam
+[curl-ssl]: https://curl.haxx.se/docs/sslcerts.html
+[urllib3]: https://urllib3.readthedocs.io/en/latest/
+[requests-ssl]: https://2.python-requests.org/en/master/user/advanced/#ssl-cert-verification
