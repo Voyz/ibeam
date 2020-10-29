@@ -278,6 +278,12 @@ ips:
 
 Learn how to provide IBeam with a custom `conf.yaml` in [Conf.yaml section](#conf-yaml).
 
+#### Hostname X doesn't match Y
+
+This should only appear if you use your own TLS certificates. It means your certificate was created without specifying the client host IP or DNS you're trying to communicate from. You will need to recreate your certificates including the IP or DNS of the machine you're communicating from.
+
+See the optional SAN specification in Step 1 of either [Keytool](CERTIFICATES_GUIDE.md#using-keytool) or [OpenSSL](CERTIFICATES_GUIDE.md#using-openssl) certificate generation.
+
 ## Roadmap
 
 IBeam was built by traders just like you. We made it open source in order to collectively build a reliable solution. If you enjoy using IBeam, we encourage you to attempt implementing one of the following tasks:
