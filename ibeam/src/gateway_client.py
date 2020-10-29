@@ -1,7 +1,6 @@
-#!/opt/venv/bin python
-
 import logging
 import os
+import shutil
 import ssl
 import subprocess
 import sys
@@ -130,6 +129,10 @@ def authenticate_gateway(driver, account, password, key: str = None, base_url: s
                 _LOGGER.error(
                     'Connection to Gateway refused. This could indicate IB Gateway is not running. Consider increasing GATEWAY_STARTUP_SECONDS wait buffer.')
                 return False
+            if 'net::ERR_CONNECTION_CLOSED' in e.msg:
+                _LOGGER.error(
+                    f'Connection to Gateway failed. This could indicate IB Gateway is not running correctly or that its port {base_url.split(":")[2]} was already occupied.')
+                return False
             else:
                 raise e
 
@@ -211,7 +214,26 @@ class GatewayClient():
         if self.driver_path is None:
             self.driver_path = input('Chrome Driver executable path: ')
 
-        self._empty_context = ssl.SSLContext()
+        self.inputs_dir = os.environ.get('INPUTS_PATH', '/srv/inputs/')
+
+        self.config_path = os.path.join(self.gateway_path, 'root/conf.yaml')
+        config_source = os.path.join(self.inputs_dir, 'conf.yaml')
+        if os.path.isfile(config_source):
+            shutil.copy2(config_source, self.config_path)
+
+        self.cecert_jks_path = os.path.join(self.inputs_dir, 'cacert.jks')
+        self.cecert_pem_path = os.path.join(self.inputs_dir, 'cacert.pem')
+
+        self._ssl_context = ssl.SSLContext()
+        self.do_tls = os.path.isfile(self.cecert_jks_path) and os.path.isfile(self.cecert_pem_path)
+        if self.do_tls:
+            shutil.copy2(self.cecert_jks_path,
+                         os.path.join(self.gateway_path, 'root', os.path.basename(self.cecert_jks_path)))
+
+            self._ssl_context.verify_mode = ssl.CERT_REQUIRED
+            self._ssl_context.check_hostname = True
+            self._ssl_context.load_verify_locations(self.cecert_pem_path)
+
         self._threads = 4
 
     def _start(self):
@@ -281,9 +303,9 @@ class GatewayClient():
         return True
 
     def _url_request(self, url):
-        _LOGGER.debug(f'URL request to: {url}')
+        _LOGGER.debug(f'HTTP{"S" if self.do_tls else ""} request to: {url}')
         # Empty context allows us to ignore certificates, given we're on the same network. This may be a bad idea.
-        return urllib.request.urlopen(url, context=self._empty_context, timeout=15)
+        return urllib.request.urlopen(url, context=self._ssl_context, timeout=15)
 
     def _try_request(self, url, only_tickle: bool = True):
         """Attempts a HTTP request and returns a boolean flag indicating whether it was successful."""
