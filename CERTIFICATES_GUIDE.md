@@ -53,7 +53,7 @@ You can generate your own self-signed certificates in two ways:
 * [Using Keytool](#using-keytool) to generate `cacert.jks`
 * [Using OpenSSL](#using-openssl) to generate `cacert.pem`
 
-Either way you chose, you will then need to convert one certificate into the other and provide IBeam with both. Therefore, you will need both keytool and openssl to generate your certificates.
+Either way you chose, you will then need to convert one certificate into the other and provide IBeam with both. Therefore, you will need both [Keytool][jre] and [OpenSSL][openssl] to generate your certificates.
 
 #### <a name="using-keytool"></a>Using Keytool
 
@@ -132,3 +132,8 @@ cat key.pem cert.pem | openssl pkcs12 -export -out cacert.p12
 keytool -importkeystore -srckeystore cacert.p12 -srcstoretype pkcs12 -destkeystore cacert.jks
 ```
 
+[jre]: https://www.java.com/en/download/
+[pem]: https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail
+[pkcs]: https://en.wikipedia.org/wiki/PKCS
+[jks]: https://en.wikipedia.org/wiki/Java_KeyStore
+[openssl]: https://www.openssl.org/
