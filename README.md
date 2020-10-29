@@ -220,7 +220,7 @@ requests.get("https://localhost:5000/v1/api/one/user", verify=False)
 
 ### <a name="proprietary-tls-certificate"></a>Proprietary TLS certificate
 
-Gateway (and as such IBeam) supports providing your own certificate and using it for authentication. Unfortunately, it isn't very straightforward. Make sure to familiarize yourself with the following before proceeding:
+Gateway (and as such IBeam) supports providing your own certificate and using it for HTTPS verification. Unfortunately, it isn't very straightforward. Make sure to familiarize yourself with the following before proceeding:
 
 * [Inputs Directory](#inputs-directory)
 * [Conf.yaml](#conf-yaml)
@@ -229,7 +229,7 @@ In short, to enable custom certificates' support you will need to:
 
 1. Generate the `cacert.jks` and `cacert.pem` certificates.
 1. Alter the `conf.yaml`.
-1. Provide these three files to IBeam using the Inputs Directory.
+1. Provide these three files to IBeam using the Inputs Directory before startup.
 
 Please see [CERTIFICATES_GUIDE](CERTIFICATES_GUIDE.md) to learn how to enable custom certificates.
 
