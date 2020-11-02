@@ -30,17 +30,15 @@ Features:
 
 ## Documentation:
 
-**Setup**
-* [Installation and Startup][installation-and-startup]
-* [Runtime Environment][runtime-environment]
-
-**Advanced**
-* [Inputs Directory][inputs-directory]
-* [Gateway Configuration][gateway-configuration]
-* [TLS Certificates and HTTPS][tls-and-https]
-
-**More**
-* [Troubleshooting][troubleshooting]
+* Setup
+  * [Installation and Startup][installation-and-startup]
+  * [Runtime Environment][runtime-environment]
+* Advanced
+  * [Inputs Directory][inputs-directory]
+  * [Gateway Configuration][gateway-configuration]
+  * [TLS Certificates and HTTPS][tls-and-https]
+* More
+  * [Troubleshooting][troubleshooting]
 
 
 
