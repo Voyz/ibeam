@@ -42,7 +42,7 @@ Features:
 
 
 
-## Installation
+#### Installation
 
 Docker image (recommended):
 ```posh
@@ -54,43 +54,24 @@ Standalone:
 pip install ibeam
 ```
 
-## Startup
+#### Startup
 
-### Using Docker image (recommended)
+Docker image (recommended):
 
-IBeam's Docker image is configured to work out of the box. Run the IBeam image exposing the port 5000 and providing the environment variable credentials either [directly or through a file][docker-envs].
-
-Using env.list file:
-```posh
-docker run --env-file env.list -p 5000:5000 voyz/ibeam
-```
-
-Providing environment variables directly:
 ```posh
 docker run --env IBEAM_ACCOUNT=your_account123 --env IBEAM_PASSWORD=your_password123 -p 5000:5000 voyz/ibeam
 ```
 
-Verify the Gateway is running inside of the container by calling:
-```posh
-curl -X GET "https://localhost:5000/v1/api/one/user" -k
-```
-
-Read more in [Installation and Startup][installation-and-startup].
-
-### Standalone 
-
-The entrypoint of IBeam is the `ibeam_starter.py` script. When called without any arguments, the script will start the Gateway (if not currently running) and will attempt to authenticate (if not currently authenticated).
+Standalone:
 
 ```posh
 python ibeam_starter.py
 ```
 
-Verify the Gateway is running as standalone by calling:
+Verify the Gateway is running by calling:
 ```posh
 curl -X GET "https://localhost:5000/v1/api/one/user" -k
 ```
-
-You will need additional environment requirements to run IBeam standalone. Read more about it in [Standalone Environment](#standalone-environment)
 
 Read more in [Installation and Startup][installation-and-startup].
 
@@ -163,4 +144,3 @@ IBeam is provided on an AS IS and AS AVAILABLE basis without any representation 
 
 [issues]: https://github.com/Voyz/ibeam/issues
 [gateway]: https://interactivebrokers.github.io/cpwebapi/
-[docker-envs]: https://docs.docker.com/engine/reference/commandline/run/#set-environment-variables--e---env---env-file
