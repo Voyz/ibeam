@@ -30,43 +30,44 @@ from ibeam import config
 
 config.initialize()
 
-_GATEWAY_STARTUP_SECONDS = os.environ.get('GATEWAY_STARTUP_SECONDS', 3)
+_GATEWAY_STARTUP = os.environ.get('IBEAM_GATEWAY_STARTUP', 3)
 """How many seconds to wait before attempting to communicate with the gateway after its startup."""
 
-_GATEWAY_BASE_URL = os.environ.get('GATEWAY_BASE_URL', "https://localhost:5000")
+_GATEWAY_BASE_URL = os.environ.get('IBEAM_GATEWAY_BASE_URL', "https://localhost:5000")
 """Base URL of the gateway."""
 
-_GATEWAY_PROCESS_MATCH = os.environ.get('GATEWAY_PROCESS_MATCH', 'ibgroup.web.core.clientportal.gw.GatewayStart')
+_GATEWAY_PROCESS_MATCH = os.environ.get('IBEAM_GATEWAY_PROCESS_MATCH',
+                                        'ibgroup.web.core.clientportal.gw.GatewayStart')
 """The gateway process' name to match against."""
 
-_ROUTE_AUTH = os.environ.get('ROUTE_AUTH', '/sso/Login?forwardTo=22&RL=1&ip2loc=on')
+_ROUTE_AUTH = os.environ.get('IBEAM_ROUTE_AUTH', '/sso/Login?forwardTo=22&RL=1&ip2loc=on')
 """Gateway route with authentication page."""
 
-_ROUTE_USER = os.environ.get('ROUTE_USER', '/v1/api/one/user')
+_ROUTE_USER = os.environ.get('IBEAM_ROUTE_USER', '/v1/api/one/user')
 """Gateway route with user information."""
 
-_ROUTE_VALIDATE = os.environ.get('ROUTE_VALIDATE', '/v1/portal/sso/validate')
+_ROUTE_VALIDATE = os.environ.get('IBEAM_ROUTE_VALIDATE', '/v1/portal/sso/validate')
 """Gateway route with validation call."""
 
-_ROUTE_TICKLE = os.environ.get('ROUTE_TICKLE', '/v1/api/tickle')
+_ROUTE_TICKLE = os.environ.get('IBEAM_ROUTE_TICKLE', '/v1/api/tickle')
 """Gateway route with tickle call."""
 
-_USER_NAME_EL_ID = os.environ.get('USER_NAME_EL_ID', 'user_name')
+_USER_NAME_EL_ID = os.environ.get('IBEAM_USER_NAME_EL_ID', 'user_name')
 """HTML element id containing the username input field."""
 
-_PASSWORD_EL_ID = os.environ.get('PASSWORD_EL_ID', 'password')
+_PASSWORD_EL_ID = os.environ.get('IBEAM_PASSWORD_EL_ID', 'password')
 """HTML element id containing the password input field."""
 
-_SUBMIT_EL_ID = os.environ.get('SUBMIT_EL_ID', 'submitForm')
+_SUBMIT_EL_ID = os.environ.get('IBEAM_SUBMIT_EL_ID', 'submitForm')
 """HTML element id containing the submit button."""
 
-_SUCCESS_EL_TEXT = os.environ.get('SUCCESS_EL_TEXT', 'Client login succeeds')
+_SUCCESS_EL_TEXT = os.environ.get('IBEAM_SUCCESS_EL_TEXT', 'Client login succeeds')
 """HTML element text indicating successful authentication."""
 
-_MAINTENANCE_INTERVAL = os.environ.get('MAINTENANCE_INTERVAL', 60)
+_MAINTENANCE_INTERVAL = os.environ.get('IBEAM_MAINTENANCE_INTERVAL', 60)
 """How many seconds between each maintenance."""
 
-_LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+_LOG_LEVEL = os.environ.get('IBEAM_LOG_LEVEL', 'INFO')
 """Verbosity level of the logger used."""
 
 logging.getLogger('ibeam').setLevel(getattr(logging, _LOG_LEVEL))
@@ -127,7 +128,7 @@ def authenticate_gateway(driver, account, password, key: str = None, base_url: s
         except WebDriverException as e:
             if 'net::ERR_CONNECTION_REFUSED' in e.msg:
                 _LOGGER.error(
-                    'Connection to Gateway refused. This could indicate IB Gateway is not running. Consider increasing GATEWAY_STARTUP_SECONDS wait buffer.')
+                    'Connection to Gateway refused. This could indicate IB Gateway is not running. Consider increasing IBEAM_GATEWAY_STARTUP wait buffer.')
                 return False
             if 'net::ERR_CONNECTION_CLOSED' in e.msg:
                 _LOGGER.error(
@@ -185,19 +186,19 @@ class GatewayClient():
 
         self.base_url = base_url if base_url is not None else _GATEWAY_BASE_URL
 
-        self.account = account if account is not None else os.environ.get('IB_ACCOUNT')
+        self.account = account if account is not None else os.environ.get('IBEAM_ACCOUNT')
         """IBKR account name."""
 
-        self.password = password if password is not None else os.environ.get('IB_PASSWORD')
+        self.password = password if password is not None else os.environ.get('IBEAM_PASSWORD')
         """IBKR password."""
 
-        self.key = key if key is not None else os.environ.get('IB_KEY')
+        self.key = key if key is not None else os.environ.get('IBEAM_KEY')
         """Key to the IBKR password."""
 
-        self.gateway_path = gateway_path if gateway_path is not None else os.environ.get('GATEWAY_PATH')
+        self.gateway_path = gateway_path if gateway_path is not None else os.environ.get('IBEAM_GATEWAY_DIR')
         """Path to the root of the IBKR Gateway."""
 
-        self.driver_path = driver_path if driver_path is not None else os.environ.get('CHROME_DRIVER_PATH')
+        self.driver_path = driver_path if driver_path is not None else os.environ.get('IBEAM_CHROME_DRIVER_PATH')
         """Path to the Chrome Driver executable file."""
 
         if self.account is None:
@@ -214,7 +215,7 @@ class GatewayClient():
         if self.driver_path is None:
             self.driver_path = input('Chrome Driver executable path: ')
 
-        self.inputs_dir = os.environ.get('INPUTS_PATH', '/srv/inputs/')
+        self.inputs_dir = os.environ.get('IBEAM_INPUTS_DIR', '/srv/inputs/')
 
         self.config_path = os.path.join(self.gateway_path, 'root/conf.yaml')
         config_source = os.path.join(self.inputs_dir, 'conf.yaml')
@@ -268,7 +269,7 @@ class GatewayClient():
 
             self._start()
 
-            time.sleep(_GATEWAY_STARTUP_SECONDS)
+            time.sleep(_GATEWAY_STARTUP)
 
             processes = find_procs_by_name(_GATEWAY_PROCESS_MATCH)
             success = len(processes) != 0

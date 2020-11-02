@@ -47,24 +47,24 @@ ENV GROUP_ID=1000 \
     GROUP_NAME=basic_group \
     SRC_ROOT=/srv/ibeam
 
-ENV GATEWAY_PATH='/srv/clientportal.gw'
-ENV CHROME_DRIVER_PATH='/srv/chrome_driver/chromedriver'
-ENV CHROME_DRIVER_DIR='/srv/chrome_driver'
+ENV IBEAM_GATEWAY_DIR='/srv/clientportal.gw'
+ENV IBEAM_CHROME_DRIVER_PATH='/srv/chrome_driver/chromedriver'
+ENV IBEAM_CHROME_DRIVER_DIR='/srv/chrome_driver'
 
 # we run as a separate user for security purposes
 RUN addgroup -gid $GROUP_ID $GROUP_NAME
 RUN adduser -disabled-password -u $USER_ID -gid $GROUP_ID $USER_NAME -shell /bin/sh
 
 RUN mkdir -p $SRC_ROOT
-RUN mkdir -p $GATEWAY_PATH
-RUN mkdir -p $CHROME_DRIVER_DIR
+RUN mkdir -p $IBEAM_GATEWAY_DIR
+RUN mkdir -p $IBEAM_CHROME_DRIVER_DIR
 RUN chown -R $USER_NAME:$GROUP_NAME $SRC_ROOT
 
-COPY copy_cache/clientportal.gw $GATEWAY_PATH
-COPY copy_cache/chrome_driver $CHROME_DRIVER_DIR
+COPY copy_cache/clientportal.gw $IBEAM_GATEWAY_DIR
+COPY copy_cache/chrome_driver $IBEAM_CHROME_DRIVER_DIR
 
-RUN chown -R $USER_NAME:$GROUP_NAME $GATEWAY_PATH
-RUN chown -R $USER_NAME:$GROUP_NAME $CHROME_DRIVER_DIR
+RUN chown -R $USER_NAME:$GROUP_NAME $IBEAM_GATEWAY_DIR
+RUN chown -R $USER_NAME:$GROUP_NAME $IBEAM_CHROME_DRIVER_DIR
 
 ENV PYTHONPATH "${PYTHONPATH}:/srv/:/srv/ibeam"
 
@@ -78,5 +78,6 @@ WORKDIR $SRC_ROOT
 USER $USER_NAME
 
 #CMD python ./ibeam_starter.py
-ENTRYPOINT ["bash"]
+ENTRYPOINT ["/srv/ibeam/run.sh"]
+#ENTRYPOINT ["bash"]
 #CMD ["/bin/sh", "/srv/ibeam/run.sh"]

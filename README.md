@@ -62,7 +62,7 @@ docker run --env-file env.list -p 5000:5000 voyz/ibeam
 
 Providing environment variables directly:
 ```posh
-docker run --env IB_ACCOUNT=your_account123 --env IB_PASSWORD=your_password123 -p 5000:5000 voyz/ibeam
+docker run --env IBEAM_ACCOUNT=your_account123 --env IBEAM_PASSWORD=your_password123 -p 5000:5000 voyz/ibeam
 ```
 
 Verify the Gateway is running inside of the container by calling:
@@ -108,17 +108,17 @@ Once the Gateway is running and authenticated you can communicate with it like y
 ### Credentials
 Whether running using an image or as standalone, IBeam expects IBKR credentials to be provided as environment variables. We recommend you start using IBeam with your [paper account credentials][paper-account], and only switch to production account once you're ready to trade.
 
-* `IB_ACCOUNT` - IBKR account name 
-* `IB_PASSWORD` - IBKR account password
+* `IBEAM_ACCOUNT` - IBKR account name 
+* `IBEAM_PASSWORD` - IBKR account password
 
-IBeam expects an optional third credential `IB_KEY`. If provided, it will be used to decrypt the password given in the `IB_PASSWORD` variable. [cryptography.fernet][fernet] decryption is used, therefore to encrypt your password use:
+IBeam expects an optional third credential `IBEAM_KEY`. If provided, it will be used to decrypt the password given in the `IBEAM_PASSWORD` variable. [cryptography.fernet][fernet] decryption is used, therefore to encrypt your password use:
 
 ```python
 from cryptography.fernet import Fernet
 key = Fernet.generate_key()
 f = Fernet(key)
 password = f.encrypt(b"your_ibkr_password123")
-print(f'IB_PASSWORD={password}, IB_KEY={key}')
+print(f'IBEAM_PASSWORD={password}, IBEAM_KEY={key}')
 ```
 
 If any of the required credentials environment variables is not found, user will be prompted to enter them directly in the terminal.
@@ -134,8 +134,8 @@ When running standalone, IBeam requires the following to be present:
 
 Additionally, the following environment variables:
 
-* `CHROME_DRIVER_PATH` - path to the Chome Driver executable
-* `GATEWAY_PATH` - path to the root of the Gateway 
+* `IBEAM_CHROME_DRIVER_PATH` - path to the Chome Driver executable
+* `IBEAM_GATEWAY_DIR` - path to the root of the Gateway 
 
 Note that you can chose to not use the `ibeam_starter.py` script and instantiate and use the `ibeam.gateway_client.GatewayClient` directly in your script instead. This way you will be able to provide any of the credentials, as well as the Chrome Driver and Gateway paths directly upon construction of the `GatewayClient`.
 
@@ -146,24 +146,24 @@ To facilitate custom usage and become more future-proof, IBeam expects the follo
 
 | Variable name | Default value | Description |
 | ---  | ----- | --- |
-| `GATEWAY_STARTUP_SECONDS` | 3 | How many seconds to wait before attempting to communicate with the gateway after  its startup. |
-| `GATEWAY_BASE_URL` | `https://localhost:5000` | Base URL of the gateway. |
-| `GATEWAY_PROCESS_MATCH` | ibgroup.web.core.clientportal.gw.GatewayStart | The gateway process' name to match against |
-| `ROUTE_AUTH` | /sso/Login?forwardTo=22&RL=1&ip2loc=on | Gateway route with authentication page.
-| `ROUTE_USER` | /v1/api/one/user | Gateway route | with user information. |
-| `ROUTE_VALIDATE` | /v1/portal/sso/validate | Gateway route with validation call. |
-| `ROUTE_TICKLE` | /v1/api/tickle | Gateway route with tickle call. |
-| `USER_NAME_EL_ID` | user_name | HTML element id containing the username input field. |
-| `PASSWORD_EL_ID` | password | HTML element id containing the password input field. |
-| `SUBMIT_EL_ID` | submitForm | HTML element id containing the submit button. |
-| `SUCCESS_EL_TEXT` | Client login succeeds | HTML element text indicating successful authentication. |
-| `MAINTENANCE_INTERVAL` | 60 | How many seconds between each maintenance. |
-| `LOG_LEVEL` | INFO | Verbosity level of the logger used. |
+| `IBEAM_GATEWAY_STARTUP` | 3 | How many seconds to wait before attempting to communicate with the gateway after  its startup. |
+| `IBEAM_GATEWAY_BASE_URL` | `https://localhost:5000` | Base URL of the gateway. |
+| `IBEAM_GATEWAY_PROCESS_MATCH` | ibgroup.web.core.clientportal.gw.GatewayStart | The gateway process' name to match against |
+| `IBEAM_ROUTE_AUTH` | /sso/Login?forwardTo=22&RL=1&ip2loc=on | Gateway route with authentication page.
+| `IBEAM_ROUTE_USER` | /v1/api/one/user | Gateway route | with user information. |
+| `IBEAM_ROUTE_VALIDATE` | /v1/portal/sso/validate | Gateway route with validation call. |
+| `IBEAM_ROUTE_TICKLE` | /v1/api/tickle | Gateway route with tickle call. |
+| `IBEAM_USER_NAME_EL_ID` | user_name | HTML element id containing the username input field. |
+| `IBEAM_PASSWORD_EL_ID` | password | HTML element id containing the password input field. |
+| `IBEAM_SUBMIT_EL_ID` | submitForm | HTML element id containing the submit button. |
+| `IBEAM_SUCCESS_EL_TEXT` | Client login succeeds | HTML element text indicating successful authentication. |
+| `IBEAM_MAINTENANCE_INTERVAL` | 60 | How many seconds between each maintenance. |
+| `IBEAM_LOG_LEVEL` | INFO | Verbosity level of the logger used. |
 
 
 ## <a name="inputs-directory"></a>Inputs Directory
 
-IBeam will look for a directory specified in the `INPUTS_PATH` environment variable (`/srv/inputs` by default). This directory is used by IBeam to provide files required by the Gateway. Note that these files will override any existing files if there is a conflict. 
+IBeam will look for a directory specified in the `IBEAM_INPUTS_DIR` environment variable (`/srv/inputs` by default). This directory is used by IBeam to provide files required by the Gateway. Note that these files will override any existing files if there is a conflict. 
 
 Currently the following files are recognised and supported:
 
@@ -177,14 +177,14 @@ When using IBeam as a Docker image, you can pass the files to your container by 
 docker run -v /host/path/to/inputs:/container/path/to/inputs [OTHER_OPTIONS] voyz/ibeam
 ```
 
-Remember that `/container/path/to/inputs` must be pointed to by `INPUTS_PATH` environment variable in the container.
+Remember that `/container/path/to/inputs` must be pointed to by `IBEAM_INPUTS_DIR` environment variable in the container.
 
 
 ## <a name="conf-yaml"></a>Conf.yaml
 
 Gateway uses a `conf.yaml` file as the configuration API. At the moment there is no documentation on that configuration file, however luckily most fields are self-explanatory. Using it you may alter the behaviour of the Gateway, for instance by changing the port it will listen on or allowing additional IP addresses to communicate from. 
 
-IBeam allows you to provide your own configuration file using the [Inputs Directory](#inputs-directory). Note that IBeam will use the `conf.yaml` file provided to overwrite the existing `conf.yaml` in the `root` subdirectory of Gateway, specified in the `GATEWAY_PATH` environment variable.
+IBeam allows you to provide your own configuration file using the [Inputs Directory](#inputs-directory). Note that IBeam will use the `conf.yaml` file provided to overwrite the existing `conf.yaml` in the `root` subdirectory of Gateway, specified in the `IBEAM_GATEWAY_DIR` environment variable.
 
 If using IBeam in standalone mode, you may edit the `conf.yaml` file directly in the Gateway's `root` folder.
 
