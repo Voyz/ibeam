@@ -18,21 +18,21 @@ def copyPackages(c):
 
 @task
 def copy_clientportal(c):
-    source_path = os.environ['GATEWAY_PATH']
+    source_path = os.environ['IBEAM_GATEWAY_DIR']
 
     if not os.path.exists(source_path):
-        raise RuntimeError(f'GATEWAY_PATH module not found: {source_path}')
+        raise RuntimeError(f'IBEAM_GATEWAY_DIR module not found: {source_path}')
 
     _copy_directory(source_path, os.path.join(PROJECT_ROOT, 'copy_cache/clientportal.gw'), c)
 
 
 @task
 def copy_chrome_driver(c):
-    source_path = Path(os.environ['CHROME_DRIVER_PATH']).parent
+    source_path = Path(os.environ['IBEAM_CHROME_DRIVER_PATH']).parent
     print(source_path)
 
     if not os.path.exists(source_path):
-        raise RuntimeError(f'CHROME_DRIVER_PATH module not found: {source_path}')
+        raise RuntimeError(f'IBEAM_CHROME_DRIVER_PATH module not found: {source_path}')
 
     _copy_directory(source_path, os.path.join(PROJECT_ROOT, 'copy_cache/chrome_driver'), c)
 
