@@ -41,7 +41,7 @@ Features:
   * [Troubleshooting][troubleshooting]
 
 
-
+## Quick start
 #### Installation
 
 Docker image (recommended):
@@ -68,7 +68,8 @@ Standalone:
 python ibeam_starter.py
 ```
 
-Verify the Gateway is running by calling:
+----
+Once started, verify the Gateway is running by calling:
 ```posh
 curl -X GET "https://localhost:5000/v1/api/one/user" -k
 ```
