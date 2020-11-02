@@ -195,7 +195,7 @@ class GatewayClient():
         self.key = key if key is not None else os.environ.get('IBEAM_KEY')
         """Key to the IBKR password."""
 
-        self.gateway_path = gateway_path if gateway_path is not None else os.environ.get('IBEAM_GATEWAY_DIR')
+        self.gateway_dir = gateway_path if gateway_path is not None else os.environ.get('IBEAM_GATEWAY_DIR')
         """Path to the root of the IBKR Gateway."""
 
         self.driver_path = driver_path if driver_path is not None else os.environ.get('IBEAM_CHROME_DRIVER_PATH')
@@ -209,15 +209,15 @@ class GatewayClient():
             if self.key is None:
                 self.key = getpass('Key: ') or None
 
-        if self.gateway_path is None:
-            self.gateway_path = input('Gateway root path: ')
+        if self.gateway_dir is None:
+            self.gateway_dir = input('Gateway root path: ')
 
         if self.driver_path is None:
             self.driver_path = input('Chrome Driver executable path: ')
 
         self.inputs_dir = os.environ.get('IBEAM_INPUTS_DIR', '/srv/inputs/')
 
-        self.config_path = os.path.join(self.gateway_path, 'root/conf.yaml')
+        self.config_path = os.path.join(self.gateway_dir, 'root/conf.yaml')
         config_source = os.path.join(self.inputs_dir, 'conf.yaml')
         if os.path.isfile(config_source):
             shutil.copy2(config_source, self.config_path)
@@ -229,7 +229,7 @@ class GatewayClient():
         self.do_tls = os.path.isfile(self.cecert_jks_path) and os.path.isfile(self.cecert_pem_path)
         if self.do_tls:
             shutil.copy2(self.cecert_jks_path,
-                         os.path.join(self.gateway_path, 'root', os.path.basename(self.cecert_jks_path)))
+                         os.path.join(self.gateway_dir, 'root', os.path.basename(self.cecert_jks_path)))
 
             self._ssl_context.verify_mode = ssl.CERT_REQUIRED
             self._ssl_context.check_hostname = True
@@ -258,7 +258,7 @@ class GatewayClient():
 
         subprocess.Popen(
             args=args,
-            cwd=self.gateway_path,
+            cwd=self.gateway_dir,
             creationflags=creationflags
         )
 
