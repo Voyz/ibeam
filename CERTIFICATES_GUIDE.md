@@ -18,7 +18,7 @@ This documentation includes:
 Gateway (and as such IBeam) supports providing your own certificate and using it for HTTPS verification. Unfortunately, it isn't very straightforward. Make sure to familiarize yourself with the following before proceeding:
 
 * [Inputs Directory](https://github.com/Voyz/ibeam#inputs-directory)
-* [Conf.yaml](https://github.com/Voyz/ibeam#gateway-configuration)
+* [Gateway Configuration](https://github.com/Voyz/ibeam#gateway-configuration)
 
 In short, to enable custom certificates' support you will need to:
 

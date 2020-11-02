@@ -223,7 +223,7 @@ requests.get("https://localhost:5000/v1/api/one/user", verify=False)
 Gateway (and as such IBeam) supports providing your own certificate and using it for HTTPS verification. Unfortunately, it isn't very straightforward. Make sure to familiarize yourself with the following before proceeding:
 
 * [Inputs Directory](#inputs-directory)
-* [Conf.yaml](#gateway-configuration)
+* [Gateway Configuration](#gateway-configuration)
 
 In short, to enable custom certificates' support you will need to:
 
@@ -276,7 +276,7 @@ ips:
     10.149.*
 ```
 
-Learn how to provide IBeam with a custom `conf.yaml` in [Conf.yaml section](#gateway-configuration).
+Learn how to provide IBeam with a custom `conf.yaml` in [Gateway Configuration section](#gateway-configuration).
 
 #### Hostname X doesn't match Y
 
