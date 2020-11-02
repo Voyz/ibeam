@@ -1,6 +1,5 @@
 selenium==3.*
 cryptography==3.*
 pyvirtualdisplay==1.*
-proxy.py==2.*
 apscheduler==3.*
 psutil==5.*
