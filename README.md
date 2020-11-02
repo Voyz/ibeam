@@ -167,7 +167,7 @@ IBeam will look for a directory specified in the `IBEAM_INPUTS_DIR` environment 
 
 Currently the following files are recognised and supported:
 
-* conf.yaml - for [Gateway configuration](#conf-yaml)
+* conf.yaml - for [Gateway configuration](#gateway-configuration)
 * cacert.jks - for [TLS certificate support](#proprietary-tls-certificate)
 * cacert.pem - for [TLS certificate support](#proprietary-tls-certificate)
 
@@ -180,7 +180,7 @@ docker run -v /host/path/to/inputs:/container/path/to/inputs [OTHER_OPTIONS] voy
 Remember that `/container/path/to/inputs` must be pointed to by `IBEAM_INPUTS_DIR` environment variable in the container.
 
 
-## <a name="conf-yaml"></a>Conf.yaml
+## <a name="gateway-configuration"></a>Gateway Configuration
 
 Gateway uses a `conf.yaml` file as the configuration API. At the moment there is no documentation on that configuration file, however luckily most fields are self-explanatory. Using it you may alter the behaviour of the Gateway, for instance by changing the port it will listen on or allowing additional IP addresses to communicate from. 
 
@@ -223,7 +223,7 @@ requests.get("https://localhost:5000/v1/api/one/user", verify=False)
 Gateway (and as such IBeam) supports providing your own certificate and using it for HTTPS verification. Unfortunately, it isn't very straightforward. Make sure to familiarize yourself with the following before proceeding:
 
 * [Inputs Directory](#inputs-directory)
-* [Conf.yaml](#conf-yaml)
+* [Conf.yaml](#gateway-configuration)
 
 In short, to enable custom certificates' support you will need to:
 
@@ -276,7 +276,7 @@ ips:
     10.149.*
 ```
 
-Learn how to provide IBeam with a custom `conf.yaml` in [Conf.yaml section](#conf-yaml).
+Learn how to provide IBeam with a custom `conf.yaml` in [Conf.yaml section](#gateway-configuration).
 
 #### Hostname X doesn't match Y
 
