@@ -1,5 +1,4 @@
-# Warning: Pre-alpha version in active development - may not function as described below. 
-*We expect to release a working version by the end of 2020.*
+*This library is currently being beta-tested. See something that's broken? Did we get something wrong? [Create an issue and let us know!][issues]*
 
 <p align="center">
     <a id="ibeam" href="#ibeam">
