@@ -12,7 +12,7 @@ def _copy_directory(from_path, to_path, c):
 
 @task
 def copyPackages(c):
-    copy_clientportal(c)
+    # copy_clientportal(c)
     copy_chrome_driver(c)
 
 
