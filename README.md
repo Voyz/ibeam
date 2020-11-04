@@ -40,6 +40,10 @@ Features:
   * [Troubleshooting][troubleshooting]
 
 
+<a href="https://www.youtube.com/watch?v=603n4xV26S0">
+    <img src="https://github.com/Voyz/voyz_public/blob/master/ibeam_promo_vidA_A01.gif" alt="IBeam showcase gif" title="IBeam showcase gif" width="500"/>
+</a>
+
 ## Quick start
 #### Installation
 
