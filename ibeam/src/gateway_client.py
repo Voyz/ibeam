@@ -32,7 +32,7 @@ from ibeam import config
 
 config.initialize()
 
-_GATEWAY_STARTUP = os.environ.get('IBEAM_GATEWAY_STARTUP', 3)
+_GATEWAY_STARTUP = int(os.environ.get('IBEAM_GATEWAY_STARTUP', 3))
 """How many seconds to wait before attempting to communicate with the gateway after its startup."""
 
 _GATEWAY_BASE_URL = os.environ.get('IBEAM_GATEWAY_BASE_URL', "https://localhost:5000")
