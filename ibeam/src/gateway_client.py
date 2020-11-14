@@ -84,6 +84,9 @@ _REQUEST_RETRIES = int(os.environ.get('IBEAM_REQUEST_RETRIES', 1))
 _REQUEST_TIMEOUT = int(os.environ.get('IBEAM_REQUEST_TIMEOUT', 15))
 """How many seconds to wait for a request to complete."""
 
+_OAUTH_TIMEOUT = int(os.environ.get('IBEAM_OAUTH_TIMEOUT', 15))
+"""How many seconds to wait for a OAuth login request to complete."""
+
 logging.getLogger('ibeam').setLevel(getattr(logging, _LOG_LEVEL))
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
@@ -170,7 +173,7 @@ def authenticate_gateway(driver, account, password, key: str = None, base_url: s
         submit_form_el.click()
 
         success_present = EC.text_to_be_present_in_element((By.TAG_NAME, 'pre'), _SUCCESS_EL_TEXT)
-        WebDriverWait(driver, 15).until(success_present)
+        WebDriverWait(driver, _OAUTH_TIMEOUT).until(success_present)
         _LOGGER.debug('Client login succeeds')
         time.sleep(2)
         driver.quit()
