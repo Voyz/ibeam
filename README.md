@@ -86,14 +86,14 @@ In a standard startup IBeam performs the following:
 1. **Copy inputs** from the Inputs Directory to Gateway's `root` folder (if provided).
 1. **Ensure the Gateway is running** by calling the tickle endpoint. If not:
     1. Start the Gateway in a new shell.
-1. **Ensure the Gateway is authenticated** by calling the validation endpoint. If not:
+1. **Ensure the Gateway has an active session that is  authenticated** by calling the tickle endpoint. If not:
     1. Create a new Chrome Driver instance using `selenium`.
     1. Start a virtual display using `pyvirtualdisplay`.
     1. Access the Gateway's authentication website.
     1. Once loaded, input username and password and submit the form.
     1. Wait for the login confirmation and quit the website.
     1. Verify once again if Gateway is running and authenticated.
-1. **Start the maintenance**, attempting to keep the Gateway alive and authenticated.
+1. **Start the maintenance**, attempting to keep the Gateway alive and authenticated. Will repeat login if finds no active session or the session is not authenticated. 
 
 
 ## <a name="security"></a>Security
