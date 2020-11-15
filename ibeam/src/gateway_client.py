@@ -85,7 +85,7 @@ _REQUEST_TIMEOUT = int(os.environ.get('IBEAM_REQUEST_TIMEOUT', 15))
 """How many seconds to wait for a request to complete."""
 
 _OAUTH_TIMEOUT = int(os.environ.get('IBEAM_OAUTH_TIMEOUT', 15))
-"""How many seconds to wait for a OAuth login request to complete."""
+"""How many seconds to wait for the OAuth login request to complete."""
 
 logging.getLogger('ibeam').setLevel(getattr(logging, _LOG_LEVEL))
 
