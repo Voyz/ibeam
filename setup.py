@@ -8,7 +8,7 @@ with open("README.md", "r") as fh:
 setup(
     name='ibeam',
     packages=find_packages(exclude=["*.tests", "*.tests.*", "tests.*", "tests", "examples", "docs", "out", "dist"]),
-    version='0.1.0',
+    version='0.2.0',
     license='Apache-2.0',
     description='IBeam is an authentication and maintenance tool used for the Interactive Brokers Client Portal Web API Gateway.',
     long_description=long_description,
