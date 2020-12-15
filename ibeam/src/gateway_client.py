@@ -392,6 +392,10 @@ class GatewayClient():
                     _LOGGER.error(
                         f'Connection timeout after {_REQUEST_TIMEOUT} seconds. Consider increasing timeout by setting IBEAM_REQUEST_TIMEOUT environment variable. Error: {reason}')
                     status = [True, False, False]
+                elif 'Connection refused' in reason:
+                    _LOGGER.info(
+                        f'Gateway running but not serving yet. Consider increasing GATEWAY_STARTUP timeout. Error: {reason}')
+                    status = [True, False, False]
                 else:
                     _LOGGER.exception(e)
                     status = [True, False, False]
