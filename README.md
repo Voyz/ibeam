@@ -138,13 +138,13 @@ IBeam is provided on an AS IS and AS AVAILABLE basis without any representation 
 
 ## Built by Voy
 
-Hi! Thanks for checking out and using this library. If you'd be interested in discussing your project, requiring mentorship, considering hiring me, or just wanna chat - I'm happy to talk.
+Hi! Thanks for checking out and using this library. If you are interested in discussing your project, requiring mentorship, considering hiring me, or just wanna chat - I'm happy to talk.
 
 You can send me an email to get in touch: hello@voyzan.com
 
 Or if you'd just want to give something back, I've got a Buy Me A Coffee account:
 
-<script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="voyzan" data-color="#fafafa" data-emoji="" data-font="Lato" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#FFDD00" ></script>
+<a href="https://www.buymeacoffee.com/voyzan" target="_blank"><img src="https://raw.githubusercontent.com/Voyz/voyz_public/master/vz_BMC.png" alt="Buy Me A Coffee" style="height: 55px !important;width: 196px !important;"></a>
 
 Thanks and have an awesome day 👋
 
