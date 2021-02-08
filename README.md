@@ -144,7 +144,9 @@ You can send me an email to get in touch: hello@voyzan.com
 
 Or if you'd just want to give something back, I've got a Buy Me A Coffee account:
 
-<a href="https://www.buymeacoffee.com/voyzan" target="_blank"><img src="https://raw.githubusercontent.com/Voyz/voyz_public/master/vz_BMC.png" alt="Buy Me A Coffee" style="height: 55px !important;width: 196px !important;"></a>
+<a href="https://www.buymeacoffee.com/voyzan" rel="nofollow">
+    <img src="https://raw.githubusercontent.com/Voyz/voyz_public/master/vz_BMC.png" alt="Buy Me A Coffee" style="max-width:100%;" width="192">
+</a>
 
 Thanks and have an awesome day 👋
 
