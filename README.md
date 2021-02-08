@@ -136,7 +136,17 @@ Use at own discretion. IBeam and its authors give no guarantee of uninterrupted 
 
 IBeam is provided on an AS IS and AS AVAILABLE basis without any representation or endorsement made and without warranty of any kind whether express or implied, including but not limited to the implied warranties of satisfactory quality, fitness for a particular purpose, non-infringement, compatibility, security and accuracy.  To the extent permitted by law, IBeam's authors will not be liable for any indirect or consequential loss or damage whatever (including without limitation loss of business, opportunity, data, profits) arising out of or in connection with the use of IBeam.  IBeam's authors make no warranty that the functionality of IBeam will be uninterrupted or error free, that defects will be corrected or that IBeam or the server that makes it available are free of viruses or anything else which may be harmful or destructive.
 
+## Built by Voy
 
+Hi! Thanks for checking out and using this library. If you'd be interested in discussing your project, requiring mentorship, considering hiring me, or just wanna chat - I'm happy to talk.
+
+You can send me an email to get in touch: hello@voyzan.com
+
+Or if you'd just want to give something back, I've got a Buy Me A Coffee account:
+
+<script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="voyzan" data-color="#fafafa" data-emoji="" data-font="Lato" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#FFDD00" ></script>
+
+Thanks and have an awesome day 👋
 
 [home]: https://github.com/Voyz/ibeam/wiki
 [installation-and-startup]: https://github.com/Voyz/ibeam/wiki/Installation-and-startup
