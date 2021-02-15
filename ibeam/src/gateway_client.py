@@ -1,6 +1,7 @@
 import json
 import logging
 import os
+import re
 import shutil
 import socket
 import ssl
@@ -8,6 +9,7 @@ import subprocess
 import sys
 import time
 import urllib.request
+import urllib.parse
 from getpass import getpass
 
 from pathlib import Path
@@ -72,6 +74,21 @@ _SUBMIT_EL_ID = os.environ.get('IBEAM_SUBMIT_EL_ID', 'submitForm')
 _SUCCESS_EL_TEXT = os.environ.get('IBEAM_SUCCESS_EL_TEXT', 'Client login succeeds')
 """HTML element text indicating successful authentication."""
 
+_TWO_FAC_EL_ID = os.environ.get('IBEAM_TWO_FAC_EL_ID', 'chlginput')
+"""HTML element indicating 2FA authentication."""
+
+_SMS_QR_CODE_CLASS = os.environ.get('IBEAM_SMS_QR_CODE_CLASS', 'qr-code')
+"""HTML element indicating web messages needs authorization."""
+
+_SMS_AUTH_REMEMBER_CLASS = os.environ.get('IBEAM_SMS_AUTH_REMEMBER_CLASS', 'local-storage-checkbox')
+"""HTML element to remember web messages device pairing."""
+
+_SMS_MESSAGES_LIST_CLASS = os.environ.get('IBEAM_SMS_MESSAGES_LIST_CLASS', 'snippet-text')
+"""HTML element indicating web messages has loaded."""
+
+_SMS_2FA_HEADING = os.environ.get('IBEAM_SMS_2FA_HEADING', 'Your requested authentication code')
+"""HTML element text indicating 2fa message received."""
+
 _MAINTENANCE_INTERVAL = int(os.environ.get('IBEAM_MAINTENANCE_INTERVAL', 60))
 """How many seconds between each maintenance."""
 
@@ -119,12 +136,12 @@ def new_chrome_driver(driver_path, headless: bool = True):
     options.add_argument('--no-sandbox')
     options.add_argument('--ignore-ssl-errors=yes')
     options.add_argument('--ignore-certificate-errors')
-    options.add_argument("--remote-debugging-port=9222")
+    #options.add_argument("--remote-debugging-port=9222")
     options.add_argument("--useAutomationExtension=false")
     return webdriver.Chrome(driver_path, options=options)
 
 
-def authenticate_gateway(driver, account, password, key: str = None, base_url: str = None) -> bool:
+def authenticate_gateway(driver_path, account, password, key: str = None, base_url: str = None) -> bool:
     """
     Authenticates the currently running gateway.
 
@@ -141,6 +158,7 @@ def authenticate_gateway(driver, account, password, key: str = None, base_url: s
 
         _LOGGER.debug(f'Loading auth page at {base_url + _ROUTE_AUTH}')
         try:
+            driver = new_chrome_driver(driver_path)
             driver.get(base_url + _ROUTE_AUTH)
         except WebDriverException as e:
             if 'net::ERR_CONNECTION_REFUSED' in e.msg:
@@ -173,7 +191,54 @@ def authenticate_gateway(driver, account, password, key: str = None, base_url: s
         submit_form_el.click()
 
         success_present = EC.text_to_be_present_in_element((By.TAG_NAME, 'pre'), _SUCCESS_EL_TEXT)
-        WebDriverWait(driver, _OAUTH_TIMEOUT).until(success_present)
+        two_factor_input_present = EC.presence_of_element_located((By.ID, _TWO_FAC_EL_ID))
+
+        WebDriverWait(driver, _OAUTH_TIMEOUT).until(AnyEc(success_present, two_factor_input_present))
+
+        two_factor_el = driver.find_elements_by_id(_TWO_FAC_EL_ID)
+
+        if two_factor_el:
+
+            _LOGGER.debug(f'2FA in use: Loading messages.google.com/web')
+
+            driver_2fa = new_chrome_driver(driver_path)
+            driver_2fa.get('https://messages.google.com/web')
+
+            sms_auth_present = EC.presence_of_element_located((By.CLASS_NAME, _SMS_QR_CODE_CLASS))
+            sms_code_present = EC.text_to_be_present_in_element((By.CLASS_NAME, _SMS_MESSAGES_LIST_CLASS), _SMS_2FA_HEADING)
+
+            WebDriverWait(driver_2fa, 240).until( AnyEc(sms_auth_present, sms_code_present))
+
+            sms_auth_el = driver_2fa.find_elements_by_class_name(_SMS_QR_CODE_CLASS)
+
+            if sms_auth_el:
+
+                driver_2fa.find_element_by_class_name(_SMS_AUTH_REMEMBER_CLASS).click()
+
+                _LOGGER.info(f'Web messages is not authenticated. Open this URL to pair web messages with your android phone:')
+                _LOGGER.info(f'http://api.qrserver.com/v1/create-qr-code/?color=000000&bgcolor=FFFFFF&qzone=1&margin=0&size=400x400&ecc=L&data=' 
+                    + urllib.parse.quote(sms_auth_el[0].get_attribute('data-'+_SMS_QR_CODE_CLASS))
+                )
+
+                WebDriverWait(driver_2fa, 120).until(sms_code_present)
+
+            sms_list_el = driver_2fa.find_elements_by_class_name(_SMS_MESSAGES_LIST_CLASS)
+
+            if not sms_list_el:
+
+                _LOGGER.info('Timeout or authentication error while loading sms messages.')
+                return False
+
+            _LOGGER.info( sms_list_el[0].text )
+
+            code_2fa = re.search( r'(\d+)', sms_list_el[0].text ).group(1)
+            two_factor_el[0].send_keys( code_2fa )
+
+            submit_form_el = driver.find_element_by_id(_SUBMIT_EL_ID)
+            submit_form_el.click()
+
+            WebDriverWait(driver, _OAUTH_TIMEOUT).until(success_present)
+
         _LOGGER.debug('Client login succeeds')
         time.sleep(2)
         driver.quit()
@@ -300,8 +365,7 @@ class GatewayClient():
         return processes[0].pid
 
     def _authenticate(self) -> bool:
-        driver = new_chrome_driver(self.driver_path)
-        return authenticate_gateway(driver, self.account, self.password, self.key, self.base_url)
+        return authenticate_gateway(self.driver_path, self.account, self.password, self.key, self.base_url)
 
     # def _reauthenticate(self):
     #     self._try_request(self.base_url + _ROUTE_REAUTHENTICATE, False)
@@ -467,3 +531,16 @@ class GatewayClient():
                 return False
 
         return True
+
+class AnyEc:
+    """ Use with WebDriverWait to combine expected_conditions
+        in an OR.
+    """
+    def __init__(self, *args):
+        self.ecs = args
+    def __call__(self, driver):
+        for fn in self.ecs:
+            try:
+                if fn(driver): return True
+            except:
+                pass
