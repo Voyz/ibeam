@@ -10,7 +10,7 @@ from ibeam.src.two_fa_handlers.external_request_handler import ExternalRequestTw
 from ibeam.src.two_fa_handlers.google_msg_handler import GoogleMessagesTwoFaHandler
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
-_CUSTOM_TWO_FA_HANDLER = os.environ.get('IBEAM_CUSTOM_TWO_FA_HANDLER', 'my_custom_handler.MyCustomTwoFaHandler')
+_CUSTOM_TWO_FA_HANDLER = os.environ.get('IBEAM_CUSTOM_TWO_FA_HANDLER', 'custom_two_fa_handler.CustomTwoFaHandler')
 """Fully qualified path of the custom 2FA handler in the inputs directory."""
 
 
@@ -39,7 +39,7 @@ def load_custom_two_fa_handler(two_fa_handler_fqp, inputs_handler: InputsHandler
     except ModuleNotFoundError as e:
         if str(e) == f'No module named \'{module_name}\'':
             raise RuntimeError(
-                f'Invalid handler path: "{two_fa_handler_fqp}". Module "{module_name}" not found.') from e
+                f'Invalid handler path: "{two_fa_handler_fqp}". Module "{module_name}" not found. You need to provide the MODULE_NAME.CLASS_NAME of your custom handler as IBEAM_CUSTOM_TWO_FA_HANDLER environment variable.') from e
         else:
             raise e
 
@@ -48,7 +48,7 @@ def load_custom_two_fa_handler(two_fa_handler_fqp, inputs_handler: InputsHandler
     except AttributeError as e:
         if str(e) == f'module \'{module_name}\' has no attribute \'{class_name}\'':
             raise RuntimeError(
-                f'Invalid handler path: "{two_fa_handler_fqp}". Module "{module_name}" has no class "{class_name}".') from e
+                f'Invalid handler path: "{two_fa_handler_fqp}". Module "{module_name}" has no class "{class_name}". You need to provide the MODULE_NAME.CLASS_NAME of your custom handler as IBEAM_CUSTOM_TWO_FA_HANDLER environment variable.') from e
         else:
             raise e
 

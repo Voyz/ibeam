@@ -78,5 +78,5 @@ TWO_FA_EL_ID = os.environ.get('IBEAM_TWO_FA_EL_ID', 'twofactbase')
 TWO_FA_INPUT_EL_ID = os.environ.get('TWO_FA_INPUT_EL_ID', 'chlginput')
 """HTML element to input 2FA code into"""
 
-TWO_FA_HANDLER = os.environ.get('IBEAM_TWO_FA_HANDLER', 'CUSTOM_HANDLER')
+TWO_FA_HANDLER = os.environ.get('IBEAM_TWO_FA_HANDLER', None)
 """Which 2FA handler should be used to acquire the code."""
