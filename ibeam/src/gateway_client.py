@@ -23,6 +23,7 @@ from ibeam.src.authenticate import authenticate_gateway
 from ibeam.src.http_handler import HttpHandler
 from ibeam.src.inputs_handler import InputsHandler
 from ibeam.src.process_utils import find_procs_by_name, start_gateway
+from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -38,6 +39,7 @@ class GatewayClient():
     def __init__(self,
                  http_handler: HttpHandler,
                  inputs_handler: InputsHandler,
+                 two_fa_handler: TwoFaHandler,
                  account: str = None,
                  password: str = None,
                  key: str = None,
@@ -69,6 +71,7 @@ class GatewayClient():
 
         self.http_handler = http_handler
         self.inputs_handler = inputs_handler
+        self.two_fa_handler = two_fa_handler
 
         # gateway_root_dir = os.path.join(self.gateway_dir, 'root')
         #
@@ -103,7 +106,12 @@ class GatewayClient():
         return processes[0].pid
 
     def _authenticate(self) -> bool:
-        return authenticate_gateway(self.driver_path, self.account, self.password, self.key, self.base_url)
+        return authenticate_gateway(driver_path=self.driver_path,
+                                    account=self.account,
+                                    password=self.password,
+                                    key=self.key,
+                                    base_url=self.base_url,
+                                    two_fa_handler=self.two_fa_handler)
 
     # def _reauthenticate(self):
     #     self._try_request(self.base_url + _ROUTE_REAUTHENTICATE, False)
@@ -127,15 +135,15 @@ class GatewayClient():
                 _LOGGER.info('No active sessions, logging in...')
 
             success = self._authenticate()
-            _LOGGER.info(f'Login {"succeeded" if success else "failed"}')
+            _LOGGER.info(f'Authentication process {"succeeded" if success else "failed"}')
             if not success:
                 return False
             # self._try_request(self.base_url + _ROUTE_VALIDATE, False, max_attempts=REQUEST_RETRIES)
 
-            time.sleep(1)  # a small buffer for session to be authenticated
+            time.sleep(3)  # a small buffer for session to be authenticated
 
             # double check if authenticated
-            status = self.get_status(max_attempts=request_retries)
+            status = self.get_status(max_attempts=max(request_retries, 2))
             if not status[2]:
                 if status[1]:
                     _LOGGER.error('Gateway session active but not authenticated')

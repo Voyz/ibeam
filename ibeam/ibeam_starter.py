@@ -13,7 +13,7 @@ config.initialize()
 
 from ibeam.src.gateway_client import GatewayClient
 from ibeam.src.http_handler import HttpHandler
-from ibeam.src import var
+from ibeam.src import var, two_fa_selector
 from ibeam.src.inputs_handler import InputsHandler
 
 _LOGGER = logging.getLogger('ibeam')
@@ -40,9 +40,9 @@ if __name__ == '__main__':
     if args.verbose:
         _LOGGER.setLevel(logging.DEBUG)
 
-    inputs_dir = var.IBEAM_INPUTS_DIR
-    gateway_dir = var.IBEAM_GATEWAY_DIR
-    driver_path = var.IBEAM_CHROME_DRIVER_PATH
+    inputs_dir = var.INPUTS_DIR
+    gateway_dir = var.GATEWAY_DIR
+    driver_path = var.CHROME_DRIVER_PATH
 
     if gateway_dir is None:
         gateway_dir = input('Gateway root path: ')
@@ -52,9 +52,11 @@ if __name__ == '__main__':
 
     inputs_handler = InputsHandler(inputs_dir=inputs_dir, gateway_dir=gateway_dir)
     http_handler = HttpHandler(inputs_handler=inputs_handler)
+    two_fa_handler = two_fa_selector.select(driver_path, inputs_handler)
 
     client = GatewayClient(http_handler=http_handler,
                            inputs_handler=inputs_handler,
+                           two_fa_handler=two_fa_handler,
                            gateway_dir=gateway_dir,
                            driver_path=driver_path)
 
