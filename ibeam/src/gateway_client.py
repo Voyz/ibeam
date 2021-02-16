@@ -73,17 +73,6 @@ class GatewayClient():
         self.inputs_handler = inputs_handler
         self.two_fa_handler = two_fa_handler
 
-        # gateway_root_dir = os.path.join(self.gateway_dir, 'root')
-        #
-        # config_source = os.path.join(self.inputs_dir, 'conf.yaml')
-        # if os.path.isfile(config_source):
-        #     config_target = os.path.join(gateway_root_dir, 'conf.yaml')
-        #     shutil.copy2(config_source, config_target)
-        #
-        # if self.http_handler.do_tls:
-        #     cacert_target = os.path.join(gateway_root_dir, os.path.basename(self.http_handler.cecert_jks_path))
-        #     shutil.copy2(self.http_handler.cecert_jks_path, cacert_target)
-
         self._threads = 4
 
     def try_starting(self) -> Optional[int]:
