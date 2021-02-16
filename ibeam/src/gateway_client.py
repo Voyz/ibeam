@@ -1,11 +1,9 @@
 import json
 import logging
 import os
-import re
 import shutil
 import socket
 import ssl
-import subprocess
 import sys
 import time
 import urllib.request
@@ -16,17 +14,15 @@ from pathlib import Path
 from typing import Optional
 from urllib.error import HTTPError, URLError
 
-import psutil
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from cryptography.fernet import Fernet
-from selenium import webdriver
-from selenium.common.exceptions import WebDriverException
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from pyvirtualdisplay import Display
-from selenium.webdriver.support.wait import WebDriverWait
+
+from ibeam.src import var
+from ibeam.src.authenticate import authenticate_gateway
+from ibeam.src.http_handler import HttpHandler
+from ibeam.src.inputs_handler import InputsHandler
+from ibeam.src.process_utils import find_procs_by_name, start_gateway
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -34,239 +30,22 @@ from ibeam import config
 
 config.initialize()
 
-_GATEWAY_STARTUP = int(os.environ.get('IBEAM_GATEWAY_STARTUP', 3))
-"""How many seconds to wait before attempting to communicate with the gateway after its startup."""
-
-_GATEWAY_BASE_URL = os.environ.get('IBEAM_GATEWAY_BASE_URL', "https://localhost:5000")
-"""Base URL of the gateway."""
-
-_GATEWAY_PROCESS_MATCH = os.environ.get('IBEAM_GATEWAY_PROCESS_MATCH',
-                                        'ibgroup.web.core.clientportal.gw.GatewayStart')
-"""The gateway process' name to match against."""
-
-_ROUTE_AUTH = os.environ.get('IBEAM_ROUTE_AUTH', '/sso/Login?forwardTo=22&RL=1&ip2loc=on')
-"""Gateway route with authentication page."""
-
-_ROUTE_USER = os.environ.get('IBEAM_ROUTE_USER', '/v1/api/one/user')
-"""Gateway route with user information."""
-
-_ROUTE_VALIDATE = os.environ.get('IBEAM_ROUTE_VALIDATE', '/v1/portal/sso/validate')
-"""Gateway route with validation call."""
-
-_ROUTE_REAUTHENTICATE = os.environ.get('IBEAM_ROUTE_REAUTHENTICATE', '/v1/portal/iserver/reauthenticate?force=true')
-"""Gateway route with reauthentication call."""
-
-_ROUTE_AUTH_STATUS = os.environ.get('IBEAM_ROUTE_AUTH_STATUS', '/v1/api/iserver/auth/status')
-"""Gateway route with authentication status call."""
-
-_ROUTE_TICKLE = os.environ.get('IBEAM_ROUTE_TICKLE', '/v1/api/tickle')
-"""Gateway route with tickle call."""
-
-_USER_NAME_EL_ID = os.environ.get('IBEAM_USER_NAME_EL_ID', 'user_name')
-"""HTML element id containing the username input field."""
-
-_PASSWORD_EL_ID = os.environ.get('IBEAM_PASSWORD_EL_ID', 'password')
-"""HTML element id containing the password input field."""
-
-_SUBMIT_EL_ID = os.environ.get('IBEAM_SUBMIT_EL_ID', 'submitForm')
-"""HTML element id containing the submit button."""
-
-_SUCCESS_EL_TEXT = os.environ.get('IBEAM_SUCCESS_EL_TEXT', 'Client login succeeds')
-"""HTML element text indicating successful authentication."""
-
-_TWO_FAC_EL_ID = os.environ.get('IBEAM_TWO_FAC_EL_ID', 'chlginput')
-"""HTML element indicating 2FA authentication."""
-
-_SMS_QR_CODE_CLASS = os.environ.get('IBEAM_SMS_QR_CODE_CLASS', 'qr-code')
-"""HTML element indicating web messages needs authorization."""
-
-_SMS_AUTH_REMEMBER_CLASS = os.environ.get('IBEAM_SMS_AUTH_REMEMBER_CLASS', 'local-storage-checkbox')
-"""HTML element to remember web messages device pairing."""
-
-_SMS_MESSAGES_LIST_CLASS = os.environ.get('IBEAM_SMS_MESSAGES_LIST_CLASS', 'snippet-text')
-"""HTML element indicating web messages has loaded."""
-
-_SMS_2FA_HEADING = os.environ.get('IBEAM_SMS_2FA_HEADING', 'Your requested authentication code')
-"""HTML element text indicating 2fa message received."""
-
-_MAINTENANCE_INTERVAL = int(os.environ.get('IBEAM_MAINTENANCE_INTERVAL', 60))
-"""How many seconds between each maintenance."""
-
-_LOG_LEVEL = os.environ.get('IBEAM_LOG_LEVEL', 'INFO')
-"""Verbosity level of the logger used."""
-
-_REQUEST_RETRIES = int(os.environ.get('IBEAM_REQUEST_RETRIES', 1))
-"""How many times to reattempt a request to the gateway."""
-
-_REQUEST_TIMEOUT = int(os.environ.get('IBEAM_REQUEST_TIMEOUT', 15))
-"""How many seconds to wait for a request to complete."""
-
-_OAUTH_TIMEOUT = int(os.environ.get('IBEAM_OAUTH_TIMEOUT', 15))
-"""How many seconds to wait for the OAuth login request to complete."""
-
-logging.getLogger('ibeam').setLevel(getattr(logging, _LOG_LEVEL))
-
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
-
-
-# from https://stackoverflow.com/questions/550653/cross-platform-way-to-get-pids-by-process-name-in-python/2241047
-def find_procs_by_name(name):
-    "Return a list of processes matching 'name'."
-    assert name, name
-    ls = []
-    for p in psutil.process_iter():
-        name_, exe, cmdline = "", "", []
-        try:
-            # name_ = p.name()
-            cmdline = p.cmdline()
-            exe = p.exe()
-        except (psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-        except psutil.NoSuchProcess:
-            continue
-        if name in ' '.join(cmdline) or name in os.path.basename(exe):
-            ls.append(p)
-    return ls
-
-
-def new_chrome_driver(driver_path, headless: bool = True):
-    """Creates a new chrome driver."""
-    options = webdriver.ChromeOptions()
-    if headless: options.add_argument('headless')
-    options.add_argument('--no-sandbox')
-    options.add_argument('--ignore-ssl-errors=yes')
-    options.add_argument('--ignore-certificate-errors')
-    #options.add_argument("--remote-debugging-port=9222")
-    options.add_argument("--useAutomationExtension=false")
-    return webdriver.Chrome(driver_path, options=options)
-
-
-def authenticate_gateway(driver_path, account, password, key: str = None, base_url: str = None) -> bool:
-    """
-    Authenticates the currently running gateway.
-
-    If both password and key are provided, cryptography.fernet decryption will be used.
-
-    :return: Whether authentication was successful.
-    """
-    if base_url is None: base_url = _GATEWAY_BASE_URL
-    display = None
-    try:
-        if sys.platform == 'linux':
-            display = Display(visible=0, size=(800, 600))
-            display.start()
-
-        _LOGGER.debug(f'Loading auth page at {base_url + _ROUTE_AUTH}')
-        try:
-            driver = new_chrome_driver(driver_path)
-            driver.get(base_url + _ROUTE_AUTH)
-        except WebDriverException as e:
-            if 'net::ERR_CONNECTION_REFUSED' in e.msg:
-                _LOGGER.error(
-                    'Connection to Gateway refused. This could indicate IB Gateway is not running. Consider increasing IBEAM_GATEWAY_STARTUP wait buffer')
-                return False
-            if 'net::ERR_CONNECTION_CLOSED' in e.msg:
-                _LOGGER.error(
-                    f'Connection to Gateway failed. This could indicate IB Gateway is not running correctly or that its port {base_url.split(":")[2]} was already occupied')
-                return False
-            else:
-                raise e
-
-        user_name_present = EC.presence_of_element_located((By.ID, _USER_NAME_EL_ID))
-        WebDriverWait(driver, 15).until(user_name_present)
-
-        _LOGGER.debug('Gateway auth page loaded')
-
-        user_name_el = driver.find_element_by_id(_USER_NAME_EL_ID)
-        password_el = driver.find_element_by_id(_PASSWORD_EL_ID)
-        user_name_el.send_keys(account)
-
-        if key is None:
-            password_el.send_keys(password)
-        else:
-            password_el.send_keys(Fernet(key).decrypt(password.encode('utf-8')).decode("utf-8"))
-
-        _LOGGER.debug('Submitting the form')
-        submit_form_el = driver.find_element_by_id(_SUBMIT_EL_ID)
-        submit_form_el.click()
-
-        success_present = EC.text_to_be_present_in_element((By.TAG_NAME, 'pre'), _SUCCESS_EL_TEXT)
-        two_factor_input_present = EC.presence_of_element_located((By.ID, _TWO_FAC_EL_ID))
-
-        WebDriverWait(driver, _OAUTH_TIMEOUT).until(AnyEc(success_present, two_factor_input_present))
-
-        two_factor_el = driver.find_elements_by_id(_TWO_FAC_EL_ID)
-
-        if two_factor_el:
-
-            _LOGGER.debug(f'2FA in use: Loading messages.google.com/web')
-
-            driver_2fa = new_chrome_driver(driver_path)
-            driver_2fa.get('https://messages.google.com/web')
-
-            sms_auth_present = EC.presence_of_element_located((By.CLASS_NAME, _SMS_QR_CODE_CLASS))
-            sms_code_present = EC.text_to_be_present_in_element((By.CLASS_NAME, _SMS_MESSAGES_LIST_CLASS), _SMS_2FA_HEADING)
-
-            WebDriverWait(driver_2fa, 240).until( AnyEc(sms_auth_present, sms_code_present))
-
-            sms_auth_el = driver_2fa.find_elements_by_class_name(_SMS_QR_CODE_CLASS)
-
-            if sms_auth_el:
-
-                driver_2fa.find_element_by_class_name(_SMS_AUTH_REMEMBER_CLASS).click()
-
-                _LOGGER.info(f'Web messages is not authenticated. Open this URL to pair web messages with your android phone:')
-                _LOGGER.info(f'http://api.qrserver.com/v1/create-qr-code/?color=000000&bgcolor=FFFFFF&qzone=1&margin=0&size=400x400&ecc=L&data=' 
-                    + urllib.parse.quote(sms_auth_el[0].get_attribute('data-'+_SMS_QR_CODE_CLASS))
-                )
-
-                WebDriverWait(driver_2fa, 120).until(sms_code_present)
-
-            sms_list_el = driver_2fa.find_elements_by_class_name(_SMS_MESSAGES_LIST_CLASS)
-
-            if not sms_list_el:
-
-                _LOGGER.info('Timeout or authentication error while loading sms messages.')
-                return False
-
-            _LOGGER.info( sms_list_el[0].text )
-
-            code_2fa = re.search( r'(\d+)', sms_list_el[0].text ).group(1)
-            two_factor_el[0].send_keys( code_2fa )
-
-            submit_form_el = driver.find_element_by_id(_SUBMIT_EL_ID)
-            submit_form_el.click()
-
-            WebDriverWait(driver, _OAUTH_TIMEOUT).until(success_present)
-
-        _LOGGER.debug('Client login succeeds')
-        time.sleep(2)
-        driver.quit()
-        success = True
-    except Exception as e:
-        try:
-            raise RuntimeError('Error encountered during authentication') from e
-        except Exception as full_e:
-            _LOGGER.exception(full_e)
-            success = False
-    finally:
-        if sys.platform == 'linux' and display is not None:
-            display.stop()
-
-    return success
 
 
 class GatewayClient():
 
     def __init__(self,
+                 http_handler: HttpHandler,
+                 inputs_handler: InputsHandler,
                  account: str = None,
                  password: str = None,
                  key: str = None,
-                 gateway_path: str = None,
+                 gateway_dir: str = None,
                  driver_path: str = None,
                  base_url: str = None):
 
-        self.base_url = base_url if base_url is not None else _GATEWAY_BASE_URL
+        self.base_url = base_url if base_url is not None else var.GATEWAY_BASE_URL
 
         self.account = account if account is not None else os.environ.get('IBEAM_ACCOUNT')
         """IBKR account name."""
@@ -277,12 +56,6 @@ class GatewayClient():
         self.key = key if key is not None else os.environ.get('IBEAM_KEY')
         """Key to the IBKR password."""
 
-        self.gateway_dir = gateway_path if gateway_path is not None else os.environ.get('IBEAM_GATEWAY_DIR')
-        """Path to the root of the IBKR Gateway."""
-
-        self.driver_path = driver_path if driver_path is not None else os.environ.get('IBEAM_CHROME_DRIVER_PATH')
-        """Path to the Chrome Driver executable file."""
-
         if self.account is None:
             self.account = input('Account: ')
 
@@ -291,70 +64,35 @@ class GatewayClient():
             if self.key is None:
                 self.key = getpass('Key: ') or None
 
-        if self.gateway_dir is None:
-            self.gateway_dir = input('Gateway root path: ')
+        self.gateway_dir = gateway_dir
+        self.driver_path = driver_path
 
-        if self.driver_path is None:
-            self.driver_path = input('Chrome Driver executable path: ')
+        self.http_handler = http_handler
+        self.inputs_handler = inputs_handler
 
-        self.inputs_dir = os.environ.get('IBEAM_INPUTS_DIR', '/srv/inputs/')
-
-        self.config_path = os.path.join(self.gateway_dir, 'root/conf.yaml')
-        config_source = os.path.join(self.inputs_dir, 'conf.yaml')
-        if os.path.isfile(config_source):
-            shutil.copy2(config_source, self.config_path)
-
-        self.cecert_jks_path = os.path.join(self.inputs_dir, 'cacert.jks')
-        self.cecert_pem_path = os.path.join(self.inputs_dir, 'cacert.pem')
-
-        self._ssl_context = ssl.SSLContext()
-        self.do_tls = os.path.isfile(self.cecert_jks_path) and os.path.isfile(self.cecert_pem_path)
-        if self.do_tls:
-            _LOGGER.debug('Certificates found and will be used for TLS verification')
-            shutil.copy2(self.cecert_jks_path,
-                         os.path.join(self.gateway_dir, 'root', os.path.basename(self.cecert_jks_path)))
-
-            self._ssl_context.verify_mode = ssl.CERT_REQUIRED
-            self._ssl_context.check_hostname = True
-            self._ssl_context.load_verify_locations(self.cecert_pem_path)
+        # gateway_root_dir = os.path.join(self.gateway_dir, 'root')
+        #
+        # config_source = os.path.join(self.inputs_dir, 'conf.yaml')
+        # if os.path.isfile(config_source):
+        #     config_target = os.path.join(gateway_root_dir, 'conf.yaml')
+        #     shutil.copy2(config_source, config_target)
+        #
+        # if self.http_handler.do_tls:
+        #     cacert_target = os.path.join(gateway_root_dir, os.path.basename(self.http_handler.cecert_jks_path))
+        #     shutil.copy2(self.http_handler.cecert_jks_path, cacert_target)
 
         self._threads = 4
 
-    def _start(self):
-        creationflags = 0  # when not on Windows, we send 0 to avoid errors.
-
-        if sys.platform == 'win32':
-            args = ["cmd", "/k", r"bin\run.bat", r"root\conf.yaml"]
-            _LOGGER.debug(f'Starting Windows process with params: {args}')
-            creationflags = subprocess.CREATE_NEW_CONSOLE
-
-        elif sys.platform == 'darwin':
-            args = ["open", "-F", "-a", "Terminal", r"bin/run.sh", r"root/conf.yaml"]
-            _LOGGER.debug(f'Starting Mac process with params: {args}')
-
-        elif sys.platform == 'linux':
-            args = ["bash", r"bin/run.sh", r"root/conf.yaml"]
-            _LOGGER.debug(f'Starting Linux process with params: {args}')
-
-        else:
-            raise EnvironmentError(f'Unknown platform: {sys.platform}')
-
-        subprocess.Popen(
-            args=args,
-            cwd=self.gateway_dir,
-            creationflags=creationflags
-        )
-
     def try_starting(self) -> Optional[int]:
-        processes = find_procs_by_name(_GATEWAY_PROCESS_MATCH)
+        processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
         if not processes:
             _LOGGER.info('Gateway not found, starting new one...')
 
-            self._start()
+            start_gateway(self.gateway_dir)
 
-            time.sleep(_GATEWAY_STARTUP)
+            time.sleep(var.GATEWAY_STARTUP)
 
-            processes = find_procs_by_name(_GATEWAY_PROCESS_MATCH)
+            processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
             success = len(processes) != 0
             if not success:
                 return None
@@ -409,86 +147,18 @@ class GatewayClient():
 
         return True
 
-    def _url_request(self, url):
-        _LOGGER.debug(f'HTTPS{"" if self.do_tls else " (unverified)"} request to: {url}')
-        return urllib.request.urlopen(url, context=self._ssl_context, timeout=_REQUEST_TIMEOUT)
-
-    def _try_request(self, url, check_auth=False, max_attempts=1) -> (bool, bool, bool):
-        """Attempts a HTTP request and returns a tuple of three boolean flag indicating whether the gateway can be reached, whether there is an active session and whether it is authenticated. Attempts to repeat the request up to max_attempts times.
-
-        status[0] -> gateway running
-        status[1] -> active session present
-        status[2] -> session authenticated (equivalent to 'all good')
-        """
-
-        def _request(attempt=0) -> (bool, bool, bool):
-            status = [False, False, False]
-            try:
-                response = self._url_request(url)
-                if check_auth:
-                    data = json.loads(response.read().decode('utf8'))
-                    return True, True, data['iserver']['authStatus']['authenticated']
-                else:
-                    return True, True, True
-            except HTTPError as e:
-                if e.code == 401:
-                    return True, False, False  # we expect this error, no need to log
-                else:  # todo: possibly other codes could appear when not authenticated, fix when necessary
-                    _LOGGER.exception(e)
-                    return True, False, False
-            except (URLError, socket.timeout) as e:
-                reason = str(e)
-
-                """
-                    No connection... - happens when port isn't open
-                    Cannot assign... - happens when calling a port taken by Docker but not served, when called from within the container.
-                    Errno 0... - happens when calling a port taken by Docker but not served, when called from the host machine.
-                """
-
-                if 'No connection could be made because the target machine actively refused it' in reason \
-                        or 'Cannot assign requested address' in reason \
-                        or '[Errno 0] Error' in reason:
-                    status = [False, False, False]
-                    pass  # we expect these errors and don't need to log them
-
-                elif "timed out" in reason \
-                        or "The read operation timed out" in reason:
-                    _LOGGER.error(
-                        f'Connection timeout after {_REQUEST_TIMEOUT} seconds. Consider increasing timeout by setting IBEAM_REQUEST_TIMEOUT environment variable. Error: {reason}')
-                    status = [True, False, False]
-                elif 'Connection refused' in reason:
-                    _LOGGER.info(
-                        f'Gateway running but not serving yet. Consider increasing GATEWAY_STARTUP timeout. Error: {reason}')
-                    status = [True, False, False]
-                else:
-                    _LOGGER.exception(e)
-                    status = [True, False, False]
-
-            if max_attempts <= 1:
-                return status
-            else:
-                if attempt >= max_attempts - 1:
-                    _LOGGER.debug(
-                        f'Max validate request retries reached after {max_attempts} attempts. Consider increasing the retries by setting IBEAM_REQUEST_RETRIES environment variable')
-                    return status
-                else:
-                    _LOGGER.debug(f'Attempt number {attempt + 2}')
-                    return _request(attempt + 1)
-
-        return _request(0)
-
     def get_status(self, max_attempts=1) -> (bool, bool, bool):
-        return self._try_request(self.base_url + _ROUTE_TICKLE, True, max_attempts=max_attempts)
+        return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True, max_attempts=max_attempts)
 
     def validate(self) -> bool:
-        return self._try_request(self.base_url + _ROUTE_VALIDATE, False)[1]
+        return self.http_handler.try_request(self.base_url + var.ROUTE_VALIDATE, False)[1]
 
     def tickle(self) -> bool:
-        return self._try_request(self.base_url + _ROUTE_TICKLE, True)[0]
+        return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True)[0]
 
     def user(self):
         try:
-            response = self._url_request(self.base_url + _ROUTE_USER)
+            response = self.http_handler.url_request(self.base_url + var.ROUTE_USER)
             _LOGGER.info(response.read())
         except Exception as e:
             _LOGGER.exception(e)
@@ -506,41 +176,28 @@ class GatewayClient():
         executors = {'default': ThreadPoolExecutor(self._threads)}
         job_defaults = {'coalesce': False, 'max_instances': self._threads}
         self._scheduler = BlockingScheduler(executors=executors, job_defaults=job_defaults, timezone='UTC')
-        self._scheduler.add_job(self._maintenance, trigger=IntervalTrigger(seconds=_MAINTENANCE_INTERVAL))
-        _LOGGER.info(f'Starting maintenance with interval {_MAINTENANCE_INTERVAL} seconds')
+        self._scheduler.add_job(self._maintenance, trigger=IntervalTrigger(seconds=var.MAINTENANCE_INTERVAL))
+        _LOGGER.info(f'Starting maintenance with interval {var.MAINTENANCE_INTERVAL} seconds')
         self._scheduler.start()
 
     def _maintenance(self):
         _LOGGER.debug('Maintenance')
 
-        success = self.start_and_authenticate(request_retries=_REQUEST_RETRIES)
+        success = self.start_and_authenticate(request_retries=var.REQUEST_RETRIES)
 
         if success:
             _LOGGER.info('Gateway running and authenticated')
 
     def kill(self) -> bool:
-        processes = find_procs_by_name(_GATEWAY_PROCESS_MATCH)
+        processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
         if processes:
             processes[0].terminate()
 
             time.sleep(1)
 
             # double check we succeeded
-            processes = find_procs_by_name(_GATEWAY_PROCESS_MATCH)
+            processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
             if processes:
                 return False
 
         return True
-
-class AnyEc:
-    """ Use with WebDriverWait to combine expected_conditions
-        in an OR.
-    """
-    def __init__(self, *args):
-        self.ecs = args
-    def __call__(self, driver):
-        for fn in self.ecs:
-            try:
-                if fn(driver): return True
-            except:
-                pass

@@ -12,6 +12,9 @@ from ibeam import config
 config.initialize()
 
 from ibeam.src.gateway_client import GatewayClient
+from ibeam.src.http_handler import HttpHandler
+from ibeam.src import var
+from ibeam.src.inputs_handler import InputsHandler
 
 _LOGGER = logging.getLogger('ibeam')
 
@@ -33,11 +36,27 @@ def parse_args():
 
 if __name__ == '__main__':
     args = parse_args()
-    # print(args)
-    client = GatewayClient()
 
     if args.verbose:
         _LOGGER.setLevel(logging.DEBUG)
+
+    inputs_dir = var.IBEAM_INPUTS_DIR
+    gateway_dir = var.IBEAM_GATEWAY_DIR
+    driver_path = var.IBEAM_CHROME_DRIVER_PATH
+
+    if gateway_dir is None:
+        gateway_dir = input('Gateway root path: ')
+
+    if driver_path is None:
+        driver_path = input('Chrome Driver executable path: ')
+
+    inputs_handler = InputsHandler(inputs_dir=inputs_dir, gateway_dir=gateway_dir)
+    http_handler = HttpHandler(inputs_handler=inputs_handler)
+
+    client = GatewayClient(http_handler=http_handler,
+                           inputs_handler=inputs_handler,
+                           gateway_dir=gateway_dir,
+                           driver_path=driver_path)
 
     if args.start:
         pid = client.try_starting()
