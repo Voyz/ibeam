@@ -20,17 +20,21 @@ from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
+driver_index = 0
+
 
 def new_chrome_driver(driver_path, headless: bool = True):
+    global driver_index
     """Creates a new chrome driver."""
     options = webdriver.ChromeOptions()
     if headless: options.add_argument('headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--ignore-ssl-errors=yes')
     options.add_argument('--ignore-certificate-errors')
-    options.add_argument("--remote-debugging-port=9222")
+    options.add_argument(f"--remote-debugging-port={9222 + driver_index}")
     options.add_argument("--useAutomationExtension=false")
-    options.add_argument(f'--user-data-dir={tempfile.gettempdir()}/ibeam-chrome')
+    options.add_argument(f'--user-data-dir={tempfile.gettempdir()}/ibeam-chrome-{driver_index}')
+    driver_index += 1
     return webdriver.Chrome(driver_path, options=options)
 
 
@@ -179,6 +183,8 @@ def authenticate_gateway(driver_path,
 
         if driver is not None:
             driver.quit()
+            global driver_index
+            driver_index = max(driver_index - 1, 0)
 
     return success
 

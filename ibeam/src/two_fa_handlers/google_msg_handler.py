@@ -35,7 +35,6 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
 
     def get_two_fa_code(self) -> Union[str, None]:
         code_two_fa = None
-        _LOGGER.debug(f'Attempting to acquire : Loading messages.google.com/web')
 
         driver_2fa = new_chrome_driver(self.driver_path)
         driver_2fa.get('https://messages.google.com/web')
