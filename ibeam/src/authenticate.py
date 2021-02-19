@@ -211,7 +211,7 @@ def handle_two_fa(two_fa_handler, driver_path) -> Union[str, None]:
         _LOGGER.info(f'Attempting to acquire 2FA code from: {two_fa_handler}')
 
         try:
-            two_fa_code = two_fa_handler.get_two_fa_code(driver_path)
+            two_fa_code = two_fa_handler.get_two_fa_code()
         except Exception as two_fa_exception:
             try:
                 raise RuntimeError('Error encountered while acquiring 2FA code.') from two_fa_exception
