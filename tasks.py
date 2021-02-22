@@ -12,12 +12,12 @@ def _copy_directory(from_path, to_path, c):
 
 @task
 def copyPackages(c):
-    # copy_clientportal(c)
-    copy_chrome_driver(c)
+    # copyClientportal(c)
+    copyChromeDriver(c)
 
 
 @task
-def copy_clientportal(c):
+def copyClientportal(c):
     source_path = os.environ['IBEAM_GATEWAY_DIR']
 
     if not os.path.exists(source_path):
@@ -27,7 +27,7 @@ def copy_clientportal(c):
 
 
 @task
-def copy_chrome_driver(c):
+def copyChromeDriver(c):
     source_path = Path(os.environ['IBEAM_CHROME_DRIVER_PATH']).parent
     print(source_path)
 
