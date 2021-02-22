@@ -6,6 +6,7 @@ We'd love for you to contribute to our source code and to make IBeam even better
  - [Question or Problem?](#question)
  - [Issues and Bugs](#issue)
  - [Submission Guidelines](#submit)
+ - [Building a Docker image](#building-docker)
  - [Coding Rules](#rules)
 
 ## <a name="coc"></a> Code of Conduct
@@ -145,6 +146,29 @@ from the main (upstream) repository:
     ```shell
     git pull --ff upstream master
     ```
+    
+## <a name="building-docker"></a>Building a Docker image
+In order to build a Docker image of IBeam, you need to first ensure both Chrome Driver and CPW Gateway are available in `./copy_cache` directory under:
+
+* `./copy_cache/chrome_driver` - for the Chrome Driver
+* `./copy_cache/clientportal.gw` - for the Gateway
+
+You can automate this process by carrying out the following:
+
+* Navigate to the root folder of IBeam in your console
+* Run `pip install -r dev-requirements.txt` to install [`invoke` package][invoke]
+* Define the following environment variable paths, contents of which will be copied to the image
+    * `IBEAM_CHROME_DRIVER_PATH` env var pointing at the Chrome Driver directory to be copied from
+    * `IBEAM_GATEWAY_DIR` env var pointing at the Gateway directory to be copied from
+* Make sure `invoke.exe` is in your `$PATH`
+* Run `invoke.exe copyClientportal` and `invoke.exe copyChromeDriver`
+* (optionally) Ensure both `copy_cache/chrome_driver` and `copy_cache/clientportal.gw` are present
+
+Finally, run: 
+
+```posh
+docker build -t ibeam .
+```
 
 ## <a name="rules"></a> Coding Rules
 
@@ -160,3 +184,4 @@ We generally follow the [Google Python style guide][py-style-guide].
 [stackoverflow]: http://stackoverflow.com/questions/tagged/ibeam
 [global-gitignore]: https://help.github.com/articles/ignoring-files/#create-a-global-gitignore
 [voy1982_email]: mailto://voy1982@yahoo.co.uk
+[invoke]: http://docs.pyinvoke.org/en/stable/
