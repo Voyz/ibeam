@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+import time
 import urllib.parse
 from pathlib import Path
 from typing import Union
@@ -21,7 +22,7 @@ _GOOG_QR_CODE_CLASS = os.environ.get('IBEAM_GOOG_QR_CODE_CLASS', 'qr-code')
 _GOOG_AUTH_REMEMBER_CLASS = os.environ.get('IBEAM_GOOG_AUTH_REMEMBER_CLASS', 'local-storage-checkbox')
 """HTML element to remember web messages device pairing."""
 
-_GOOG_MESSAGES_LIST_CLASS = os.environ.get('IBEAM_GOOG_MESSAGES_LIST_CLASS', 'snippet-text')
+_GOOG_MESSAGES_LIST_CLASS = os.environ.get('IBEAM_GOOG_MESSAGES_LIST_CLASS', '.text-content.unread .snippet-text')
 """HTML element indicating web messages has loaded."""
 
 _GOOG_2FA_HEADING = os.environ.get('IBEAM_GOOG_2FA_HEADING', 'Your requested authentication code')
@@ -40,7 +41,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
         driver_2fa.get('https://messages.google.com/web')
 
         sms_auth_present = EC.presence_of_element_located((By.CLASS_NAME, _GOOG_QR_CODE_CLASS))
-        sms_code_present = EC.text_to_be_present_in_element((By.CLASS_NAME, _GOOG_MESSAGES_LIST_CLASS),
+        sms_code_present = EC.text_to_be_present_in_element((By.CSS_SELECTOR, _GOOG_MESSAGES_LIST_CLASS),
                                                             _GOOG_2FA_HEADING)
 
         WebDriverWait(driver_2fa, 240).until(AnyEc(sms_auth_present, sms_code_present))
@@ -59,13 +60,17 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
 
             WebDriverWait(driver_2fa, 120).until(sms_code_present)
 
-        sms_list_el = driver_2fa.find_elements_by_class_name(_GOOG_MESSAGES_LIST_CLASS)
+        sms_list_el = driver_2fa.find_elements_by_css_selector(_GOOG_MESSAGES_LIST_CLASS)
 
         if not sms_list_el:
             _LOGGER.error('Timeout or authentication error while loading sms messages.')
         else:
             _LOGGER.info(sms_list_el[0].text)
+            sms_list_el[0].click() #mark message as read
+            time.sleep(2) #wait for click to mark message as read
             code_two_fa = re.search(r'(\d+)', sms_list_el[0].text).group(1)
+
+        driver_2fa.quit()
 
         return code_two_fa
 
