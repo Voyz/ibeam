@@ -1,18 +1,11 @@
-import json
 import logging
 import os
-import shutil
-import socket
-import ssl
 import sys
 import time
-import urllib.request
-import urllib.parse
 from getpass import getpass
 
 from pathlib import Path
 from typing import Optional
-from urllib.error import HTTPError, URLError
 
 from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.blocking import BlockingScheduler
@@ -82,7 +75,7 @@ class GatewayClient():
 
             start_gateway(self.gateway_dir)
 
-            time.sleep(var.GATEWAY_STARTUP)
+            time.sleep(1)  # buffer to ensure process is running
 
             processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
             success = len(processes) != 0
@@ -91,6 +84,24 @@ class GatewayClient():
 
             self.server_process = processes[0].pid
             _LOGGER.info(f'Gateway started with pid: {self.server_process}')
+
+            # let's try to communicate with the Gateway
+            t_end = time.time() + var.GATEWAY_STARTUP
+            ping_success = False
+            while time.time() < t_end:
+                status = self.http_handler.try_request(self.base_url, False)
+                if not status[0]:
+                    seconds_remaining = round(t_end - time.time())
+                    if seconds_remaining > 0:
+                        _LOGGER.debug(
+                            f'Cannot ping Gateway. Retrying for another {seconds_remaining} seconds')
+                else:
+                    _LOGGER.debug('Gateway connection established')
+                    ping_success = True
+                    break
+
+            if not ping_success:
+                _LOGGER.error('Gateway process found but cannot establish a connection with the Gateway')
 
         return processes[0].pid
 
@@ -110,6 +121,7 @@ class GatewayClient():
         if status[2]:  # running and authenticated
             return True
         elif not status[0]:  # no gateway running
+            _LOGGER.error('Cannot communicate with the Gateway. Consider increasing IBEAM_GATEWAY_STARTUP')
             return False
         else:
             if status[1]:
@@ -129,7 +141,7 @@ class GatewayClient():
                 return False
             # self._try_request(self.base_url + _ROUTE_VALIDATE, False, max_attempts=REQUEST_RETRIES)
 
-            time.sleep(3)  # a small buffer for session to be authenticated
+            time.sleep(3)  # buffer for session to be authenticated
 
             # double check if authenticated
             status = self.get_status(max_attempts=max(request_retries, 2))
@@ -139,7 +151,7 @@ class GatewayClient():
                 elif status[0]:
                     _LOGGER.error('Gateway running but has no active sessions')
                 else:
-                    _LOGGER.error('Gateway not running and not authenticated')
+                    _LOGGER.error('Cannot communicate with the Gateway')
                 return False
 
         return True

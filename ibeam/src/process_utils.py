@@ -53,3 +53,6 @@ def start_gateway(gateway_dir):
         cwd=gateway_dir,
         creationflags=creationflags
     )
+
+# if __name__ == '__main__':
+#     start_gateway(os.environ.get('IBEAM_GATEWAY_DIR'))

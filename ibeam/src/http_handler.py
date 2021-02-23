@@ -25,17 +25,17 @@ class HttpHandler():
 
         self.request_timeout = request_timeout if request_timeout is not None else var.REQUEST_TIMEOUT
 
-        self._ssl_context = ssl.SSLContext()
+        self.ssl_context = ssl.SSLContext()
         if self.inputs_handler.valid_certificates:
             _LOGGER.debug('Certificates found and will be used for TLS verification')
 
-            self._ssl_context.verify_mode = ssl.CERT_REQUIRED
-            self._ssl_context.check_hostname = True
-            self._ssl_context.load_verify_locations(self.inputs_handler.cecert_pem_path)
+            self.ssl_context.verify_mode = ssl.CERT_REQUIRED
+            self.ssl_context.check_hostname = True
+            self.ssl_context.load_verify_locations(self.inputs_handler.cecert_pem_path)
 
     def url_request(self, url):
         _LOGGER.debug(f'HTTPS{"" if self.inputs_handler.valid_certificates else " (unverified)"} request to: {url}')
-        return urllib.request.urlopen(url, context=self._ssl_context, timeout=self.request_timeout)
+        return urllib.request.urlopen(url, context=self.ssl_context, timeout=self.request_timeout)
 
     def try_request(self, url, check_auth=False, max_attempts=1) -> (bool, bool, bool):
         """Attempts a HTTP request and returns a tuple of three boolean flag indicating whether the gateway can be reached, whether there is an active session and whether it is authenticated. Attempts to repeat the request up to max_attempts times.
@@ -54,12 +54,17 @@ class HttpHandler():
                     return True, True, data['iserver']['authStatus']['authenticated']
                 else:
                     return True, True, True
+
             except HTTPError as e:
                 if e.code == 401:
                     return True, False, False  # we expect this error, no need to log
                 else:  # todo: possibly other codes could appear when not authenticated, fix when necessary
-                    _LOGGER.exception(e)
+                    try:
+                        raise RuntimeError('Unrecognised HTTPError') from e
+                    except Exception as ee:
+                        _LOGGER.exception(ee)
                     return True, False, False
+
             except (URLError, socket.timeout) as e:
                 reason = str(e)
 
@@ -84,9 +89,35 @@ class HttpHandler():
                     _LOGGER.info(
                         f'Gateway running but not serving yet. Consider increasing GATEWAY_STARTUP timeout. Error: {reason}')
                     status = [True, False, False]
+                elif 'An existing connection was forcibly closed by the remote host' in reason:
+                    _LOGGER.error(
+                        'Connection to Gateway was forcibly closed by the remote host. This means something is closing the Gateway process.')
+                    status = [False, False, False]
                 else:
-                    _LOGGER.exception(e)
+                    try:
+                        raise RuntimeError('Unrecognised URLError or socket.timeout') from e
+                    except Exception as ee:
+                        _LOGGER.exception(ee)
                     status = [True, False, False]
+
+            except ConnectionResetError as e:
+                if 'An existing connection was forcibly closed by the remote host' in str(e):
+                    _LOGGER.error(
+                        'Connection to Gateway was forcibly closed by the remote host. This means something is closing the Gateway process.')
+                else:
+                    try:
+                        raise RuntimeError('Unrecognised ConnectionResetError') from e
+                    except Exception as ee:
+                        _LOGGER.exception(ee)
+                status = [False, False, False]
+
+            except Exception as e:  # all other exceptions
+                try:
+                    raise RuntimeError('Unrecognised Exception') from e
+                except Exception as ee:
+                    _LOGGER.exception(ee)
+                print('other')
+                status = [False, False, False]
 
             if max_attempts <= 1:
                 return status

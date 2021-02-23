@@ -9,8 +9,8 @@ GATEWAY_DIR = os.environ.get('IBEAM_GATEWAY_DIR')
 CHROME_DRIVER_PATH = os.environ.get('IBEAM_CHROME_DRIVER_PATH')
 """Path to the Chrome Driver executable file."""
 
-GATEWAY_STARTUP = int(os.environ.get('IBEAM_GATEWAY_STARTUP', 3))
-"""How many seconds to wait before attempting to communicate with the gateway after its startup."""
+GATEWAY_STARTUP = int(os.environ.get('IBEAM_GATEWAY_STARTUP', 20))
+"""How many seconds to wait for the Gateway to respond after its startup."""
 
 GATEWAY_PROCESS_MATCH = os.environ.get('IBEAM_GATEWAY_PROCESS_MATCH', 'ibgroup.web.core.clientportal.gw.GatewayStart')
 """The gateway process' name to match against."""
