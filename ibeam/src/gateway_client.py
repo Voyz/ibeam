@@ -95,6 +95,7 @@ class GatewayClient():
                     if seconds_remaining > 0:
                         _LOGGER.debug(
                             f'Cannot ping Gateway. Retrying for another {seconds_remaining} seconds')
+                        time.sleep(1)
                 else:
                     _LOGGER.debug('Gateway connection established')
                     ping_success = True
