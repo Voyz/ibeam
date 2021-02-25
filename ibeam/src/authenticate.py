@@ -153,19 +153,26 @@ def authenticate_gateway(driver_path,
         # handle 2FA
         if trigger_id == var.TWO_FA_EL_ID:
             _LOGGER.info(f'Credentials correct, but Gateway requires two-factor authentication.')
-            two_fa_code = handle_two_fa(two_fa_handler, driver_path)
+            two_fa_code = handle_two_fa(two_fa_handler)
 
-            if two_fa_code is not None:
+            if two_fa_code is None:
+                _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
+            else:
                 two_fa_el = driver.find_elements_by_id(var.TWO_FA_INPUT_EL_ID)
                 two_fa_el[0].send_keys(two_fa_code)
+
+                _LOGGER.debug('Submitting the 2FA form')
                 submit_form_el = driver.find_element_by_id(var.SUBMIT_EL_ID)
                 submit_form_el.click()
 
-            trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(any_of(success_present, error_displayed))
-            trigger_id = trigger.get_attribute('id')
+                trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(any_of(success_present, error_displayed))
+                trigger_id = trigger.get_attribute('id')
 
         if trigger_id == var.ERROR_EL_ID:
             _LOGGER.error(f'Error displayed by the login webpage: {trigger.text}')
+        elif trigger_id == var.TWO_FA_EL_ID:
+            pass  # this means no two_fa_code was returned and trigger remained the same - ie. don't authenticate
+            # todo: retry authentication or resend code
         else:
             _LOGGER.debug('Webpage displayed "Client login succeeds"')
             success = True
@@ -208,16 +215,18 @@ def start_driver(base_url, driver_path) -> Union[webdriver.Chrome, None]:
     return driver
 
 
-def handle_two_fa(two_fa_handler, driver_path) -> Union[str, None]:
+def handle_two_fa(two_fa_handler) -> Union[str, None]:
     if two_fa_handler is None:
         _LOGGER.info(
-            f'Not 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more.')
+            f'No 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more.')
         return None
     else:
         _LOGGER.info(f'Attempting to acquire 2FA code from: {two_fa_handler}')
 
         try:
             two_fa_code = two_fa_handler.get_two_fa_code()
+            if two_fa_code is not None:
+                two_fa_code = str(two_fa_code)  # in case someone returns an integer
         except Exception as two_fa_exception:
             try:
                 raise RuntimeError('Error encountered while acquiring 2FA code.') from two_fa_exception
@@ -225,9 +234,12 @@ def handle_two_fa(two_fa_handler, driver_path) -> Union[str, None]:
                 _LOGGER.exception(full_e)
                 return None
         else:
-            if two_fa_code is None:
-                _LOGGER.info(f'No 2FA code returned.')
+            _LOGGER.debug(f'2FA code returned: {two_fa_code}')
+
+            if var.STRICT_TWO_FA_CODE and two_fa_code is not None and (
+                    not two_fa_code.isdigit() or len(two_fa_code) != 6):
+                _LOGGER.error(
+                    f'Illegal 2FA code returned: {two_fa_code}. Ensure the 2FA code contains 6 digits or disable this check by setting IBEAM_STRICT_TWO_FA_CODE to False.')
                 return None
-            else:
-                _LOGGER.debug(f'2FA code returned: {two_fa_code}')
-                return two_fa_code
+
+            return two_fa_code
