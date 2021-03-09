@@ -3,6 +3,11 @@ import os
 INPUTS_DIR = os.environ.get('IBEAM_INPUTS_DIR', '/srv/inputs/')
 """Directory path of Inputs Directory."""
 
+OUTPUTS_DIR = os.environ.get('IBEAM_OUTPUTS_DIR',
+                             os.path.abspath(
+                                 os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', '..', 'outputs')))
+"""Directory path of Outputs Directory."""
+
 GATEWAY_DIR = os.environ.get('IBEAM_GATEWAY_DIR')
 """Path to the root of the IBKR Gateway."""
 
@@ -70,6 +75,12 @@ SUCCESS_EL_TEXT = os.environ.get('IBEAM_SUCCESS_EL_TEXT', 'Client login succeeds
 OAUTH_TIMEOUT = int(os.environ.get('IBEAM_OAUTH_TIMEOUT', 15))
 """How many seconds to wait for the OAuth login request to complete."""
 
+ERROR_SCREENSHOTS = bool(os.environ.get('IBEAM_ERROR_SCREENSHOTS', False))
+"""Whether to save login page screenshots on error."""
+
+MAX_FAILED_AUTH = int(os.environ.get('IBEAM_MAX_FAILED_AUTH', 5))
+"""Maximum number of failed authentication attempts."""
+
 ########### TWO-FACTOR AUTHENTICATION ###########
 
 TWO_FA_EL_ID = os.environ.get('IBEAM_TWO_FA_EL_ID', 'twofactbase')
@@ -83,3 +94,5 @@ TWO_FA_HANDLER = os.environ.get('IBEAM_TWO_FA_HANDLER', None)
 
 STRICT_TWO_FA_CODE = bool(os.environ.get('IBEAM_STRICT_TWO_FA_CODE', True))
 """Whether to ensure only 2FA code made of 6 digits can be used."""
+
+all_variables = {item: value for item, value in vars().items() if (not item.startswith("__") and item.isupper())}

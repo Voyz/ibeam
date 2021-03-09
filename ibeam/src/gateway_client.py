@@ -66,7 +66,7 @@ class GatewayClient():
         self.inputs_handler = inputs_handler
         self.two_fa_handler = two_fa_handler
 
-        self._threads = 4
+        self._threads = 1
 
     def try_starting(self) -> Optional[int]:
         processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
@@ -106,7 +106,7 @@ class GatewayClient():
 
         return processes[0].pid
 
-    def _authenticate(self) -> bool:
+    def _authenticate(self) -> (bool, bool):
         return authenticate_gateway(driver_path=self.driver_path,
                                     account=self.account,
                                     password=self.password,
@@ -117,13 +117,13 @@ class GatewayClient():
     # def _reauthenticate(self):
     #     self._try_request(self.base_url + _ROUTE_REAUTHENTICATE, False)
 
-    def try_authenticating(self, request_retries=1) -> bool:
+    def try_authenticating(self, request_retries=1) -> (bool, bool):
         status = self.get_status(max_attempts=request_retries)
         if status[2]:  # running and authenticated
-            return True
+            return True, False
         elif not status[0]:  # no gateway running
             _LOGGER.error('Cannot communicate with the Gateway. Consider increasing IBEAM_GATEWAY_STARTUP')
-            return False
+            return False, False
         else:
             if status[1]:
                 _LOGGER.info('Gateway session found but not authenticated, authenticating...')
@@ -136,10 +136,12 @@ class GatewayClient():
             else:
                 _LOGGER.info('No active sessions, logging in...')
 
-            success = self._authenticate()
+            success, shutdown = self._authenticate()
             _LOGGER.info(f'Authentication process {"succeeded" if success else "failed"}')
+            if shutdown:
+                return False, True
             if not success:
-                return False
+                return False, False
             # self._try_request(self.base_url + _ROUTE_VALIDATE, False, max_attempts=REQUEST_RETRIES)
 
             time.sleep(3)  # buffer for session to be authenticated
@@ -153,9 +155,9 @@ class GatewayClient():
                     _LOGGER.error('Gateway running but has no active sessions')
                 else:
                     _LOGGER.error('Cannot communicate with the Gateway')
-                return False
+                return False, False
 
-        return True
+        return True, False
 
     def get_status(self, max_attempts=1) -> (bool, bool, bool):
         return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True, max_attempts=max_attempts)
@@ -173,14 +175,14 @@ class GatewayClient():
         except Exception as e:
             _LOGGER.exception(e)
 
-    def start_and_authenticate(self, request_retries=1) -> bool:
+    def start_and_authenticate(self, request_retries=1) -> (bool, bool):
         """Starts the gateway and authenticates using the credentials stored."""
 
         self.try_starting()
 
-        success = self.try_authenticating(request_retries=request_retries)
+        success, shutdown = self.try_authenticating(request_retries=request_retries)
 
-        return success
+        return success, shutdown
 
     def maintain(self):
         executors = {'default': ThreadPoolExecutor(self._threads)}
@@ -193,9 +195,13 @@ class GatewayClient():
     def _maintenance(self):
         _LOGGER.debug('Maintenance')
 
-        success = self.start_and_authenticate(request_retries=var.REQUEST_RETRIES)
+        success, shutdown = self.start_and_authenticate(request_retries=var.REQUEST_RETRIES)
 
-        if success:
+        if shutdown:
+            _LOGGER.warning('Shutting IBeam maintenance down due to exceeded number of failed attempts.')
+            self._scheduler.remove_all_jobs()
+            self._scheduler.shutdown(False)
+        elif success:
             _LOGGER.info('Gateway running and authenticated')
 
     def kill(self) -> bool:

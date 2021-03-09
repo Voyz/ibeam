@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Union
 
 from ibeam.src import var
-from ibeam.src.authenticate import AnyEc, new_chrome_driver
+from ibeam.src.authenticate import any_of, new_chrome_driver, release_chrome_driver
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 from selenium.webdriver.common.by import By
@@ -44,7 +44,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
         sms_code_present = EC.text_to_be_present_in_element((By.CSS_SELECTOR, _GOOG_MESSAGES_LIST_CLASS),
                                                             _GOOG_2FA_HEADING)
 
-        WebDriverWait(driver_2fa, 240).until(AnyEc(sms_auth_present, sms_code_present))
+        WebDriverWait(driver_2fa, 240).until(any_of(sms_auth_present, sms_code_present))
 
         sms_auth_el = driver_2fa.find_elements_by_class_name(_GOOG_QR_CODE_CLASS)
 
@@ -66,11 +66,11 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
             _LOGGER.error('Timeout or authentication error while loading sms messages.')
         else:
             _LOGGER.info(sms_list_el[0].text)
-            sms_list_el[0].click() #mark message as read
-            time.sleep(2) #wait for click to mark message as read
+            sms_list_el[0].click()  # mark message as read
+            time.sleep(2)  # wait for click to mark message as read
             code_two_fa = re.search(r'(\d+)', sms_list_el[0].text).group(1)
 
-        driver_2fa.quit()
+        release_chrome_driver(driver_2fa)
 
         return code_two_fa
 

@@ -7,6 +7,7 @@ from pathlib import Path
 _this_filedir = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, str(Path(_this_filedir).parent))
 
+import ibeam
 from ibeam import config
 
 config.initialize()
@@ -35,6 +36,7 @@ def parse_args():
 
 
 if __name__ == '__main__':
+    _LOGGER.info(f'############ Starting IBeam version {ibeam.__version__} ############')
     args = parse_args()
 
     if args.verbose:
@@ -60,6 +62,8 @@ if __name__ == '__main__':
                            gateway_dir=gateway_dir,
                            driver_path=driver_path)
 
+    _LOGGER.debug(f'{var.all_variables}')
+
     if args.start:
         pid = client.try_starting()
         success = pid is not None
@@ -68,7 +72,7 @@ if __name__ == '__main__':
         else:
             _LOGGER.info(f'Gateway not running.')
     elif args.authenticate:
-        success = client.try_authenticating()
+        success, _ = client.try_authenticating()
         _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
     elif args.check:
         status = client.get_status()
@@ -87,6 +91,6 @@ if __name__ == '__main__':
         success = client.kill()
         _LOGGER.info(f'Gateway {"" if success else "not "}killed.')
     else:
-        success = client.start_and_authenticate()
+        success, _ = client.start_and_authenticate()
         if success:
             _LOGGER.info('Gateway running and authenticated.')
