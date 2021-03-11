@@ -88,7 +88,7 @@ def any_of(*expected_conditions):
 
 
 def save_screenshot(driver, postfix=''):
-    if not var.ERROR_SCREENSHOTS:
+    if not var.ERROR_SCREENSHOTS or driver is None:
         return
 
     now = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
