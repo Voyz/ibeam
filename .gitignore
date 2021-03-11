@@ -2,3 +2,4 @@
 env.list
 copy_cache
 ibeam.egg-info
+/outputs/

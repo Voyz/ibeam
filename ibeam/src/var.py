@@ -23,8 +23,14 @@ GATEWAY_PROCESS_MATCH = os.environ.get('IBEAM_GATEWAY_PROCESS_MATCH', 'ibgroup.w
 MAINTENANCE_INTERVAL = int(os.environ.get('IBEAM_MAINTENANCE_INTERVAL', 60))
 """How many seconds between each maintenance."""
 
+SPAWN_NEW_PROCESSES = bool(os.environ.get('IBEAM_SPAWN_NEW_PROCESSES', False))
+"""Whether new processes should be spawned for each maintenance."""
+
 LOG_LEVEL = os.environ.get('IBEAM_LOG_LEVEL', 'INFO')
 """Verbosity level of the logger used."""
+
+LOG_TO_FILE = bool(os.environ.get('IBEAM_LOG_TO_FILE', True))
+"""Whether logs should also be saved to a file."""
 
 REQUEST_RETRIES = int(os.environ.get('IBEAM_REQUEST_RETRIES', 1))
 """How many times to reattempt a request to the gateway."""
