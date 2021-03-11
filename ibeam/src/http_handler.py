@@ -24,11 +24,11 @@ class HttpHandler():
         self.inputs_handler = inputs_handler
 
         self.request_timeout = request_timeout if request_timeout is not None else var.REQUEST_TIMEOUT
+        self.build_ssh_context()
 
+    def build_ssh_context(self):
         self.ssl_context = ssl.SSLContext()
         if self.inputs_handler.valid_certificates:
-            _LOGGER.debug('Certificates found and will be used for TLS verification')
-
             self.ssl_context.verify_mode = ssl.CERT_REQUIRED
             self.ssl_context.check_hostname = True
             self.ssl_context.load_verify_locations(self.inputs_handler.cecert_pem_path)
@@ -131,3 +131,13 @@ class HttpHandler():
                     return _request(attempt + 1)
 
         return _request(0)
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+        # ssl_context can't be pickled
+        del state['ssl_context']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.build_ssh_context()

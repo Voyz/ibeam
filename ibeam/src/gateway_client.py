@@ -7,7 +7,7 @@ from getpass import getpass
 from pathlib import Path
 from typing import Optional
 
-from apscheduler.executors.pool import ThreadPoolExecutor
+from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
@@ -66,7 +66,7 @@ class GatewayClient():
         self.inputs_handler = inputs_handler
         self.two_fa_handler = two_fa_handler
 
-        self._threads = 1
+        self._concurrent_maintenance_attempts = 1
 
     def try_starting(self) -> Optional[int]:
         processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
@@ -184,11 +184,17 @@ class GatewayClient():
 
         return success, shutdown
 
-    def maintain(self):
-        executors = {'default': ThreadPoolExecutor(self._threads)}
-        job_defaults = {'coalesce': False, 'max_instances': self._threads}
+    def build_scheduler(self):
+        if var.SPAWN_NEW_PROCESSES:
+            executors = {'default': ProcessPoolExecutor(self._concurrent_maintenance_attempts)}
+        else:
+            executors = {'default': ThreadPoolExecutor(self._concurrent_maintenance_attempts)}
+        job_defaults = {'coalesce': False, 'max_instances': self._concurrent_maintenance_attempts}
         self._scheduler = BlockingScheduler(executors=executors, job_defaults=job_defaults, timezone='UTC')
         self._scheduler.add_job(self._maintenance, trigger=IntervalTrigger(seconds=var.MAINTENANCE_INTERVAL))
+
+    def maintain(self):
+        self.build_scheduler()
         _LOGGER.info(f'Starting maintenance with interval {var.MAINTENANCE_INTERVAL} seconds')
         self._scheduler.start()
 
@@ -217,3 +223,14 @@ class GatewayClient():
                 return False
 
         return True
+
+    def __getstate__(self):
+        state = self.__dict__.copy()
+
+        # APS schedulers can't be pickled
+        del state['_scheduler']
+        return state
+
+    def __setstate__(self, state):
+        self.__dict__.update(state)
+        self.build_scheduler()

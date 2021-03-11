@@ -1,5 +1,9 @@
+import logging
 import os
 import shutil
+from pathlib import Path
+
+_LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
 
 class InputsHandler():
@@ -14,6 +18,8 @@ class InputsHandler():
         self.cecert_pem_path = os.path.join(inputs_dir, 'cacert.pem')
 
         self.valid_certificates = os.path.isfile(self.cecert_jks_path) and os.path.isfile(self.cecert_pem_path)
+        if self.valid_certificates:
+            _LOGGER.debug('Certificates found and will be used for TLS verification')
 
         gateway_root_dir = os.path.join(self.gateway_dir, 'root')
 
