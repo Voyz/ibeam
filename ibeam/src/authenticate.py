@@ -142,6 +142,9 @@ def authenticate_gateway(driver_path,
         WebDriverWait(driver, 15).until(user_name_present)
         _LOGGER.debug('Gateway auth webpage loaded')
 
+        # small buffer to prevent race-condition on client side
+        time.sleep(1)
+
         # input credentials
         user_name_el = driver.find_element_by_id(var.USER_NAME_EL_ID)
         password_el = driver.find_element_by_id(var.PASSWORD_EL_ID)
