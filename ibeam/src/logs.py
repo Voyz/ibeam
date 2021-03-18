@@ -18,7 +18,8 @@ def initialize():
     stream_handler = logging.StreamHandler()
 
     stream_handler.setFormatter(formatter)
-    logging.getLogger('ibeam').setLevel(getattr(logging, var.LOG_LEVEL))
+    stream_handler.setLevel(getattr(logging, var.LOG_LEVEL))
+    logger.setLevel(logging.DEBUG)
     logger.addHandler(stream_handler)
 
     if var.LOG_TO_FILE:
