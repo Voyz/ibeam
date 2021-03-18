@@ -87,7 +87,7 @@ class HttpHandler():
                     status = [True, False, False]
                 elif 'Connection refused' in reason:
                     _LOGGER.info(
-                        f'Gateway running but not serving yet. Consider increasing GATEWAY_STARTUP timeout. Error: {reason}')
+                        f'Gateway running but not serving yet. Consider increasing IBEAM_GATEWAY_STARTUP timeout. Error: {reason}')
                     status = [True, False, False]
                 elif 'An existing connection was forcibly closed by the remote host' in reason:
                     _LOGGER.error(
