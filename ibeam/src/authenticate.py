@@ -23,29 +23,35 @@ from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
-_DRIVER_INDEX = 0
+_DRIVER_NAMES = {}
 _FAILED_ATTEMPTS = 0
 
 
-def new_chrome_driver(driver_path, headless: bool = True):
-    global _DRIVER_INDEX
+def new_chrome_driver(driver_path, name: str = 'default', headless: bool = True):
     """Creates a new chrome driver."""
+
+    global _DRIVER_NAMES
+
+    _DRIVER_NAMES[name] = True  # just to ensure the name is in the dict
+    driver_index = list(_DRIVER_NAMES.keys()).index(name)  # order of insertion dictates the driver_index
+
     options = webdriver.ChromeOptions()
     if headless: options.add_argument('headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--ignore-ssl-errors=yes')
     options.add_argument('--ignore-certificate-errors')
-    options.add_argument(f"--remote-debugging-port={9222 + _DRIVER_INDEX}")
+    options.add_argument(f"--remote-debugging-port={9222 + driver_index}")
     options.add_argument("--useAutomationExtension=false")
-    options.add_argument(f'--user-data-dir={tempfile.gettempdir()}/ibeam-chrome-{_DRIVER_INDEX}')
-    _DRIVER_INDEX += 1
-    return webdriver.Chrome(driver_path, options=options)
+    options.add_argument(f'--user-data-dir={tempfile.gettempdir()}/ibeam-chrome-{name}')
+    driver = webdriver.Chrome(driver_path, options=options)
+    if driver is None:
+        _LOGGER.error('Unable to create a new chrome driver.')
+
+    return driver
 
 
 def release_chrome_driver(driver):
     driver.quit()
-    global _DRIVER_INDEX
-    _DRIVER_INDEX = max(_DRIVER_INDEX - 1, 0)
 
 
 class text_to_be_present_in_element(object):
@@ -93,17 +99,22 @@ def save_screenshot(driver, postfix=''):
 
     now = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     outputs_path = Path(var.OUTPUTS_DIR)
-    outputs_path.mkdir(exist_ok=True)
-    screenshot_filepath = os.path.join(var.OUTPUTS_DIR, f'ibeam__{ibeam.__version__}__{now}{postfix}.png')
+    screenshot_name = f'ibeam__{ibeam.__version__}__{now}{postfix}.png'
 
-    # a little hack to prevent overwriting screenshots saved in the same second
-    if os.path.exists(screenshot_filepath):
-        save_screenshot(driver, postfix + '_')
-        return
+    try:
+        outputs_path.mkdir(exist_ok=True)
+        screenshot_filepath = os.path.join(var.OUTPUTS_DIR, screenshot_name)
 
-    _LOGGER.debug(
-        f'Saving screenshot to {screenshot_filepath}. Make sure to cover your credentials if you share it with others.')
-    driver.get_screenshot_as_file(screenshot_filepath)
+        # a little hack to prevent overwriting screenshots saved in the same second
+        if os.path.exists(screenshot_filepath):
+            save_screenshot(driver, postfix + '_')
+            return
+
+        _LOGGER.debug(
+            f'Saving screenshot to {screenshot_filepath}. Make sure to cover your credentials if you share it with others.')
+        driver.get_screenshot_as_file(screenshot_filepath)
+    except Exception as e:
+        _LOGGER.exception(f"Exception while saving screenshot: {str(e)} for screenshot: {screenshot_name}")
 
 
 def authenticate_gateway(driver_path,
