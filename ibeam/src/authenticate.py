@@ -3,6 +3,7 @@ import os
 import re
 import sys
 import time
+import traceback
 import urllib.parse
 from datetime import datetime
 from pathlib import Path
@@ -221,8 +222,9 @@ def authenticate_gateway(driver_path,
 
         time.sleep(2)
     except TimeoutException as e:
+        exception_line = traceback.format_tb(sys.exc_info()[2])[0].replace('\n', '')
         _LOGGER.error(
-            f'Timeout reached when waiting for authentication. Consider increasing IBEAM_OAUTH_TIMEOUT. {e.msg}')
+            f'Timeout reached when waiting for authentication. Consider increasing IBEAM_OAUTH_TIMEOUT. Error: "{e.msg}" at {exception_line}')
         save_screenshot(driver, '__timeout-exception')
         success = False
     except Exception as e:
