@@ -61,19 +61,21 @@ class text_to_be_present_in_element(object):
     locator, text
     """
 
-    def __init__(self, locator, text_):
-        self.locator = locator
+    def __init__(self, locators, text_):
+        if not isinstance(locators, list):
+            locators = locators
+        self.locators = locators
         self.text = text_
 
     def __call__(self, driver):
-        try:
-            element = EC._find_element(driver, self.locator)
-            if self.text in element.text:
-                return element
-            else:
-                return False
-        except StaleElementReferenceException:
-            return False
+        for locator in self.locators:
+            try:
+                element = EC._find_element(driver, locator)
+                if self.text in element.text:
+                    return element
+            except StaleElementReferenceException:
+                continue
+        return False
 
 
 def any_of(*expected_conditions):
@@ -173,7 +175,8 @@ def authenticate_gateway(driver_path,
         submit_form_el.click()
 
         # observe results - either success or 2FA request
-        success_present = text_to_be_present_in_element((By.TAG_NAME, 'pre'), var.SUCCESS_EL_TEXT)
+        success_present = text_to_be_present_in_element([(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')],
+                                                        var.SUCCESS_EL_TEXT)
         two_factor_input_present = EC.visibility_of_element_located((By.ID, var.TWO_FA_EL_ID))
         error_displayed = EC.visibility_of_element_located((By.ID, var.ERROR_EL_ID))
 
