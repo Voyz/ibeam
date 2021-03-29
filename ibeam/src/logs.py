@@ -29,6 +29,12 @@ def initialize():
         logger.addHandler(file_handler)
 
 
+def set_level_for_all(logger, level):
+    logger.setLevel(level)
+    for handler in logger.handlers:
+        handler.setLevel(level)
+
+
 class DailyRotatingFileHandler(logging.FileHandler):
 
     def __init__(self, *args, date_format='%Y-%m-%d', **kwargs):

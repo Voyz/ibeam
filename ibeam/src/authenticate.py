@@ -239,6 +239,8 @@ def authenticate_gateway(driver_path,
             success = False
     finally:
         # if sys.platform == 'linux' and display is not None:
+        _LOGGER.debug(f'Cleaning up the resources. Display: {display} | Driver: {driver}')
+
         if display is not None:
             display.stop()
 

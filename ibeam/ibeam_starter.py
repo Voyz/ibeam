@@ -14,7 +14,7 @@ config.initialize()
 
 from ibeam.src.gateway_client import GatewayClient
 from ibeam.src.http_handler import HttpHandler
-from ibeam.src import var, two_fa_selector
+from ibeam.src import var, two_fa_selector, logs
 from ibeam.src.inputs_handler import InputsHandler
 
 _LOGGER = logging.getLogger('ibeam')
@@ -40,7 +40,7 @@ if __name__ == '__main__':
     args = parse_args()
 
     if args.verbose:
-        _LOGGER.setLevel(logging.DEBUG)
+        logs.set_level_for_all(_LOGGER, logging.DEBUG)
 
     inputs_dir = var.INPUTS_DIR
     gateway_dir = var.GATEWAY_DIR
