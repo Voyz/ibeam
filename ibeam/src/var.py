@@ -81,6 +81,9 @@ SUCCESS_EL_TEXT = os.environ.get('IBEAM_SUCCESS_EL_TEXT', 'Client login succeeds
 OAUTH_TIMEOUT = int(os.environ.get('IBEAM_OAUTH_TIMEOUT', 15))
 """How many seconds to wait for the OAuth login request to complete."""
 
+PAGE_LOAD_TIMEOUT = int(os.environ.get('IBEAM_PAGE_LOAD_TIMEOUT', 15))
+"""How many seconds to wait for the login page to load."""
+
 ERROR_SCREENSHOTS = bool(os.environ.get('IBEAM_ERROR_SCREENSHOTS', False))
 """Whether to save login page screenshots on error."""
 

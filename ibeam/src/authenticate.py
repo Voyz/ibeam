@@ -253,6 +253,7 @@ def authenticate_gateway(driver_path,
 def start_driver(base_url, driver_path) -> Union[webdriver.Chrome, None]:
     try:
         driver = new_chrome_driver(driver_path)
+        driver.set_page_load_timeout(var.PAGE_LOAD_TIMEOUT)
         driver.get(base_url + var.ROUTE_AUTH)
     except WebDriverException as e:
         if 'net::ERR_CONNECTION_REFUSED' in e.msg:
