@@ -93,6 +93,10 @@ class HttpHandler():
                     _LOGGER.error(
                         'Connection to Gateway was forcibly closed by the remote host. This means something is closing the Gateway process.')
                     status = [False, False, False]
+                elif 'certificate verify failed: self signed certificate' in reason:
+                    _LOGGER.error(
+                        'Failed to verify the self-signed certificate. This could mean your self-generated .jks certificate and password are not correctly provided in Inputs Directory or listed in conf.yaml. Ensure your certificate\'s filename and password are correctly listed in conf.yaml, or see https://github.com/Voyz/ibeam/wiki/TLS-Certificates-and-HTTPS#certificates-in-confyaml for more information.')
+                    status = [False, False, False]
                 else:
                     try:
                         raise RuntimeError('Unrecognised URLError or socket.timeout') from e
