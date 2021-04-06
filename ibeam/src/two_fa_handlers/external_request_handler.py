@@ -17,13 +17,13 @@ _EXTERNAL_REQUEST_URL = os.environ.get('IBEAM_EXTERNAL_REQUEST_URL')
 """URL to use by the external request 2FA handler."""
 
 _EXTERNAL_REQUEST_TIMEOUT = int(os.environ.get('IBEAM_EXTERNAL_REQUEST_TIMEOUT', 300))
-"""URL to use by the external request 2FA handler."""
+"""Timeout for the external 2FA request."""
 
 _EXTERNAL_REQUEST_PARAMS = os.environ.get('IBEAM_EXTERNAL_REQUEST_PARAMS')
-"""Params to use by the external request 2FA handler."""
+"""JSON-formatted params to use by the external request 2FA handler."""
 
 _EXTERNAL_REQUEST_HEADERS = os.environ.get('IBEAM_EXTERNAL_REQUEST_HEADERS')
-"""Headers to use by the external request 2FA handler."""
+"""JSON-formatted headers to use by the external request 2FA handler."""
 
 
 def parse_json(s):
