@@ -221,6 +221,7 @@ def authenticate_gateway(driver_path,
             # todo: retry authentication or resend code
         else:
             _LOGGER.debug('Webpage displayed "Client login succeeds"')
+            _FAILED_ATTEMPTS = 0
             success = True
 
         time.sleep(2)
