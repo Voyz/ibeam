@@ -95,7 +95,7 @@ MAX_FAILED_AUTH = int(os.environ.get('IBEAM_MAX_FAILED_AUTH', 5))
 TWO_FA_EL_ID = os.environ.get('IBEAM_TWO_FA_EL_ID', 'twofactbase')
 """HTML element check for if Gateway will require 2FA authentication."""
 
-TWO_FA_INPUT_EL_ID = os.environ.get('TWO_FA_INPUT_EL_ID', 'chlginput')
+TWO_FA_INPUT_EL_ID = os.environ.get('IBEAM_TWO_FA_INPUT_EL_ID', 'chlginput')
 """HTML element to input 2FA code into"""
 
 TWO_FA_HANDLER = os.environ.get('IBEAM_TWO_FA_HANDLER', None)
