@@ -22,7 +22,7 @@ def select(driver_path, inputs_handler: InputsHandler) -> Union[TwoFaHandler, No
     elif handler_name == 'EXTERNAL_REQUEST':
         handler = ExternalRequestTwoFaHandler()
     elif handler_name == 'CUSTOM_HANDLER':
-        handler = load_custom_two_fa_handler(_CUSTOM_TWO_FA_HANDLER, inputs_handler)
+        handler = load_custom_two_fa_handler(_CUSTOM_TWO_FA_HANDLER, inputs_handler)()
     else:
         handler = None
 
