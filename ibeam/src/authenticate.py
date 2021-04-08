@@ -151,6 +151,8 @@ def authenticate_gateway(driver_path,
         if driver is None:
             return False, False
 
+        driver.get(base_url + var.ROUTE_AUTH)
+
         # wait for the page to load
         user_name_present = EC.presence_of_element_located((By.ID, var.USER_NAME_EL_ID))
         WebDriverWait(driver, 15).until(user_name_present)
@@ -255,7 +257,6 @@ def start_driver(base_url, driver_path) -> Union[webdriver.Chrome, None]:
     try:
         driver = new_chrome_driver(driver_path)
         driver.set_page_load_timeout(var.PAGE_LOAD_TIMEOUT)
-        driver.get(base_url + var.ROUTE_AUTH)
     except WebDriverException as e:
         if 'net::ERR_CONNECTION_REFUSED' in e.msg:
             _LOGGER.error(
