@@ -20,7 +20,10 @@ _EXTERNAL_REQUEST_TIMEOUT = int(os.environ.get('IBEAM_EXTERNAL_REQUEST_TIMEOUT',
 """Timeout for the external 2FA request."""
 
 _EXTERNAL_REQUEST_PARAMS = os.environ.get('IBEAM_EXTERNAL_REQUEST_PARAMS')
-"""JSON-formatted params to use by the external request 2FA handler."""
+"""JSON-formatted URL params to use by the external request 2FA handler."""
+
+_EXTERNAL_REQUEST_DATA = os.environ.get('IBEAM_EXTERNAL_REQUEST_DATA')
+"""JSON-formatted POST data to use by the external request 2FA handler."""
 
 _EXTERNAL_REQUEST_HEADERS = os.environ.get('IBEAM_EXTERNAL_REQUEST_HEADERS')
 """JSON-formatted headers to use by the external request 2FA handler."""
@@ -32,7 +35,7 @@ def parse_json(s):
     try:
         return json.loads(s)
     except Exception as e:
-        _LOGGER.exception(e)
+        _LOGGER.exception(f'Error loading JSON string: "{e}" | for JSON: {s}')
         return None
 
 
@@ -42,12 +45,14 @@ class ExternalRequestTwoFaHandler(TwoFaHandler):
                  url: str = None,
                  timeout: int = None,
                  params=None,
+                 data=None,
                  headers=None):
 
         self.method = method if method is not None else _EXTERNAL_REQUEST_METHOD
         self.url = url if url is not None else _EXTERNAL_REQUEST_URL
         self.timeout = timeout if timeout is not None else _EXTERNAL_REQUEST_TIMEOUT
         self.params = params if params is not None else parse_json(_EXTERNAL_REQUEST_PARAMS)
+        self.data = data if data is not None else parse_json(_EXTERNAL_REQUEST_DATA)
         self.headers = headers if headers is not None else parse_json(_EXTERNAL_REQUEST_HEADERS)
 
     def get_two_fa_code(self) -> Union[str, None]:
@@ -56,9 +61,10 @@ class ExternalRequestTwoFaHandler(TwoFaHandler):
                                         url=self.url,
                                         timeout=self.timeout,
                                         params=self.params,
+                                        data=self.data,
                                         headers=self.headers, )
             response.raise_for_status()
-            return response.content
+            return response.content.decode("utf-8")
         except requests.exceptions.HTTPError as err:
             _LOGGER.error(err)
             return None
