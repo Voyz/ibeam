@@ -90,6 +90,9 @@ ERROR_SCREENSHOTS = bool(os.environ.get('IBEAM_ERROR_SCREENSHOTS', False))
 MAX_FAILED_AUTH = int(os.environ.get('IBEAM_MAX_FAILED_AUTH', 5))
 """Maximum number of failed authentication attempts."""
 
+MAX_IMMEDIATE_ATTEMPTS = int(os.environ.get('IBEAM_MAX_IMMEDIATE_ATTEMPTS', 10))
+"""Maximum number of immediate retries upon detecting an error message."""
+
 ########### TWO-FACTOR AUTHENTICATION ###########
 
 TWO_FA_EL_ID = os.environ.get('IBEAM_TWO_FA_EL_ID', 'twofactbase')

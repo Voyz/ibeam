@@ -159,77 +159,88 @@ def authenticate_gateway(driver_path,
         WebDriverWait(driver, 15).until(user_name_present)
         _LOGGER.debug('Gateway auth webpage loaded')
 
-        # small buffer to prevent race-condition on client side
-        # time.sleep(300)
+        immediate_attempts = 0
 
-        # input credentials
-        user_name_el = driver.find_element_by_id(var.USER_NAME_EL_ID)
-        password_el = driver.find_element_by_id(var.PASSWORD_EL_ID)
-        user_name_el.send_keys(account)
+        while immediate_attempts < max(var.MAX_IMMEDIATE_ATTEMPTS, 1):
+            immediate_attempts += 1
+            _LOGGER.debug(f'Login attempt number {immediate_attempts}')
 
-        if key is None:
-            password_el.send_keys(password)
-        else:
-            password_el.send_keys(Fernet(key).decrypt(password.encode('utf-8')).decode("utf-8"))
+            # time.sleep(300)
 
-        password_el.send_keys(Keys.TAB)
+            # input credentials
+            user_name_el = driver.find_element_by_id(var.USER_NAME_EL_ID)
+            password_el = driver.find_element_by_id(var.PASSWORD_EL_ID)
+            user_name_el.send_keys(account)
 
-        # small buffer to prevent race-condition on client side
-        time.sleep(5)
-        # submit the form
-        _LOGGER.debug('Submitting the form')
-        submit_form_el = driver.find_element_by_id(var.SUBMIT_EL_ID)
-        submit_form_el.click()
-
-        # observe results - either success or 2FA request
-        success_present = text_to_be_present_in_element([(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')],
-                                                        var.SUCCESS_EL_TEXT)
-        two_factor_input_present = EC.visibility_of_element_located((By.ID, var.TWO_FA_EL_ID))
-        error_displayed = EC.visibility_of_element_located((By.ID, var.ERROR_EL_ID))
-
-        trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
-            any_of(success_present, two_factor_input_present, error_displayed))
-
-        trigger_id = trigger.get_attribute('id')
-
-        # handle 2FA
-        if trigger_id == var.TWO_FA_EL_ID:
-            _LOGGER.info(f'Credentials correct, but Gateway requires two-factor authentication.')
-            two_fa_code = handle_two_fa(two_fa_handler)
-
-            if two_fa_code is None:
-                _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
+            if key is None:
+                password_el.send_keys(password)
             else:
-                two_fa_el = driver.find_elements_by_id(var.TWO_FA_INPUT_EL_ID)
-                two_fa_el[0].send_keys(two_fa_code)
+                password_el.send_keys(Fernet(key).decrypt(password.encode('utf-8')).decode("utf-8"))
 
-                _LOGGER.debug('Submitting the 2FA form')
-                submit_form_el = driver.find_element_by_id(var.SUBMIT_EL_ID)
-                submit_form_el.click()
+            password_el.send_keys(Keys.TAB)
 
-                trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(any_of(success_present, error_displayed))
-                trigger_id = trigger.get_attribute('id')
+            # small buffer to prevent race-condition on client side
+            time.sleep(5)
+            # submit the form
+            _LOGGER.debug('Submitting the form')
+            submit_form_el = driver.find_element_by_id(var.SUBMIT_EL_ID)
+            submit_form_el.click()
 
-        if trigger_id == var.ERROR_EL_ID:
-            _LOGGER.error(f'Error displayed by the login webpage: {trigger.text}')
-            save_screenshot(driver, '__failed_attempt')
+            # observe results - either success or 2FA request
+            success_present = text_to_be_present_in_element([(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')],
+                                                            var.SUCCESS_EL_TEXT)
+            two_factor_input_present = EC.visibility_of_element_located((By.ID, var.TWO_FA_EL_ID))
+            error_displayed = EC.visibility_of_element_located((By.ID, var.ERROR_EL_ID))
 
-            # try to prevent having the account locked-out
-            if trigger.text == 'failed' and var.MAX_FAILED_AUTH > 0:
-                global _FAILED_ATTEMPTS
-                _FAILED_ATTEMPTS += 1
-                if _FAILED_ATTEMPTS >= var.MAX_FAILED_AUTH:
-                    _LOGGER.error(
-                        f'######## ATTENTION! ######## Maximum number of failed authentication attempts (IBEAM_MAX_FAILED_AUTH={var.MAX_FAILED_AUTH}) reached. IBeam will shut down to prevent an account lock-out. It is recommended you attempt to authenticate manually in order to reset the counter. Read the execution logs and report issues at https://github.com/Voyz/ibeam/issues')
-                    return False, True
+            trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                any_of(success_present, two_factor_input_present, error_displayed))
 
-        elif trigger_id == var.TWO_FA_EL_ID:
-            pass  # this means no two_fa_code was returned and trigger remained the same - ie. don't authenticate
-            # todo: retry authentication or resend code
-        else:
-            _LOGGER.debug('Webpage displayed "Client login succeeds"')
-            _FAILED_ATTEMPTS = 0
-            success = True
+            trigger_id = trigger.get_attribute('id')
+
+            # handle 2FA
+            if trigger_id == var.TWO_FA_EL_ID:
+                _LOGGER.info(f'Credentials correct, but Gateway requires two-factor authentication.')
+                two_fa_code = handle_two_fa(two_fa_handler)
+
+                if two_fa_code is None:
+                    _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
+                else:
+                    two_fa_el = driver.find_elements_by_id(var.TWO_FA_INPUT_EL_ID)
+                    two_fa_el[0].send_keys(two_fa_code)
+
+                    _LOGGER.debug('Submitting the 2FA form')
+                    submit_form_el = driver.find_element_by_id(var.SUBMIT_EL_ID)
+                    submit_form_el.click()
+
+                    trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(any_of(success_present, error_displayed))
+                    trigger_id = trigger.get_attribute('id')
+
+            if trigger_id == var.ERROR_EL_ID:
+                _LOGGER.error(f'Error displayed by the login webpage: {trigger.text}')
+                save_screenshot(driver, '__failed_attempt')
+
+                # try to prevent having the account locked-out
+                if trigger.text == 'failed' and var.MAX_FAILED_AUTH > 0:
+                    global _FAILED_ATTEMPTS
+                    _FAILED_ATTEMPTS += 1
+                    if _FAILED_ATTEMPTS >= var.MAX_FAILED_AUTH:
+                        _LOGGER.error(
+                            f'######## ATTENTION! ######## Maximum number of failed authentication attempts (IBEAM_MAX_FAILED_AUTH={var.MAX_FAILED_AUTH}) reached. IBeam will shut down to prevent an account lock-out. It is recommended you attempt to authenticate manually in order to reset the counter. Read the execution logs and report issues at https://github.com/Voyz/ibeam/issues')
+                        return False, True
+
+                time.sleep(1)
+                continue  # trigger retry
+
+            elif trigger_id == var.TWO_FA_EL_ID:
+                time.sleep(1)
+                continue  # trigger retry
+                pass  # this means no two_fa_code was returned and trigger remained the same - ie. don't authenticate
+                # todo: retry authentication or resend code
+            else:
+                _LOGGER.debug('Webpage displayed "Client login succeeds"')
+                _FAILED_ATTEMPTS = 0
+                success = True
+                break
 
         time.sleep(2)
     except TimeoutException as e:
