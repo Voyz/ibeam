@@ -15,6 +15,7 @@ from pyvirtualdisplay import Display
 from selenium import webdriver
 from selenium.common.exceptions import WebDriverException, StaleElementReferenceException, TimeoutException
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 
@@ -159,7 +160,7 @@ def authenticate_gateway(driver_path,
         _LOGGER.debug('Gateway auth webpage loaded')
 
         # small buffer to prevent race-condition on client side
-        time.sleep(1)
+        # time.sleep(300)
 
         # input credentials
         user_name_el = driver.find_element_by_id(var.USER_NAME_EL_ID)
@@ -171,6 +172,10 @@ def authenticate_gateway(driver_path,
         else:
             password_el.send_keys(Fernet(key).decrypt(password.encode('utf-8')).decode("utf-8"))
 
+        password_el.send_keys(Keys.TAB)
+
+        # small buffer to prevent race-condition on client side
+        time.sleep(5)
         # submit the form
         _LOGGER.debug('Submitting the form')
         submit_form_el = driver.find_element_by_id(var.SUBMIT_EL_ID)
