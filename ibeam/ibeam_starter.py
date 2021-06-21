@@ -7,11 +7,15 @@ from pathlib import Path
 _this_filedir = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, str(Path(_this_filedir).parent))
 
+import ibeam
 from ibeam import config
 
 config.initialize()
 
 from ibeam.src.gateway_client import GatewayClient
+from ibeam.src.http_handler import HttpHandler
+from ibeam.src import var, two_fa_selector, logs
+from ibeam.src.inputs_handler import InputsHandler
 
 _LOGGER = logging.getLogger('ibeam')
 
@@ -32,12 +36,33 @@ def parse_args():
 
 
 if __name__ == '__main__':
+    _LOGGER.info(f'############ Starting IBeam version {ibeam.__version__} ############')
     args = parse_args()
-    # print(args)
-    client = GatewayClient()
 
     if args.verbose:
-        _LOGGER.setLevel(logging.DEBUG)
+        logs.set_level_for_all(_LOGGER, logging.DEBUG)
+
+    inputs_dir = var.INPUTS_DIR
+    gateway_dir = var.GATEWAY_DIR
+    driver_path = var.CHROME_DRIVER_PATH
+
+    if gateway_dir is None:
+        gateway_dir = input('Gateway root path: ')
+
+    if driver_path is None:
+        driver_path = input('Chrome Driver executable path: ')
+
+    inputs_handler = InputsHandler(inputs_dir=inputs_dir, gateway_dir=gateway_dir)
+    http_handler = HttpHandler(inputs_handler=inputs_handler)
+    two_fa_handler = two_fa_selector.select(driver_path, inputs_handler)
+
+    client = GatewayClient(http_handler=http_handler,
+                           inputs_handler=inputs_handler,
+                           two_fa_handler=two_fa_handler,
+                           gateway_dir=gateway_dir,
+                           driver_path=driver_path)
+
+    _LOGGER.debug(f'{var.all_variables}')
 
     if args.start:
         pid = client.try_starting()
@@ -47,7 +72,7 @@ if __name__ == '__main__':
         else:
             _LOGGER.info(f'Gateway not running.')
     elif args.authenticate:
-        success = client.try_authenticating()
+        success, _ = client.try_authenticating()
         _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
     elif args.check:
         status = client.get_status()
@@ -66,6 +91,6 @@ if __name__ == '__main__':
         success = client.kill()
         _LOGGER.info(f'Gateway {"" if success else "not "}killed.')
     else:
-        success = client.start_and_authenticate()
+        success, _ = client.start_and_authenticate()
         if success:
             _LOGGER.info('Gateway running and authenticated.')

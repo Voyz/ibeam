@@ -1,4 +1,5 @@
 *.iml
 env.list
-copy_cache
+/copy_cache/chrome_driver
 ibeam.egg-info
+/outputs/
