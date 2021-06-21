@@ -33,9 +33,10 @@ Features:
   * [Installation and Startup][installation-and-startup]
   * [Runtime Environment][runtime-environment]
 * Advanced
-  * [Inputs Directory][inputs-directory]
+  * [Inputs And Outputs][inputs-and-outputs]
   * [Gateway Configuration][gateway-configuration]
   * [TLS Certificates and HTTPS][tls-and-https]
+  * [Two Factor Authentication][two-fa]
 * More
   * [Troubleshooting][troubleshooting]
 
@@ -112,6 +113,7 @@ We considered providing a possibility to read the credentials from an external c
 IBeam was built by traders just like you. We made it open source in order to collectively build a reliable solution. If you enjoy using IBeam, we encourage you to attempt implementing one of the following tasks:
 
 * ~~Include TLS certificates.~~
+* ~~Two Factor Authentictaion.~~
 * Remove necessity to install Java.
 * Remove necessity to install Chrome or find a lighter replacement.
 * Add usage examples.
@@ -138,7 +140,7 @@ IBeam is provided on an AS IS and AS AVAILABLE basis without any representation 
 
 ## Built by Voy
 
-Hi! Thanks for checking out and using this library. If you are interested in discussing your project, requiring mentorship, considering hiring me, or just wanna chat - I'm happy to talk.
+Hi! Thanks for checking out and using this library. If you are interested in discussing your project, require mentorship, consider hiring me, or just wanna chat - I'm happy to talk.
 
 You can send me an email to get in touch: hello@voyzan.com
 
@@ -154,7 +156,8 @@ Thanks and have an awesome day 👋
 [installation-and-startup]: https://github.com/Voyz/ibeam/wiki/Installation-and-startup
 [runtime-environment]: https://github.com/Voyz/ibeam/wiki/Runtime-environment
 [gateway-configuration]: https://github.com/Voyz/ibeam/wiki/Gateway-Configuration
-[inputs-directory]: https://github.com/Voyz/ibeam/wiki/Inputs-Directory
+[inputs-and-outputs]: https://github.com/Voyz/ibeam/wiki/Inputs-And-Outputs
+[two-fa]: https://github.com/Voyz/ibeam/wiki/Two-Factor-Authentication
 [tls-and-https]: https://github.com/Voyz/ibeam/wiki/TLS-Certificates-and-HTTPS
 [troubleshooting]: https://github.com/Voyz/ibeam/wiki/Troubleshooting
 
