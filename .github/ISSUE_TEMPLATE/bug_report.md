@@ -22,7 +22,8 @@ A clear and concise description of what you expected to happen.
 
 **Environment**
 IBeam version:
-Python version:
+Docker image or standalone:
+Python version (standalone users only):
 OS:
 
 **Additional context**
