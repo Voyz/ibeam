@@ -38,12 +38,16 @@ def new_chrome_driver(driver_path, name: str = 'default', headless: bool = True)
     driver_index = list(_DRIVER_NAMES.keys()).index(name)  # order of insertion dictates the driver_index
 
     options = webdriver.ChromeOptions()
-    if headless: options.add_argument('headless')
+    if headless:
+        options.add_argument('--headless')
+        options.add_argument('--disable-gpu')
     options.add_argument('--no-sandbox')
     options.add_argument('--ignore-ssl-errors=yes')
     options.add_argument('--ignore-certificate-errors')
-    options.add_argument(f"--remote-debugging-port={9222 + driver_index}")
-    options.add_argument("--useAutomationExtension=false")
+    options.add_argument(f'--remote-debugging-port={9222 + driver_index}')
+    options.add_argument('--useAutomationExtension=false')
+    options.add_argument('--disable-extensions')
+    options.add_argument('--dns-prefetch-disable')
     options.add_argument(f'--user-data-dir={tempfile.gettempdir()}/ibeam-chrome-{name}')
     driver = webdriver.Chrome(driver_path, options=options)
     if driver is None:
