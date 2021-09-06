@@ -13,11 +13,11 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONPATH="${PYTHONPATH}:/srv:/srv/ibeam"
 
 COPY requirements.txt /srv/requirements.txt
-COPY ibeam $SRC_ROOT
-COPY copy_cache/clientportal.gw $IBEAM_GATEWAY_DIR
 
-RUN python -m venv /opt/venv && \
-    mkdir -p /usr/share/man/man1 $OUTPUTS_DIR $IBEAM_GATEWAY_DIR && \
+RUN \
+    # Create python virtual environment and required directories
+    python -m venv /opt/venv && \
+    mkdir -p /usr/share/man/man1 $OUTPUTS_DIR $IBEAM_GATEWAY_DIR $SRC_ROOT && \
     # Create basic user
     addgroup --gid $GROUP_ID $GROUP_NAME && \
     adduser --disabled-password --gecos "" --uid $USER_ID --gid $GROUP_ID --shell /bin/bash $USER_NAME && \
@@ -29,14 +29,19 @@ RUN python -m venv /opt/venv && \
     # Install python packages
     pip install --upgrade pip setuptools wheel && \
     pip install -r /srv/requirements.txt && \
+    # Remove packages and package lists
+    apt-get purge -y --auto-remove build-essential && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY copy_cache/clientportal.gw $IBEAM_GATEWAY_DIR
+COPY ibeam $SRC_ROOT
+
+RUN \
     # Create environment activation script
     echo "/opt/venv/bin/activate" >> $SRC_ROOT/activate.sh && \
     # Update file ownership and permissions
     chown -R $USER_NAME:$GROUP_NAME $SRC_ROOT $OUTPUTS_DIR $IBEAM_GATEWAY_DIR && \
-    chmod 744 /opt/venv/bin/activate /srv/ibeam/run.sh $SRC_ROOT/activate.sh && \
-    # Remove packages and package lists
-    apt-get purge -y --auto-remove build-essential && \
-    rm -rf /var/lib/apt/lists/*
+    chmod 744 /opt/venv/bin/activate /srv/ibeam/run.sh $SRC_ROOT/activate.sh    
 
 WORKDIR $SRC_ROOT
 
