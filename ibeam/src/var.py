@@ -38,6 +38,9 @@ REQUEST_RETRIES = int(os.environ.get('IBEAM_REQUEST_RETRIES', 1))
 REQUEST_TIMEOUT = int(os.environ.get('IBEAM_REQUEST_TIMEOUT', 15))
 """How many seconds to wait for a request to complete."""
 
+RESTART_FAILED_SESSIONS = bool(os.environ.get('IBEAM_RESTART_FAILED_SESSIONS', True))
+"""Whether Gateway should be restarted on failed sessions."""
+
 ########### GATEWAY ROUTES ###########
 
 GATEWAY_BASE_URL = os.environ.get('IBEAM_GATEWAY_BASE_URL', "https://localhost:5000")
@@ -60,6 +63,9 @@ ROUTE_AUTH_STATUS = os.environ.get('IBEAM_ROUTE_AUTH_STATUS', '/v1/api/iserver/a
 
 ROUTE_TICKLE = os.environ.get('IBEAM_ROUTE_TICKLE', '/v1/api/tickle')
 """Gateway route with tickle call."""
+
+ROUTE_LOGOUT = os.environ.get('IBEAM_ROUTE_LOGOUT', '/v1/api/logout')
+"""Gateway route with logout call."""
 
 ########### AUTHENTICATION ###########
 
