@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Optional
 
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
-from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from ibeam.src import var
@@ -72,6 +72,8 @@ class GatewayClient():
         processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
         if not processes:
             _LOGGER.info('Gateway not found, starting new one...')
+            _LOGGER.info(
+                'Note that the Gateway log below may display "Open https://localhost:5000 to login" - ignore this command.')
 
             start_gateway(self.gateway_dir)
 
@@ -151,6 +153,9 @@ class GatewayClient():
             if not status[2]:
                 if status[1]:
                     _LOGGER.error('Gateway session active but not authenticated')
+                    if var.RESTART_FAILED_SESSIONS:
+                        _LOGGER.info('Logging out and restarting the Gateway')
+                        self.restart()
                 elif status[0]:
                     _LOGGER.error('Gateway running but has no active sessions')
                 else:
@@ -167,6 +172,23 @@ class GatewayClient():
 
     def tickle(self) -> bool:
         return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True)[0]
+
+    def logout(self):
+        return self.http_handler.url_request(self.base_url + var.ROUTE_LOGOUT)
+
+    def restart(self):
+        try:
+            logout_response = self.logout()
+            logout_success = logout_response.read().decode('utf8') == '{"status":true}'
+            _LOGGER.info(f'Gateway logout {"successful" if logout_success else "unsuccessful"}')
+        except Exception as e:
+            _LOGGER.error(f'Exception during logout: {e}')
+
+        try:
+            killed = self.kill()
+            _LOGGER.info(f'Gateway shutdown {"successful" if killed else "unsuccessful"}')
+        except Exception as e:
+            _LOGGER.error(f'Exception during shutdown: {e}')
 
     def user(self):
         try:
@@ -190,13 +212,20 @@ class GatewayClient():
         else:
             executors = {'default': ThreadPoolExecutor(self._concurrent_maintenance_attempts)}
         job_defaults = {'coalesce': False, 'max_instances': self._concurrent_maintenance_attempts}
-        self._scheduler = BlockingScheduler(executors=executors, job_defaults=job_defaults, timezone='UTC')
+        self._scheduler = BackgroundScheduler(executors=executors, job_defaults=job_defaults, timezone='UTC')
         self._scheduler.add_job(self._maintenance, trigger=IntervalTrigger(seconds=var.MAINTENANCE_INTERVAL))
 
     def maintain(self):
         self.build_scheduler()
         _LOGGER.info(f'Starting maintenance with interval {var.MAINTENANCE_INTERVAL} seconds')
         self._scheduler.start()
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt as e:
+            _LOGGER.info('Keyboard interrupt, shutting down.')
+            pass
+        self._scheduler.shutdown(True)
 
     def _maintenance(self):
         _LOGGER.debug('Maintenance')
