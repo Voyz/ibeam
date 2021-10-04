@@ -91,6 +91,11 @@ if __name__ == '__main__':
         success = client.kill()
         _LOGGER.info(f'Gateway {"" if success else "not "}killed.')
     else:
-        success, _ = client.start_and_authenticate()
+        success, shutdown = client.start_and_authenticate()
         if success:
             _LOGGER.info('Gateway running and authenticated.')
+
+        if shutdown:
+            _LOGGER.warning('Shutting IBeam maintenance down due to exceeded number of failed attempts.')
+        else:
+            client.maintain()
