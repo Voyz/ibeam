@@ -1,0 +1,13 @@
+# docker-compose up -d --build
+version: '2.4'
+
+services:
+  ibeam:
+    build: .
+    container_name: ibeam
+    env_file:
+      - env.list
+    ports:
+      - 5000:5000
+    network_mode: bridge
+    restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceeded 

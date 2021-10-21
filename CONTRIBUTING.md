@@ -147,28 +147,60 @@ from the main (upstream) repository:
     git pull --ff upstream master
     ```
     
-## <a name="building-docker"></a>Building a Docker image
-In order to build a Docker image of IBeam, you need to first ensure both Chrome Driver and CPW Gateway are available in `./copy_cache` directory under:
+## <a name="building-docker"></a>Building a Docker Image
 
-* `./copy_cache/chrome_driver` - for the Chrome Driver
-* `./copy_cache/clientportal.gw` - for the Gateway
+The following commands can be used to build the IBeam image after navigating to the root directory of the repository.
 
-You can automate this process by carrying out the following:
+### <a name="local-builds"></a>Local Single-Platform Builds
 
-* Navigate to the root folder of IBeam in your console
-* Run `pip install -r dev-requirements.txt` to install [`invoke` package][invoke]
-* Define the following environment variable paths, contents of which will be copied to the image
-    * `IBEAM_CHROME_DRIVER_PATH` env var pointing at the Chrome Driver directory to be copied from
-    * `IBEAM_GATEWAY_DIR` env var pointing at the Gateway directory to be copied from
-* Make sure `invoke.exe` is in your `$PATH`
-* Run `invoke.exe copyClientportal` and `invoke.exe copyChromeDriver`
-* (optionally) Ensure both `copy_cache/chrome_driver` and `copy_cache/clientportal.gw` are present
+To build the IBeam image for local testing, run:
 
-Finally, run: 
-
-```posh
+```shell
 docker build -t ibeam .
 ```
+
+Alternatively, `docker-compose` can be used to build and run a local IBeam instance using variables in `env.list`:
+
+```shell
+docker-compose up -d --build
+```
+
+### <a name="multi-platform-builds"></a>Multi-Platform Builds
+
+The commands below can be used to setup `docker buildx` for multi-platform IBeam builds supporting `amd64` and `arm64` machines. These commands only need to be executed once per machine and are not required for subsequent multi-platform builds.
+
+Build `docker buildx` from source using:
+
+```shell
+export DOCKER_BUILDKIT=1
+docker build --platform=local -o . git://github.com/docker/buildx
+mkdir -p ~/.docker/cli-plugins
+mv buildx ~/.docker/cli-plugins/docker-buildx
+```
+
+Next, run the following to install `qemu-user-static` for multi-platform build support:
+
+```shell
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+docker buildx create --name builder --driver docker-container --use
+docker buildx inspect --bootstrap
+```
+
+The next two commands can now be used to build a local image for testing (similar to the single-platform builds above) and multi-platform image for pushing to a Docker repository, respectively.
+
+To build and load a single-platform image onto your local machine for testing, run:
+
+```shell
+docker buildx build -t ibeam --load .
+```
+
+To build a multi-platform image and push to a Docker repository, run:
+
+```shell
+docker buildx build --platform linux/amd64,linux/arm64 -t <repo-username>/ibeam:<tag> --push .
+```
+
+**Note:** Currently only `amd64` and `arm64` are supported for multi-platform builds.
 
 ## <a name="rules"></a> Coding Rules
 
@@ -184,4 +216,3 @@ We generally follow the [Google Python style guide][py-style-guide].
 [stackoverflow]: http://stackoverflow.com/questions/tagged/ibeam
 [global-gitignore]: https://help.github.com/articles/ignoring-files/#create-a-global-gitignore
 [voy1982_email]: mailto://voy1982@yahoo.co.uk
-[invoke]: http://docs.pyinvoke.org/en/stable/
