@@ -149,7 +149,9 @@ from the main (upstream) repository:
     
 ## <a name="building-docker"></a>Building a Docker Image
 
-The following commands can be used to build the IBeam image after navigating to the root directory of the repository.
+To build a Docker image of IBeam, you first need to ensure the CP Gateway is available in the `./copy_cache/clientportal.gw` directory.
+
+The following commands can then be used to build the IBeam image after navigating to the root directory of the repository.
 
 ### <a name="local-builds"></a>Local Single-Platform Builds
 
@@ -166,6 +168,8 @@ docker-compose up -d --build
 ```
 
 ### <a name="multi-platform-builds"></a>Multi-Platform Builds
+
+#### <a name="multi-platform-start"></a>Before You Start
 
 The commands below can be used to setup `docker buildx` for multi-platform IBeam builds supporting `amd64` and `arm64` machines. These commands only need to be executed once per machine and are not required for subsequent multi-platform builds.
 
@@ -185,6 +189,8 @@ docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 docker buildx create --name builder --driver docker-container --use
 docker buildx inspect --bootstrap
 ```
+
+#### <a name="multi-platform-build"></a>Build
 
 The next two commands can now be used to build a local image for testing (similar to the single-platform builds above) and multi-platform image for pushing to a Docker repository, respectively.
 
