@@ -1,13 +1,12 @@
-# docker-compose up -d --build
-version: '2.4'
+version: "2.1"
 
 services:
   ibeam:
-    build: .
+    image: voyz/ibeam
     container_name: ibeam
     env_file:
       - env.list
     ports:
       - 5000:5000
-    network_mode: bridge
-    restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceeded 
+    network_mode: bridge # Required due to clientportal.gw IP restrictions
+    restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceeded

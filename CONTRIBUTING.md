@@ -151,25 +151,57 @@ from the main (upstream) repository:
 
 To build a Docker image of IBeam, you first need to ensure the CP Gateway is available in the `./copy_cache/clientportal.gw` directory.
 
-The following commands can then be used to build the IBeam image after navigating to the root directory of the repository.
+### <a name="local-builds"></a>Building Single-Platform Images for Development
 
-### <a name="local-builds"></a>Local Single-Platform Builds
+The following commands can be used to build an IBeam image after navigating to the root directory of the repository. The images produced can be used for development and testing on the building machine's platform (currently IBeam only supports `amd64` and `arm64`):
 
-To build the IBeam image for local testing, run:
+If using `docker build`, run:
 
 ```shell
 docker build -t ibeam .
 ```
 
-Alternatively, `docker-compose` can be used to build and run a local IBeam instance using variables in `env.list`:
+If using `docker buildx`, run:
+
+```shell
+docker buildx build -t ibeam --load .
+```
+
+Alternatively, `docker-compose` can be used to build and run a local IBeam instance as follows:
+
+Create a `docker-compose.yml` file with the following content:
+
+```yaml
+version: "2.1"
+
+services:
+  ibeam:
+    build: .
+    container_name: ibeam
+    env_file:
+      - env.list
+    ports:
+      - 5000:5000
+    network_mode: bridge # Required due to clientportal.gw IP whitelist
+    restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceeded
+```
+
+Create an `env.list` file in the same directory with the following content:
+
+```posh
+IBEAM_ACCOUNT=your_account123
+IBEAM_PASSWORD=your_password123
+```
+
+Run the following command:
 
 ```shell
 docker-compose up -d --build
 ```
 
-### <a name="multi-platform-builds"></a>Multi-Platform Builds
+### <a name="multi-platform-builds"></a>Building and Pushing Multi-Platform Images
 
-#### <a name="multi-platform-start"></a>Before You Start
+#### <a name="multi-platform-setup"></a>Before You Start
 
 The commands below can be used to setup `docker buildx` for multi-platform IBeam builds supporting `amd64` and `arm64` machines. These commands only need to be executed once per machine and are not required for subsequent multi-platform builds.
 
@@ -192,21 +224,11 @@ docker buildx inspect --bootstrap
 
 #### <a name="multi-platform-build"></a>Build
 
-The next two commands can now be used to build a local image for testing (similar to the single-platform builds above) and multi-platform image for pushing to a Docker repository, respectively.
-
-To build and load a single-platform image onto your local machine for testing, run:
-
-```shell
-docker buildx build -t ibeam --load .
-```
-
-To build a multi-platform image and push to a Docker repository, run:
+Once development and testing have been completed, the following command can be used to build a multi-platform image for `amd64` and `arm64`, before immediately pushing to an image repository:
 
 ```shell
 docker buildx build --platform linux/amd64,linux/arm64 -t <repo-username>/ibeam:<tag> --push .
 ```
-
-**Note:** Currently only `amd64` and `arm64` are supported for multi-platform builds.
 
 ## <a name="rules"></a> Coding Rules
 
