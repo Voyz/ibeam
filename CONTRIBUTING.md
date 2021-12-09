@@ -147,27 +147,87 @@ from the main (upstream) repository:
     git pull --ff upstream master
     ```
     
-## <a name="building-docker"></a>Building a Docker image
-In order to build a Docker image of IBeam, you need to first ensure both Chrome Driver and CPW Gateway are available in `./copy_cache` directory under:
+## <a name="building-docker"></a>Building a Docker Image
 
-* `./copy_cache/chrome_driver` - for the Chrome Driver
-* `./copy_cache/clientportal.gw` - for the Gateway
+To build a Docker image of IBeam, you first need to ensure the CP Gateway is available in the `./copy_cache/clientportal.gw` directory.
 
-You can automate this process by carrying out the following:
+### <a name="local-builds"></a>Building Single-Platform Images for Development
 
-* Navigate to the root folder of IBeam in your console
-* Run `pip install -r dev-requirements.txt` to install [`invoke` package][invoke]
-* Define the following environment variable paths, contents of which will be copied to the image
-    * `IBEAM_CHROME_DRIVER_PATH` env var pointing at the Chrome Driver directory to be copied from
-    * `IBEAM_GATEWAY_DIR` env var pointing at the Gateway directory to be copied from
-* Make sure `invoke.exe` is in your `$PATH`
-* Run `invoke.exe copyClientportal` and `invoke.exe copyChromeDriver`
-* (optionally) Ensure both `copy_cache/chrome_driver` and `copy_cache/clientportal.gw` are present
+The following commands can be used to build an IBeam image after navigating to the root directory of the repository. The images produced can be used for development and testing on the building machine's platform (currently IBeam only supports `amd64` and `arm64`):
 
-Finally, run: 
+If using `docker build`, run:
+
+```shell
+docker build -t ibeam .
+```
+
+If using `docker buildx`, run:
+
+```shell
+docker buildx build -t ibeam --load .
+```
+
+Alternatively, `docker-compose` can be used to build and run a local IBeam instance as follows:
+
+Create a `docker-compose.yml` file with the following content:
+
+```yaml
+version: "2.1"
+
+services:
+  ibeam:
+    build: .
+    container_name: ibeam
+    env_file:
+      - env.list
+    ports:
+      - 5000:5000
+    network_mode: bridge # Required due to clientportal.gw IP whitelist
+    restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceeded
+```
+
+Create an `env.list` file in the same directory with the following content:
 
 ```posh
-docker build -t ibeam .
+IBEAM_ACCOUNT=your_account123
+IBEAM_PASSWORD=your_password123
+```
+
+Run the following command:
+
+```shell
+docker-compose up -d --build
+```
+
+### <a name="multi-platform-builds"></a>Building and Pushing Multi-Platform Images
+
+#### <a name="multi-platform-setup"></a>Before You Start
+
+The commands below can be used to setup `docker buildx` for multi-platform IBeam builds supporting `amd64` and `arm64` machines. These commands only need to be executed once per machine and are not required for subsequent multi-platform builds.
+
+Build `docker buildx` from source using:
+
+```shell
+export DOCKER_BUILDKIT=1
+docker build --platform=local -o . git://github.com/docker/buildx
+mkdir -p ~/.docker/cli-plugins
+mv buildx ~/.docker/cli-plugins/docker-buildx
+```
+
+Next, run the following to install `qemu-user-static` for multi-platform build support:
+
+```shell
+docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+docker buildx create --name builder --driver docker-container --use
+docker buildx inspect --bootstrap
+```
+
+#### <a name="multi-platform-build"></a>Build
+
+Once development and testing have been completed, the following command can be used to build a multi-platform image for `amd64` and `arm64`, before immediately pushing to an image repository:
+
+```shell
+docker buildx build --platform linux/amd64,linux/arm64 -t <repo-username>/ibeam:<tag> --push .
 ```
 
 ## <a name="rules"></a> Coding Rules
@@ -184,4 +244,3 @@ We generally follow the [Google Python style guide][py-style-guide].
 [stackoverflow]: http://stackoverflow.com/questions/tagged/ibeam
 [global-gitignore]: https://help.github.com/articles/ignoring-files/#create-a-global-gitignore
 [voy1982_email]: mailto://voy1982@yahoo.co.uk
-[invoke]: http://docs.pyinvoke.org/en/stable/
