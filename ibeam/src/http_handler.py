@@ -37,33 +37,35 @@ class HttpHandler():
         _LOGGER.debug(f'HTTPS{"" if self.inputs_handler.valid_certificates else " (unverified)"} request to: {url}')
         return urllib.request.urlopen(url, context=self.ssl_context, timeout=self.request_timeout)
 
-    def try_request(self, url, check_auth=False, max_attempts=1) -> (bool, bool, bool):
+    def try_request(self, url, check_auth=False, max_attempts=1) -> (bool, bool, bool, bool):
         """Attempts a HTTP request and returns a tuple of three boolean flag indicating whether the gateway can be reached, whether there is an active session and whether it is authenticated. Attempts to repeat the request up to max_attempts times.
 
         status[0] -> gateway running
         status[1] -> active session present
-        status[2] -> session authenticated (equivalent to 'all good')
+        status[2] -> session authenticated
+        status[3] -> session competing
         """
 
-        def _request(attempt=0) -> (bool, bool, bool):
+        def _request(attempt=0) -> (bool, bool, bool, bool):
             status = [False, False, False]
             try:
                 response = self.url_request(url)
                 if check_auth:
                     data = json.loads(response.read().decode('utf8'))
-                    return True, True, data['iserver']['authStatus']['authenticated']
+                    return True, True, data['iserver']['authStatus']['authenticated'], data['iserver']['authStatus'][
+                        'competing']
                 else:
-                    return True, True, True
+                    return True, True, True, True
 
             except HTTPError as e:
                 if e.code == 401:
-                    return True, False, False  # we expect this error, no need to log
+                    return True, False, False, False  # we expect this error, no need to log
                 else:  # todo: possibly other codes could appear when not authenticated, fix when necessary
                     try:
                         raise RuntimeError('Unrecognised HTTPError') from e
                     except Exception as ee:
                         _LOGGER.exception(ee)
-                    return True, False, False
+                    return True, False, False, False
 
             except (URLError, socket.timeout) as e:
                 reason = str(e)
@@ -77,32 +79,32 @@ class HttpHandler():
                 if 'No connection could be made because the target machine actively refused it' in reason \
                         or 'Cannot assign requested address' in reason \
                         or '[Errno 0] Error' in reason:
-                    status = [False, False, False]
+                    status = [False, False, False, False]
                     pass  # we expect these errors and don't need to log them
 
                 elif "timed out" in reason \
                         or "The read operation timed out" in reason:
                     _LOGGER.error(
                         f'Connection timeout after {self.request_timeout} seconds. Consider increasing timeout by setting IBEAM_REQUEST_TIMEOUT environment variable. Error: {reason}')
-                    status = [True, False, False]
+                    status = [True, False, False, False]
                 elif 'Connection refused' in reason:
                     _LOGGER.info(
                         f'Gateway running but not serving yet. Consider increasing IBEAM_GATEWAY_STARTUP timeout. Error: {reason}')
-                    status = [True, False, False]
+                    status = [True, False, False, False]
                 elif 'An existing connection was forcibly closed by the remote host' in reason:
                     _LOGGER.error(
                         'Connection to Gateway was forcibly closed by the remote host. This means something is closing the Gateway process.')
-                    status = [False, False, False]
+                    status = [False, False, False, False]
                 elif 'certificate verify failed: self signed certificate' in reason:
                     _LOGGER.error(
                         'Failed to verify the self-signed certificate. This could mean your self-generated .jks certificate and password are not correctly provided in Inputs Directory or listed in conf.yaml. Ensure your certificate\'s filename and password are correctly listed in conf.yaml, or see https://github.com/Voyz/ibeam/wiki/TLS-Certificates-and-HTTPS#certificates-in-confyaml for more information.')
-                    status = [False, False, False]
+                    status = [False, False, False, False]
                 else:
                     try:
                         raise RuntimeError('Unrecognised URLError or socket.timeout') from e
                     except Exception as ee:
                         _LOGGER.exception(ee)
-                    status = [True, False, False]
+                    status = [True, False, False, False]
 
             except ConnectionResetError as e:
                 if 'An existing connection was forcibly closed by the remote host' in str(e):
@@ -113,15 +115,14 @@ class HttpHandler():
                         raise RuntimeError('Unrecognised ConnectionResetError') from e
                     except Exception as ee:
                         _LOGGER.exception(ee)
-                status = [False, False, False]
+                status = [False, False, False, False]
 
             except Exception as e:  # all other exceptions
                 try:
                     raise RuntimeError('Unrecognised Exception') from e
                 except Exception as ee:
                     _LOGGER.exception(ee)
-                print('other')
-                status = [False, False, False]
+                status = [False, False, False, False]
 
             if max_attempts <= 1:
                 return status
