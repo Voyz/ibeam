@@ -60,7 +60,7 @@ class HttpHandler():
         """
 
         def _request(attempt=0) -> Status:
-            status = Status(running=False, session=False, authenticated=False)
+            status = Status(running=False, session=False, authenticated=False, competing=False)
             try:
                 response = self.url_request(url)
                 status.running = True
@@ -69,11 +69,9 @@ class HttpHandler():
                 if check_auth:
                     data = json.loads(response.read().decode('utf8'))
                     status.authenticated = data['iserver']['authStatus']['authenticated']
-                    status.competing = data['iserver']['authStatus'][
-                        'competing']
+                    status.competing = data['iserver']['authStatus']['competing']
                 else:
                     status.authenticated = True
-                    status.competing = False
 
                 return status
 

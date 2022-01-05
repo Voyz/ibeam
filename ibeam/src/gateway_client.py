@@ -121,7 +121,7 @@ class GatewayClient():
 
     def try_authenticating(self, request_retries=1) -> (bool, bool):
         status = self.get_status(max_attempts=request_retries)
-        if status.authenticated and not status.competing:  # running and authenticated
+        if status.authenticated and not status.competing:  # running, authenticated and not competing
             return True, False
         elif not status.running:  # no gateway running
             _LOGGER.error('Cannot communicate with the Gateway. Consider increasing IBEAM_GATEWAY_STARTUP')
@@ -161,7 +161,7 @@ class GatewayClient():
                 else:
                     _LOGGER.error('Cannot communicate with the Gateway')
                 return False, False
-            elif status[3]:
+            elif status.competing:
                 _LOGGER.info('Authenticated but competing Gateway session found, reauthenticating...')
                 self.reauthenticate()
                 return False, False
