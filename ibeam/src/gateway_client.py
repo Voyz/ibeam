@@ -13,7 +13,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from ibeam.src import var
 from ibeam.src.authenticate import authenticate_gateway
-from ibeam.src.http_handler import HttpHandler
+from ibeam.src.http_handler import HttpHandler, Status
 from ibeam.src.inputs_handler import InputsHandler
 from ibeam.src.process_utils import find_procs_by_name, start_gateway
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
@@ -92,7 +92,7 @@ class GatewayClient():
             ping_success = False
             while time.time() < t_end:
                 status = self.http_handler.try_request(self.base_url, False)
-                if not status[0]:
+                if not status.running:
                     seconds_remaining = round(t_end - time.time())
                     if seconds_remaining > 0:
                         _LOGGER.debug(
@@ -121,14 +121,14 @@ class GatewayClient():
 
     def try_authenticating(self, request_retries=1) -> (bool, bool):
         status = self.get_status(max_attempts=request_retries)
-        if status[2] and not status[3]:  # running and authenticated
+        if status.authenticated and not status.competing:  # running and authenticated
             return True, False
-        elif not status[0]:  # no gateway running
+        elif not status.running:  # no gateway running
             _LOGGER.error('Cannot communicate with the Gateway. Consider increasing IBEAM_GATEWAY_STARTUP')
             return False, False
         else:
-            if status[1]:
-                if status[3]:
+            if status.session:
+                if status.competing:
                     _LOGGER.info('Competing Gateway session found, reauthenticating...')
                     self.reauthenticate()
                     return False, False
@@ -149,14 +149,14 @@ class GatewayClient():
 
             # double check if authenticated
             status = self.get_status(max_attempts=max(request_retries, 2))
-            if not status[2]:
-                if status[1]:
+            if not status.authenticated:
+                if status.session:
                     _LOGGER.error('Gateway session active but not authenticated')
                     if var.RESTART_FAILED_SESSIONS:
                         _LOGGER.info('Logging out and restarting the Gateway')
                         self.restart()
                         return self.try_authenticating(request_retries=request_retries)
-                elif status[0]:
+                elif status.running:
                     _LOGGER.error('Gateway running but has no active sessions')
                 else:
                     _LOGGER.error('Cannot communicate with the Gateway')
@@ -168,14 +168,14 @@ class GatewayClient():
 
         return True, False
 
-    def get_status(self, max_attempts=1) -> (bool, bool, bool, bool):
+    def get_status(self, max_attempts=1) -> Status:
         return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True, max_attempts=max_attempts)
 
     def validate(self) -> bool:
-        return self.http_handler.try_request(self.base_url + var.ROUTE_VALIDATE, False)[1]
+        return self.http_handler.try_request(self.base_url + var.ROUTE_VALIDATE, False).session
 
     def tickle(self) -> bool:
-        return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True)[0]
+        return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True).running
 
     def logout(self):
         return self.http_handler.url_request(self.base_url + var.ROUTE_LOGOUT)
