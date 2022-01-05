@@ -168,7 +168,7 @@ class GatewayClient():
 
         return True, False
 
-    def get_status(self, max_attempts=1) -> (bool, bool, bool):
+    def get_status(self, max_attempts=1) -> (bool, bool, bool, bool):
         return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True, max_attempts=max_attempts)
 
     def validate(self) -> bool:
