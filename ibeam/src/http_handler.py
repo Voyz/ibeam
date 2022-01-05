@@ -48,7 +48,7 @@ class HttpHandler():
         _LOGGER.debug(f'HTTPS{"" if self.inputs_handler.valid_certificates else " (unverified)"} request to: {url}')
         return urllib.request.urlopen(url, context=self.ssl_context, timeout=self.request_timeout)
 
-    def try_request(self, url, check_auth=False, max_attempts=1) -> (bool, bool, bool):
+    def try_request(self, url, check_auth=False, max_attempts=1) -> Status:
         """Attempts a HTTP request and returns Status object indicating whether the gateway can be reached, whether there is an active session and whether it is authenticated. Attempts to repeat the request up to max_attempts times.
 
         status.running -> gateway running
