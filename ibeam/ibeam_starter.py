@@ -76,8 +76,8 @@ if __name__ == '__main__':
         _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
     elif args.check:
         status = client.get_status()
-        if status[1]:
-            _LOGGER.info(f'Gateway session {"" if status[2] else "not "}authenticated.')
+        if status.session:
+            _LOGGER.info(f'Gateway session {"" if status.authenticated else "not "}authenticated.')
         else:
             _LOGGER.info(f'No active Gateway session.')
     elif args.tickle:
