@@ -131,7 +131,7 @@ class GatewayClient():
                 if status.competing:
                     _LOGGER.info('Competing Gateway session found, reauthenticating...')
                     self.restart()
-                    return False, False
+                    # return False, False
 
                 _LOGGER.info('Gateway session found but not authenticated, authenticating...')
             else:
