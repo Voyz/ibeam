@@ -44,6 +44,9 @@ REQUEST_TIMEOUT = int(os.environ.get('IBEAM_REQUEST_TIMEOUT', 15))
 RESTART_FAILED_SESSIONS = bool(os.environ.get('IBEAM_RESTART_FAILED_SESSIONS', True))
 """Whether Gateway should be restarted on failed sessions."""
 
+RESTART_WAIT = int(os.environ.get('IBEAM_RESTART_WAIT', 15))
+"""How many seconds to wait for a restart to complete."""
+
 ########### GATEWAY ROUTES ###########
 
 GATEWAY_BASE_URL = os.environ.get('IBEAM_GATEWAY_BASE_URL', "https://localhost:5000")

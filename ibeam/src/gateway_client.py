@@ -164,6 +164,7 @@ class GatewayClient():
             elif status.competing:
                 _LOGGER.info('Authenticated but competing Gateway session found, reauthenticating...')
                 self.reauthenticate()
+                time.sleep(var.RESTART_WAIT)
                 return False, False
 
         return True, False
