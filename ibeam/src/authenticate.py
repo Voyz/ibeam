@@ -204,6 +204,11 @@ def authenticate_gateway(driver_path,
             # handle 2FA
             if trigger_id == var.TWO_FA_EL_ID:
                 _LOGGER.info(f'Credentials correct, but Gateway requires two-factor authentication.')
+                if two_fa_handler is None:
+                    _LOGGER.critical(
+                        f'######## ATTENTION! ######## No 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more: https://github.com/Voyz/ibeam/wiki/Two-Factor-Authentication')
+                    return False, True
+
                 two_fa_code = handle_two_fa(two_fa_handler)
 
                 if two_fa_code is None:
@@ -228,7 +233,7 @@ def authenticate_gateway(driver_path,
                     global _FAILED_ATTEMPTS
                     _FAILED_ATTEMPTS += 1
                     if _FAILED_ATTEMPTS >= var.MAX_FAILED_AUTH:
-                        _LOGGER.error(
+                        _LOGGER.critical(
                             f'######## ATTENTION! ######## Maximum number of failed authentication attempts (IBEAM_MAX_FAILED_AUTH={var.MAX_FAILED_AUTH}) reached. IBeam will shut down to prevent an account lock-out. It is recommended you attempt to authenticate manually in order to reset the counter. Read the execution logs and report issues at https://github.com/Voyz/ibeam/issues')
                         return False, True
 
@@ -293,30 +298,25 @@ def start_driver(base_url, driver_path) -> Union[webdriver.Chrome, None]:
 
 
 def handle_two_fa(two_fa_handler) -> Union[str, None]:
-    if two_fa_handler is None:
-        _LOGGER.info(
-            f'No 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more.')
-        return None
-    else:
-        _LOGGER.info(f'Attempting to acquire 2FA code from: {two_fa_handler}')
+    _LOGGER.info(f'Attempting to acquire 2FA code from: {two_fa_handler}')
 
+    try:
+        two_fa_code = two_fa_handler.get_two_fa_code()
+        if two_fa_code is not None:
+            two_fa_code = str(two_fa_code)  # in case someone returns an integer
+    except Exception as two_fa_exception:
         try:
-            two_fa_code = two_fa_handler.get_two_fa_code()
-            if two_fa_code is not None:
-                two_fa_code = str(two_fa_code)  # in case someone returns an integer
-        except Exception as two_fa_exception:
-            try:
-                raise RuntimeError('Error encountered while acquiring 2FA code.') from two_fa_exception
-            except Exception as full_e:
-                _LOGGER.exception(full_e)
-                return None
-        else:
-            _LOGGER.debug(f'2FA code returned: {two_fa_code}')
+            raise RuntimeError('Error encountered while acquiring 2FA code.') from two_fa_exception
+        except Exception as full_e:
+            _LOGGER.exception(full_e)
+            return None
+    else:
+        _LOGGER.debug(f'2FA code returned: {two_fa_code}')
 
-            if var.STRICT_TWO_FA_CODE and two_fa_code is not None and (
-                    not two_fa_code.isdigit() or len(two_fa_code) != 6):
-                _LOGGER.error(
-                    f'Illegal 2FA code returned: {two_fa_code}. Ensure the 2FA code contains 6 digits or disable this check by setting IBEAM_STRICT_TWO_FA_CODE to False.')
-                return None
+        if var.STRICT_TWO_FA_CODE and two_fa_code is not None and (
+                not two_fa_code.isdigit() or len(two_fa_code) != 6):
+            _LOGGER.error(
+                f'Illegal 2FA code returned: {two_fa_code}. Ensure the 2FA code contains 6 digits or disable this check by setting IBEAM_STRICT_TWO_FA_CODE to False.')
+            return None
 
-            return two_fa_code
+        return two_fa_code

@@ -96,6 +96,6 @@ if __name__ == '__main__':
             _LOGGER.info('Gateway running and authenticated.')
 
         if shutdown:
-            _LOGGER.warning('Shutting IBeam maintenance down due to exceeded number of failed attempts.')
+            _LOGGER.warning('Shutting IBeam down due to critical error.')
         else:
             client.maintain()

@@ -241,7 +241,7 @@ class GatewayClient():
         success, shutdown = self.start_and_authenticate(request_retries=var.REQUEST_RETRIES)
 
         if shutdown:
-            _LOGGER.warning('Shutting IBeam maintenance down due to exceeded number of failed attempts.')
+            _LOGGER.warning('Shutting IBeam down due to critical error.')
             self._scheduler.remove_all_jobs()
             self._scheduler.shutdown(False)
         elif success:
