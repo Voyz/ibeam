@@ -215,10 +215,14 @@ def authenticate_gateway(driver_path,
                     _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
                 else:
                     two_fa_el = driver.find_elements_by_id(var.TWO_FA_INPUT_EL_ID)
+                    WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                        EC.element_to_be_clickable((By.ID, var.TWO_FA_INPUT_EL_ID)))
                     two_fa_el[0].send_keys(two_fa_code)
 
                     _LOGGER.debug('Submitting the 2FA form')
                     submit_form_el = driver.find_element_by_id(var.SUBMIT_EL_ID)
+                    WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                        EC.element_to_be_clickable((By.ID, var.SUBMIT_EL_ID)))
                     submit_form_el.click()
 
                     trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(any_of(success_present, error_displayed))
