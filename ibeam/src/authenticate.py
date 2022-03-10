@@ -197,9 +197,10 @@ def authenticate_gateway(driver_path,
                                                             var.SUCCESS_EL_TEXT)
             two_factor_input_present = EC.visibility_of_element_located((By.ID, var.TWO_FA_EL_ID))
             error_displayed = EC.visibility_of_element_located((By.ID, var.ERROR_EL_ID))
+            ibkey_promo_skip_displayed = EC.visibility_of_element_located((By.CSS_SELECTOR, 'a.ibkey-promo-skip'))
 
             trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
-                any_of(success_present, two_factor_input_present, error_displayed))
+                any_of(success_present, two_factor_input_present, error_displayed, ibkey_promo_skip_displayed))
 
             trigger_id = trigger.get_attribute('id')
 
