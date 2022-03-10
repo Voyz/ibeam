@@ -157,8 +157,6 @@ def authenticate_gateway(driver_path,
             return False, False
 
         driver.get(base_url + var.ROUTE_AUTH)
-
-        driver.add_cookie({'name': 'SKIP_IBKEY_PROMO', 'value': 'true'})
         
         # wait for the page to load
         user_name_present = EC.presence_of_element_located((By.ID, var.USER_NAME_EL_ID))
