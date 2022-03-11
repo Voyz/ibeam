@@ -195,20 +195,12 @@ def authenticate_gateway(driver_path,
                                                             var.SUCCESS_EL_TEXT)
             two_factor_input_present = EC.visibility_of_element_located((By.ID, var.TWO_FA_EL_ID))
             error_displayed = EC.visibility_of_element_located((By.ID, var.ERROR_EL_ID))
-            ibkey_promo_skip_displayed = EC.visibility_of_element_located((By.CSS_SELECTOR, var.IBKEY_PROMO_EL_SELECTOR))
+            ibkey_promo_skip_clickable = EC.element_to_be_clickable((By.CSS_SELECTOR, var.IBKEY_PROMO_EL_SELECTOR))
 
             trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
-                any_of(success_present, two_factor_input_present, error_displayed, ibkey_promo_skip_displayed))
+                any_of(success_present, two_factor_input_present, error_displayed, ibkey_promo_skip_clickable))
 
             trigger_id = trigger.get_attribute('id')
-            trigger_class = trigger.get_attribute('class')
-
-            if trigger_class == var.IBKEY_PROMO_EL_CLASS:
-                _LOGGER.debug('Handling IB-Key promo display...')
-                ibkey_promo_el = WebDriverWait(driver, 10).until(
-                    EC.element_to_be_clickable((By.CSS_SELECTOR, var.IBKEY_PROMO_EL_SELECTOR)))
-                ibkey_promo_el.click()
-                WebDriverWait(driver, 10).until(success_present)
 
             # handle 2FA
             if trigger_id == var.TWO_FA_EL_ID:
@@ -234,8 +226,16 @@ def authenticate_gateway(driver_path,
                         EC.element_to_be_clickable((By.ID, var.SUBMIT_EL_ID)))
                     submit_form_el.click()
 
-                    trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(any_of(success_present, error_displayed))
+                    trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                        any_of(success_present, ibkey_promo_skip_clickable, error_displayed))
                     trigger_id = trigger.get_attribute('id')
+            
+            trigger_class = trigger.get_attribute('class')
+
+            if trigger_class == var.IBKEY_PROMO_EL_CLASS:
+                _LOGGER.debug('Handling IB-Key promo display...')
+                trigger.click()
+                WebDriverWait(driver, 10).until(success_present)
 
             if trigger_id == var.ERROR_EL_ID:
                 _LOGGER.error(f'Error displayed by the login webpage: {trigger.text}')
