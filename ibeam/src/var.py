@@ -105,9 +105,6 @@ MAX_FAILED_AUTH = int(os.environ.get('IBEAM_MAX_FAILED_AUTH', 5))
 MAX_IMMEDIATE_ATTEMPTS = int(os.environ.get('IBEAM_MAX_IMMEDIATE_ATTEMPTS', 10))
 """Maximum number of immediate retries upon detecting an error message."""
 
-IBKEY_PROMO_EL_SELECTOR = os.environ.get('IBEAM_IBKEY_PROMO_EL_SELECTOR', 'a.ibkey-promo-skip')
-"""CSS selector for the ibkey promo skip button."""
-
 IBKEY_PROMO_EL_CLASS = os.environ.get('IBEAM_IBKEY_PROMO_EL_CLASS', 'ibkey-promo-skip')
 """HTML element class containing the ibkey promo skip button."""
 
