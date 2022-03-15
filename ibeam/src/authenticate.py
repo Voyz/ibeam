@@ -157,8 +157,6 @@ def authenticate_gateway(driver_path,
             return False, False
 
         driver.get(base_url + var.ROUTE_AUTH)
-
-        driver.add_cookie({'name': 'SKIP_IBKEY_PROMO', 'value': 'true'})
         
         # wait for the page to load
         user_name_present = EC.presence_of_element_located((By.ID, var.USER_NAME_EL_ID))
@@ -197,9 +195,10 @@ def authenticate_gateway(driver_path,
                                                             var.SUCCESS_EL_TEXT)
             two_factor_input_present = EC.visibility_of_element_located((By.ID, var.TWO_FA_EL_ID))
             error_displayed = EC.visibility_of_element_located((By.ID, var.ERROR_EL_ID))
+            ibkey_promo_skip_clickable = EC.element_to_be_clickable((By.CLASS_NAME, var.IBKEY_PROMO_EL_CLASS))
 
             trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
-                any_of(success_present, two_factor_input_present, error_displayed))
+                any_of(success_present, two_factor_input_present, error_displayed, ibkey_promo_skip_clickable))
 
             trigger_id = trigger.get_attribute('id')
 
@@ -227,8 +226,16 @@ def authenticate_gateway(driver_path,
                         EC.element_to_be_clickable((By.ID, var.SUBMIT_EL_ID)))
                     submit_form_el.click()
 
-                    trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(any_of(success_present, error_displayed))
+                    trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                        any_of(success_present, ibkey_promo_skip_clickable, error_displayed))
                     trigger_id = trigger.get_attribute('id')
+            
+            trigger_class = trigger.get_attribute('class')
+
+            if trigger_class == var.IBKEY_PROMO_EL_CLASS:
+                _LOGGER.debug('Handling IB-Key promo display...')
+                trigger.click()
+                WebDriverWait(driver, 10).until(success_present)
 
             if trigger_id == var.ERROR_EL_ID:
                 _LOGGER.error(f'Error displayed by the login webpage: {trigger.text}')
