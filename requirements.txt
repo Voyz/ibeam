@@ -4,3 +4,11 @@ pyvirtualdisplay==1.*
 apscheduler==3.*
 psutil==5.*
 requests==2.*
+python-daemon==2.3.*
+pidlockfile==0.3
+# Flask Framework
+Flask==2.*
+# Flask Packages
+Flask-SQLAlchemy==2.*
+# WSGI server
+uwsgi==2.*

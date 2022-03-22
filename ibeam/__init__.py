@@ -1,4 +1,4 @@
-import ibeam.config
+from ibeam import config
 
 config.initialize()
 

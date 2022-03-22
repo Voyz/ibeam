@@ -33,9 +33,16 @@ class HttpHandler():
             self.ssl_context.check_hostname = True
             self.ssl_context.load_verify_locations(self.inputs_handler.cecert_pem_path)
 
-    def url_request(self, url):
+    def url_request(self, url, data=None):
         _LOGGER.debug(f'HTTPS{"" if self.inputs_handler.valid_certificates else " (unverified)"} request to: {url}')
-        return urllib.request.urlopen(url, context=self.ssl_context, timeout=self.request_timeout)
+        return urllib.request.urlopen(url, data=data, context=self.ssl_context, timeout=self.request_timeout)
+
+    def forward_request(self, base_url, request):
+        data = None
+        if request.get_json() is not None:
+            data = urllib.parse.urlencode(request.get_json()).encode()
+        httpresponse = self.url_request(base_url + request.full_path, data)
+        return httpresponse
 
     def try_request(self, url, check_auth=False, max_attempts=1) -> (bool, bool, bool):
         """Attempts a HTTP request and returns a tuple of three boolean flag indicating whether the gateway can be reached, whether there is an active session and whether it is authenticated. Attempts to repeat the request up to max_attempts times.

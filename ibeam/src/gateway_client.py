@@ -11,7 +11,7 @@ from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from ibeam.src import var
+from ibeam.src import var, two_fa_selector
 from ibeam.src.authenticate import authenticate_gateway
 from ibeam.src.http_handler import HttpHandler
 from ibeam.src.inputs_handler import InputsHandler
@@ -38,7 +38,8 @@ class GatewayClient():
                  key: str = None,
                  gateway_dir: str = None,
                  driver_path: str = None,
-                 base_url: str = None):
+                 base_url: str = None,
+                 skip_account_check: bool = False):
 
         self.base_url = base_url if base_url is not None else var.GATEWAY_BASE_URL
 
@@ -51,10 +52,10 @@ class GatewayClient():
         self.key = key if key is not None else os.environ.get('IBEAM_KEY')
         """Key to the IBKR password."""
 
-        if self.account is None:
+        if self.account is None and not skip_account_check:
             self.account = input('Account: ')
 
-        if self.password is None:
+        if self.password is None and not skip_account_check:
             self.password = getpass('Password: ')
             if self.key is None:
                 self.key = getpass('Key: ') or None
@@ -171,9 +172,14 @@ class GatewayClient():
     def user(self):
         try:
             response = self.http_handler.url_request(self.base_url + var.ROUTE_USER)
-            _LOGGER.info(response.read())
+            json_data = response.read().decode('utf8').replace("'", '"')
+            _LOGGER.info(json_data)
+            return json_data
         except Exception as e:
             _LOGGER.exception(e)
+
+    def forward_request(self, request):
+        return self.http_handler.forward_request(self.base_url, request)
 
     def start_and_authenticate(self, request_retries=1) -> (bool, bool):
         """Starts the gateway and authenticates using the credentials stored."""
@@ -234,3 +240,17 @@ class GatewayClient():
     def __setstate__(self, state):
         self.__dict__.update(state)
         self.build_scheduler()
+
+def create_gateway_client(account: str = None, password: str = None, skip_account_check: bool = False):
+    inputs_handler = InputsHandler(inputs_dir=var.INPUTS_DIR, gateway_dir=var.GATEWAY_DIR)
+    http_handler = HttpHandler(inputs_handler=inputs_handler)
+    two_fa_handler = two_fa_selector.select(var.CHROME_DRIVER_PATH, inputs_handler)
+    client = GatewayClient(http_handler=http_handler,
+                           inputs_handler=inputs_handler,
+                           two_fa_handler=two_fa_handler,
+                           gateway_dir=var.GATEWAY_DIR,
+                           driver_path=var.CHROME_DRIVER_PATH,
+                           account=account,
+                           password=password,
+                           skip_account_check=skip_account_check)
+    return client
