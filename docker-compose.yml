@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  ibeam:
+    image: "voyz/ibeam"
+    ports:
+      - "8080:8080"
+    entrypoint: "/srv/ibeam/run_proxy_server.sh"
+    environment:
+      IBEAM_PROXY_SERVER_HTTP: "0.0.0.0:8080"
+    volumes:
+      - ./outputs:/srv/outputs
