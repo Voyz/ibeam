@@ -121,20 +121,19 @@ class GatewayClient():
 
     def try_authenticating(self, request_retries=1) -> (bool, bool):
         status = self.get_status(max_attempts=request_retries)
-        if status.authenticated:  # running and authenticated
+        if status.authenticated and not status.competing:  # running, authenticated and not competing
             return True, False
         elif not status.running:  # no gateway running
             _LOGGER.error('Cannot communicate with the Gateway. Consider increasing IBEAM_GATEWAY_STARTUP')
             return False, False
         else:
             if status.session:
-                _LOGGER.info('Gateway session found but not authenticated, authenticating...')
+                if status.competing:
+                    _LOGGER.info('Competing Gateway session found, reauthenticating...')
+                    self.restart()
+                    # return False, False
 
-                """
-                Annoyingly this is an async request that takes arbitrary amount of time and returns no
-                meaningful response. For now we stick with full login instead of calling reauthenticate. 
-                """
-                # self._reauthenticate()
+                _LOGGER.info('Gateway session found but not authenticated, authenticating...')
             else:
                 _LOGGER.info('No active sessions, logging in...')
 
@@ -156,10 +155,16 @@ class GatewayClient():
                     if var.RESTART_FAILED_SESSIONS:
                         _LOGGER.info('Logging out and restarting the Gateway')
                         self.restart()
+                        return self.try_authenticating(request_retries=request_retries)
                 elif status.running:
                     _LOGGER.error('Gateway running but has no active sessions')
                 else:
                     _LOGGER.error('Cannot communicate with the Gateway')
+                return False, False
+            elif status.competing:
+                _LOGGER.info('Authenticated but competing Gateway session found, reauthenticating...')
+                self.reauthenticate()
+                time.sleep(var.RESTART_WAIT)
                 return False, False
 
         return True, False
@@ -176,6 +181,9 @@ class GatewayClient():
     def logout(self):
         return self.http_handler.url_request(self.base_url + var.ROUTE_LOGOUT)
 
+    def reauthenticate(self):
+        return self.http_handler.url_request(self.base_url + var.ROUTE_REAUTHENTICATE)
+
     def restart(self):
         try:
             logout_response = self.logout()
@@ -184,11 +192,11 @@ class GatewayClient():
         except Exception as e:
             _LOGGER.error(f'Exception during logout: {e}')
 
-        try:
-            killed = self.kill()
-            _LOGGER.info(f'Gateway shutdown {"successful" if killed else "unsuccessful"}')
-        except Exception as e:
-            _LOGGER.error(f'Exception during shutdown: {e}')
+        # try:
+        #     killed = self.kill()
+        #     _LOGGER.info(f'Gateway shutdown {"successful" if killed else "unsuccessful"}')
+        # except Exception as e:
+        #     _LOGGER.error(f'Exception during shutdown: {e}')
 
     def user(self):
         try:
@@ -233,7 +241,7 @@ class GatewayClient():
         success, shutdown = self.start_and_authenticate(request_retries=var.REQUEST_RETRIES)
 
         if shutdown:
-            _LOGGER.warning('Shutting IBeam maintenance down due to exceeded number of failed attempts.')
+            _LOGGER.warning('Shutting IBeam down due to critical error.')
             self._scheduler.remove_all_jobs()
             self._scheduler.shutdown(False)
         elif success:

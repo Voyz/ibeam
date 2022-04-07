@@ -44,6 +44,9 @@ REQUEST_TIMEOUT = int(os.environ.get('IBEAM_REQUEST_TIMEOUT', 15))
 RESTART_FAILED_SESSIONS = bool(os.environ.get('IBEAM_RESTART_FAILED_SESSIONS', True))
 """Whether Gateway should be restarted on failed sessions."""
 
+RESTART_WAIT = int(os.environ.get('IBEAM_RESTART_WAIT', 15))
+"""How many seconds to wait for a restart to complete."""
+
 ########### GATEWAY ROUTES ###########
 
 GATEWAY_BASE_URL = os.environ.get('IBEAM_GATEWAY_BASE_URL', "https://localhost:5000")
@@ -101,6 +104,9 @@ MAX_FAILED_AUTH = int(os.environ.get('IBEAM_MAX_FAILED_AUTH', 5))
 
 MAX_IMMEDIATE_ATTEMPTS = int(os.environ.get('IBEAM_MAX_IMMEDIATE_ATTEMPTS', 10))
 """Maximum number of immediate retries upon detecting an error message."""
+
+IBKEY_PROMO_EL_CLASS = os.environ.get('IBEAM_IBKEY_PROMO_EL_CLASS', 'ibkey-promo-skip')
+"""HTML element class containing the ibkey promo skip button."""
 
 ########### TWO-FACTOR AUTHENTICATION ###########
 

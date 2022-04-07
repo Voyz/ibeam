@@ -19,11 +19,13 @@ class Status():
     def __init__(self,
                  running: bool = False,
                  session: bool = False,
-                 authenticated: bool = False
+                 authenticated: bool = False,
+                 competing: bool = False,
                  ):
         self.running = running
         self.session = session
         self.authenticated = authenticated
+        self.competing = competing
 
 
 class HttpHandler():
@@ -54,10 +56,11 @@ class HttpHandler():
         status.running -> gateway running
         status.session -> active session present
         status.authenticated -> session authenticated (equivalent to 'all good')
+        status.competing -> session competing
         """
 
         def _request(attempt=0) -> Status:
-            status = Status(running=False, session=False, authenticated=False)
+            status = Status(running=False, session=False, authenticated=False, competing=False)
             try:
                 response = self.url_request(url)
                 status.running = True
@@ -66,6 +69,7 @@ class HttpHandler():
                 if check_auth:
                     data = json.loads(response.read().decode('utf8'))
                     status.authenticated = data['iserver']['authStatus']['authenticated']
+                    status.competing = data['iserver']['authStatus']['competing']
                 else:
                     status.authenticated = True
 

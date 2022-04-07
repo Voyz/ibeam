@@ -157,7 +157,7 @@ def authenticate_gateway(driver_path,
             return False, False
 
         driver.get(base_url + var.ROUTE_AUTH)
-
+        
         # wait for the page to load
         user_name_present = EC.presence_of_element_located((By.ID, var.USER_NAME_EL_ID))
         WebDriverWait(driver, 15).until(user_name_present)
@@ -195,29 +195,47 @@ def authenticate_gateway(driver_path,
                                                             var.SUCCESS_EL_TEXT)
             two_factor_input_present = EC.visibility_of_element_located((By.ID, var.TWO_FA_EL_ID))
             error_displayed = EC.visibility_of_element_located((By.ID, var.ERROR_EL_ID))
+            ibkey_promo_skip_clickable = EC.element_to_be_clickable((By.CLASS_NAME, var.IBKEY_PROMO_EL_CLASS))
 
             trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
-                any_of(success_present, two_factor_input_present, error_displayed))
+                any_of(success_present, two_factor_input_present, error_displayed, ibkey_promo_skip_clickable))
 
             trigger_id = trigger.get_attribute('id')
 
             # handle 2FA
             if trigger_id == var.TWO_FA_EL_ID:
                 _LOGGER.info(f'Credentials correct, but Gateway requires two-factor authentication.')
+                if two_fa_handler is None:
+                    _LOGGER.critical(
+                        f'######## ATTENTION! ######## No 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more: https://github.com/Voyz/ibeam/wiki/Two-Factor-Authentication')
+                    return False, True
+
                 two_fa_code = handle_two_fa(two_fa_handler)
 
                 if two_fa_code is None:
                     _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
                 else:
                     two_fa_el = driver.find_elements_by_id(var.TWO_FA_INPUT_EL_ID)
+                    WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                        EC.element_to_be_clickable((By.ID, var.TWO_FA_INPUT_EL_ID)))
                     two_fa_el[0].send_keys(two_fa_code)
 
                     _LOGGER.debug('Submitting the 2FA form')
                     submit_form_el = driver.find_element_by_id(var.SUBMIT_EL_ID)
+                    WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                        EC.element_to_be_clickable((By.ID, var.SUBMIT_EL_ID)))
                     submit_form_el.click()
 
-                    trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(any_of(success_present, error_displayed))
+                    trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                        any_of(success_present, ibkey_promo_skip_clickable, error_displayed))
                     trigger_id = trigger.get_attribute('id')
+            
+            trigger_class = trigger.get_attribute('class')
+
+            if trigger_class == var.IBKEY_PROMO_EL_CLASS:
+                _LOGGER.debug('Handling IB-Key promo display...')
+                trigger.click()
+                WebDriverWait(driver, 10).until(success_present)
 
             if trigger_id == var.ERROR_EL_ID:
                 _LOGGER.error(f'Error displayed by the login webpage: {trigger.text}')
@@ -228,7 +246,7 @@ def authenticate_gateway(driver_path,
                     global _FAILED_ATTEMPTS
                     _FAILED_ATTEMPTS += 1
                     if _FAILED_ATTEMPTS >= var.MAX_FAILED_AUTH:
-                        _LOGGER.error(
+                        _LOGGER.critical(
                             f'######## ATTENTION! ######## Maximum number of failed authentication attempts (IBEAM_MAX_FAILED_AUTH={var.MAX_FAILED_AUTH}) reached. IBeam will shut down to prevent an account lock-out. It is recommended you attempt to authenticate manually in order to reset the counter. Read the execution logs and report issues at https://github.com/Voyz/ibeam/issues')
                         return False, True
 
@@ -293,30 +311,25 @@ def start_driver(base_url, driver_path) -> Union[webdriver.Chrome, None]:
 
 
 def handle_two_fa(two_fa_handler) -> Union[str, None]:
-    if two_fa_handler is None:
-        _LOGGER.info(
-            f'No 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more.')
-        return None
-    else:
-        _LOGGER.info(f'Attempting to acquire 2FA code from: {two_fa_handler}')
+    _LOGGER.info(f'Attempting to acquire 2FA code from: {two_fa_handler}')
 
+    try:
+        two_fa_code = two_fa_handler.get_two_fa_code()
+        if two_fa_code is not None:
+            two_fa_code = str(two_fa_code)  # in case someone returns an integer
+    except Exception as two_fa_exception:
         try:
-            two_fa_code = two_fa_handler.get_two_fa_code()
-            if two_fa_code is not None:
-                two_fa_code = str(two_fa_code)  # in case someone returns an integer
-        except Exception as two_fa_exception:
-            try:
-                raise RuntimeError('Error encountered while acquiring 2FA code.') from two_fa_exception
-            except Exception as full_e:
-                _LOGGER.exception(full_e)
-                return None
-        else:
-            _LOGGER.debug(f'2FA code returned: {two_fa_code}')
+            raise RuntimeError('Error encountered while acquiring 2FA code.') from two_fa_exception
+        except Exception as full_e:
+            _LOGGER.exception(full_e)
+            return None
+    else:
+        _LOGGER.debug(f'2FA code returned: {two_fa_code}')
 
-            if var.STRICT_TWO_FA_CODE and two_fa_code is not None and (
-                    not two_fa_code.isdigit() or len(two_fa_code) != 6):
-                _LOGGER.error(
-                    f'Illegal 2FA code returned: {two_fa_code}. Ensure the 2FA code contains 6 digits or disable this check by setting IBEAM_STRICT_TWO_FA_CODE to False.')
-                return None
+        if var.STRICT_TWO_FA_CODE and two_fa_code is not None and (
+                not two_fa_code.isdigit() or len(two_fa_code) != 6):
+            _LOGGER.error(
+                f'Illegal 2FA code returned: {two_fa_code}. Ensure the 2FA code contains 6 digits or disable this check by setting IBEAM_STRICT_TWO_FA_CODE to False.')
+            return None
 
-            return two_fa_code
+        return two_fa_code
