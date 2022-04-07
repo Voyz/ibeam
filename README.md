@@ -147,10 +147,11 @@ IBeam was built by traders just like you. We made it open source in order to col
 * ~~Include TLS certificates.~~
 * ~~Two Factor Authentictaion.~~
 * Remove necessity to install Java.
-* Remove necessity to install Chrome or find a lighter replacement.
+* ~~Remove necessity to install Chrome or find a lighter replacement.~~
 * Add usage examples.
 * Full test coverage.
 * Improve the security issues.
+* Find a lighter replacement to using Chromium
 
 Read the [CONTRIBUTING](https://github.com/Voyz/ibeam/blob/master/CONTRIBUTING.md) guideline to get started.
 
