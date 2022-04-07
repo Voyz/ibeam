@@ -34,6 +34,7 @@ Features:
   * [Runtime Environment][runtime-environment]
 * Advanced
   * [Inputs And Outputs][inputs-and-outputs]
+  * [IBeam Configuration][ibeam-configuration]
   * [Gateway Configuration][gateway-configuration]
   * [TLS Certificates and HTTPS][tls-and-https]
   * [Two Factor Authentication][two-fa]
@@ -188,6 +189,7 @@ Thanks and have an awesome day 👋
 [home]: https://github.com/Voyz/ibeam/wiki
 [installation-and-startup]: https://github.com/Voyz/ibeam/wiki/Installation-and-startup
 [runtime-environment]: https://github.com/Voyz/ibeam/wiki/Runtime-environment
+[ibeam-configuration]: https://github.com/Voyz/ibeam/wiki/IBeam-Configuration
 [gateway-configuration]: https://github.com/Voyz/ibeam/wiki/Gateway-Configuration
 [inputs-and-outputs]: https://github.com/Voyz/ibeam/wiki/Inputs-And-Outputs
 [two-fa]: https://github.com/Voyz/ibeam/wiki/Two-Factor-Authentication
