@@ -6,17 +6,18 @@ from getpass import getpass
 
 from pathlib import Path
 from typing import Optional
-
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from ibeam.src import var
+from ibeam.src.health_server import new_health_server
 from ibeam.src.authenticate import authenticate_gateway
 from ibeam.src.http_handler import HttpHandler, Status
 from ibeam.src.inputs_handler import InputsHandler
 from ibeam.src.process_utils import find_procs_by_name, start_gateway
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
+from ibeam.src.var import IBEAM_HEALTH_SERVER_PORT
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -40,6 +41,7 @@ class GatewayClient():
                  driver_path: str = None,
                  base_url: str = None):
 
+        self._should_shutdown = False
         self.base_url = base_url if base_url is not None else var.GATEWAY_BASE_URL
 
         self.account = account if account is not None else os.environ.get('IBEAM_ACCOUNT')
@@ -67,6 +69,7 @@ class GatewayClient():
         self.two_fa_handler = two_fa_handler
 
         self._concurrent_maintenance_attempts = 1
+        self._health_server = new_health_server(IBEAM_HEALTH_SERVER_PORT, self.get_status, self.get_shutdown_status)
 
     def try_starting(self) -> Optional[int]:
         processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
@@ -169,6 +172,9 @@ class GatewayClient():
 
         return True, False
 
+    def get_shutdown_status(self) -> bool:
+        return self._should_shutdown
+
     def get_status(self, max_attempts=1) -> Status:
         return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True, max_attempts=max_attempts)
 
@@ -211,7 +217,7 @@ class GatewayClient():
         self.try_starting()
 
         success, shutdown = self.try_authenticating(request_retries=request_retries)
-
+        self._should_shutdown = shutdown
         return success, shutdown
 
     def build_scheduler(self):
@@ -244,10 +250,12 @@ class GatewayClient():
             _LOGGER.warning('Shutting IBeam down due to critical error.')
             self._scheduler.remove_all_jobs()
             self._scheduler.shutdown(False)
+            self._health_server.shutdown()
         elif success:
             _LOGGER.info('Gateway running and authenticated')
 
     def kill(self) -> bool:
+        self._health_server.shutdown()
         processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
         if processes:
             processes[0].terminate()
