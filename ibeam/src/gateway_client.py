@@ -17,7 +17,6 @@ from ibeam.src.http_handler import HttpHandler, Status
 from ibeam.src.inputs_handler import InputsHandler
 from ibeam.src.process_utils import find_procs_by_name, start_gateway
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
-from ibeam.src.var import IBEAM_HEALTH_SERVER_PORT
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -69,7 +68,7 @@ class GatewayClient():
         self.two_fa_handler = two_fa_handler
 
         self._concurrent_maintenance_attempts = 1
-        self._health_server = new_health_server(IBEAM_HEALTH_SERVER_PORT, self.get_status, self.get_shutdown_status)
+        self._health_server = new_health_server(var.IBEAM_HEALTH_SERVER_PORT, self.get_status, self.get_shutdown_status)
 
     def try_starting(self) -> Optional[int]:
         processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
