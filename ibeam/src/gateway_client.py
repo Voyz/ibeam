@@ -254,7 +254,6 @@ class GatewayClient():
             _LOGGER.info('Gateway running and authenticated')
 
     def kill(self) -> bool:
-        self._health_server.shutdown()
         processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
         if processes:
             processes[0].terminate()
@@ -265,7 +264,7 @@ class GatewayClient():
             processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
             if processes:
                 return False
-
+        self._health_server.shutdown()
         return True
 
     def __getstate__(self):
