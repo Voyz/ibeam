@@ -249,7 +249,8 @@ class GatewayClient():
             _LOGGER.warning('Shutting IBeam down due to critical error.')
             self._scheduler.remove_all_jobs()
             self._scheduler.shutdown(False)
-            self._health_server.shutdown()
+            if self._health_server:
+                self._health_server.shutdown()
         elif success:
             _LOGGER.info('Gateway running and authenticated')
 
@@ -264,14 +265,16 @@ class GatewayClient():
             processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
             if processes:
                 return False
-        self._health_server.shutdown()
+        if self._health_server:
+            self._health_server.shutdown()
         return True
 
     def __getstate__(self):
         state = self.__dict__.copy()
 
-        # APS schedulers can't be pickled
+        # APS schedulers and health_server can't be pickled
         del state['_scheduler']
+        del state['_health_server']
         return state
 
     def __setstate__(self, state):
