@@ -57,14 +57,28 @@ def test_secret_value(tmpdir):
         types.SimpleNamespace(
             name='passed values',
             source=None,
+            env={
+            },
         ),
         types.SimpleNamespace(
-            name='env values',
-            source=SECRETS_SOURCE_ENV
+            name='env values w/o IBEAM_SECRETS_SOURCE',
+            source=SECRETS_SOURCE_ENV,
+            initial_env={
+            },
         ),
         types.SimpleNamespace(
-            name='fs values',
-            source=SECRETS_SOURCE_FS
+            name='env values w/ IBEAM_SECRETS_SOURCE',
+            source=SECRETS_SOURCE_ENV,
+            initial_env={
+                'IBEAM_SECRETS_SOURCE': SECRETS_SOURCE_ENV,
+            },
+        ),
+        types.SimpleNamespace(
+            name='fs values w/ IBEAM_SECRETS_SOURCE',
+            source=SECRETS_SOURCE_FS,
+            initial_env={
+                'IBEAM_SECRETS_SOURCE': SECRETS_SOURCE_FS,
+            },
         ),
     ]
 
@@ -76,7 +90,6 @@ def test_secret_value(tmpdir):
     ]
 
     for t in tests:
-
         # GatewayClient init variables
         account = None
         password = None
@@ -101,7 +114,7 @@ def test_secret_value(tmpdir):
             # test_setup sets the source and copies the
             # secrets into the environment
             def test_setup(t, lappend='', rappend=''):
-                environ = {'IBEAM_SECRETS_SOURCE': SECRETS_SOURCE_ENV}
+                environ = t.initial_env
                 for k in ibeam_fields:
                     environ[k] = lappend + getattr(t, k) + rappend
                 return mock.patch.dict(os.environ, environ)
@@ -110,7 +123,7 @@ def test_secret_value(tmpdir):
             # secrets onto the filesystem, setting the
             # filepath into the environment
             def test_setup(t, lappend='', rappend=''):
-                environ = {'IBEAM_SECRETS_SOURCE': SECRETS_SOURCE_FS}
+                environ = t.initial_env
                 for k in ibeam_fields:
                     environ[k] = os.path.join(tmpdir, k)
                     with open(environ[k], 'wt', encoding='UTF-8') as fh:
@@ -121,6 +134,7 @@ def test_secret_value(tmpdir):
 
         # test via the GatewayClient init routine
         with test_setup(t):
+
             # test init which will call secret_value
             client = GatewayClient(
                 http_handler=None, inputs_handler=None, two_fa_handler=None,
