@@ -254,9 +254,13 @@ Please feel free to suggest improvements to the security risks currently present
 
 The Gateway requires credentials to be provided on a regular basis. The only way to avoid manually having to input them every time is to store the credentials somewhere. This alone is a security risk.
 
-Currently, IBeam expects the credentials to be available as environment variables during runtime. Whether running IBeam in a container or directly on a host machine, an unwanted user may gain access to these credentials. If your setup is exposed to a risk of someone unauthorised reading the credentials, you may want to look for other solutions than IBeam or use the Gateway standalone and authenticate manually each time.
+By default, IBeam expects the credentials to be available as environment variables during runtime. Whether running IBeam in a container or directly on a host machine, an unwanted user may gain access to these credentials. If your setup is exposed to a risk of someone unauthorised reading the credentials, you may want to look for other solutions than IBeam or use the Gateway standalone and authenticate manually each time.
 
 We considered providing a possibility to read the credentials from an external credentials store, such as GCP Secrets, yet that would require some authentication credentials too, which brings back the same issue it was to solve.
+
+You can remove one of the attack vectors by using a locked Docker Swarm instance, installing your credentials into it using Docker Secrets, and telling ibeam to read the secrets from the container's in-memory `/run` filesystem.
+This configuration allows the credentials to be encrypted when at rest.
+But the credentials are still accessible in plaintext via the container itself, so if a security issue arises where an exploit exists for the port 500 API, or if your host is compromised and an attacker can access your containers, then the secret could be exposed.
 
 ## Roadmap
 
