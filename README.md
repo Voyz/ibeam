@@ -62,7 +62,7 @@ pip install ibeam
 
 ### Startup
 
-#### Docker Image (Recommended):
+#### Docker Image w/ Env secrets:
 ```posh
 docker run --env IBEAM_ACCOUNT=your_account123 --env IBEAM_PASSWORD=your_password123 -p 5000:5000 voyz/ibeam
 ```
@@ -97,6 +97,125 @@ Run the following command:
 
 ```posh
 docker-compose up -d
+```
+
+#### Docker Swarm w/ Docker Secrets:
+
+This section discusses running an instance of ibeam inside a locked docker swarm, and using the docker swarm facilities for managing secrets.
+Please refer to the following articles for in-depth details on docker swarm, locking the swarm, and using docker secrets.
+
+- [Swarm mode overview](https://docs.docker.com/engine/swarm/)
+- [Lock your swarm to protect its encryption key](https://docs.docker.com/engine/swarm/swarm_manager_locking/)
+- [Manage sensitive data with Docker secrets](https://docs.docker.com/engine/swarm/secrets/)
+
+Once you have a locked docker swarm instance initialized, you can create the secrets.
+On your host system create two secure (meaning not world-readable) files containing your Interactive Brokers account name and password:
+
+1. ib.account.txt
+2. ib.password.txt
+
+Next, inject these secrets into the docker swarm by using `docker secret create`:
+
+```posh
+cat ib.account.txt | docker secret create IBEAM_ACCOUNT_v1 -
+cat ib.password.txt | docker secret create IBEAM_PASSWORD_v1 -
+```
+
+Once you've initialized the secrets you should remove the original files from your host system.
+
+Create a `docker-compose.yml` file that references the new secrets, and that configures its environment to pull the secrets from the container's filesystem:
+
+```yaml
+version: "3.7"
+
+secrets:
+  IBEAM_ACCOUNT_v1:
+    external: true
+  IBEAM_PASSWORD_v1:
+    external: true
+
+services:
+  ibeam:
+    image: "voyz/ibeam"
+    environment:
+      IBEAM_SECRETS_SOURCE: "fs"
+      IBEAM_ACCOUNT: "/run/secrets/IBEAM_ACCOUNT"
+      IBEAM_PASSWORD: "/run/secrets/IBEAM_PASSWORD"
+    secrets:
+      - source: "IBEAM_ACCOUNT_v1"
+        target: "/run/secrets/IBEAM_ACCOUNT"
+        uid: "1000"
+        gid: "1000"
+        mode: 0400
+      - source: "IBEAM_PASSWORD_v1"
+        target: "/run/secrets/IBEAM_PASSWORD"
+        uid: "1000"
+        gid: "1000"
+        mode: 0400
+    volumes:
+      - type: "bind"
+        source: "conf.yaml"
+        target: "/srv/clientportal.gw/root/conf.yaml"
+    ports:
+      - target: 5000
+        host_ip: "127.0.0.1"
+        published: 5000
+        protocol: "tcp"
+        mode: "host"
+```
+
+The `conf.yaml` file that is referenced in the volumes block is a copy of the `root/conf.yaml` file found in the the
+[clientportal.gw.zip](http://download2.interactivebrokers.com/portal/clientportal.gw.zip)
+downloaded from
+[Interactive Brokers Client Portal Web API Gateway](https://interactivebrokers.github.io/cpwebapi/)
+(or see the copy from
+[copy_cache/clientportal.gw/root](https://github.com/Voyz/ibeam/tree/master/copy_cache/clientportal.gw/root),
+which is embedded in the voyz/ibeam docker image.
+
+Toward the end of the `conf.yaml` there is a block to define IPs to trust and reject, e.g.,
+
+```yaml
+...
+ips:
+  allow:
+    - 127.0.0.1
+  deny:
+    - 93.184.216.34
+```
+
+You can add your host's IP to the allow list to then allow it access to port 5000.
+
+To deploy ibeam within a stack named 'ib':
+
+```posh
+docker stack deploy -c docker-compose.yml ib
+```
+
+Docker will prepare the `ib_ibeam` container by writing the secrets into the tmpfs filesystem `/run/secrets/`.
+When ibeam starts it will read the file paths indicated via the environment.
+
+```posh
+$ docker ps
+CONTAINER ID   IMAGE               COMMAND                  CREATED          STATUS          PORTS     NAMES
+3ba7cf7cb7e9   voyz/ibeam:latest   "/bin/sh -c 'python …"   14 minutes ago   Up 14 minutes             ib_ibeam.1.xt67f05u0gjjr3fk182x0zqjk
+
+$ docker logs ib_ibeam.1.xt67f05u0gjjr3fk182x0zqjk
+2022-05-20 16:14:14,620|I| ############ Starting IBeam version 0.4.0 ############
+2022-05-20 16:14:14,623|I| Gateway not found, starting new one...
+...
+2022-05-20 16:14:15,628|I| Gateway started with pid: 11
+2022-05-20 16:14:16,489|I| No active sessions, logging in...
+2022-05-20 16:14:27,294|I| Authentication process succeeded
+2022-05-20 16:14:30,412|I| Gateway running and authenticated.
+2022-05-20 16:14:30,419|I| Starting maintenance with interval 60 seconds
+```
+
+On success you should be able to query the service from the host:
+
+```posh
+$ curl -i -k https://localhost:5000/v1/api/tickle
+HTTP/1.1 200 OK
+...
 ```
 
 #### Standalone:

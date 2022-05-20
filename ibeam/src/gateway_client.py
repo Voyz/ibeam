@@ -26,6 +26,8 @@ config.initialize()
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
+SECRETS_SOURCE_ENV = 'env'
+SECRETS_SOURCE_FS = 'fs'
 
 class GatewayClient():
 
@@ -40,15 +42,30 @@ class GatewayClient():
                  driver_path: str = None,
                  base_url: str = None):
 
+        self.secrets_source = os.environ.get(
+            'IBEAM_SECRETS_SOURCE', default=SECRETS_SOURCE_ENV)
+        """If IBEAM_SECRETS_SOURCE is set to
+        SECRETS_SOURCE_ENV, or if it is not set, then
+        environment values will be assumed to hold the
+        secret values directly.
+
+        If IBEAM_SECRETS_SOURCE is set to SECRETS_SOURCE_FS
+        then the environment values are assumed to be file
+        paths to read for the secret value."""
+
+        self.encoding = os.environ.get(
+            'IBEAM_ENCODING', default='UTF-8')
+        """Character encoding for secret files"""
+
         self.base_url = base_url if base_url is not None else var.GATEWAY_BASE_URL
 
-        self.account = account if account is not None else os.environ.get('IBEAM_ACCOUNT')
+        self.account = account if account is not None else self.secret_value('IBEAM_ACCOUNT')
         """IBKR account name."""
 
-        self.password = password if password is not None else os.environ.get('IBEAM_PASSWORD')
+        self.password = password if password is not None else self.secret_value('IBEAM_PASSWORD')
         """IBKR password."""
 
-        self.key = key if key is not None else os.environ.get('IBEAM_KEY')
+        self.key = key if key is not None else self.secret_value('IBEAM_KEY')
         """Key to the IBKR password."""
 
         if self.account is None:
@@ -67,6 +84,102 @@ class GatewayClient():
         self.two_fa_handler = two_fa_handler
 
         self._concurrent_maintenance_attempts = 1
+
+    def secret_value(self, name: str,
+                     lstrip=None, rstrip='\r\n') -> str:
+        """
+        secret_value reads secrets from os.environ or from
+        the filesystem.
+
+        Given a name, such as 'IBEAM_ACCOUNT', it will
+        examine os.environ for a value associated with that
+        name.
+
+        If no value has been set, None is returned.
+        Otherwise the self.secrets_source will be evaluated
+        to determine how to handle the value.
+
+        If self.secrets_source has been set to
+        SECRETS_SOURCE_ENV the os.environ value will be
+        returned as the secret value.
+
+        If self.secrets_source has been set to
+        SECRETS_SOURCE_FS then the os.environ value is
+        treated as a filesystem path.  The file will be read
+        as text and its contents returned as the secret
+        value.
+
+        Parameters:
+          name:
+            The identifier for the value, e.g.,
+            'IBEAM_ACCOUNT', 'IBEAM_PASSWORD', or
+            'IBEAM_KEY'.
+          lstrip:
+            If not None, strip these characters from the
+            left of the returned value (default: None).
+          rstrip:
+            If not None, strip these characters from the
+            right of the returned value (default: '\r\n')
+        Returns:
+          If the name is not defined in os.environ then None
+          is returned.
+
+          If self.secrets_source is SECRETS_SOURCE_ENV then
+          the os.environ value is returned as the secret
+          value.
+
+          If self.secrets_source is SECRETS_SOURCE_FS then
+          the os.environ value is treated as file path.  The
+          file is read as a text file and its contents
+          returned as the secret value.
+
+          If an error is encountered reading the file then
+          an error is logged and None is returned.
+        """
+        # read the environment value for name
+        value = os.environ.get(name)
+        if value is None:
+            # no key for this name, nothing to do
+            return None
+
+        if self.secrets_source == SECRETS_SOURCE_ENV:
+            # treat environment values as the secrets
+            # themselves
+            if lstrip is not None:
+                value = value.lstrip(lstrip)
+
+            if rstrip is not None:
+                value = value.rstrip(rstrip)
+
+            return value
+        elif self.secrets_source == SECRETS_SOURCE_FS:
+            # treat environment values as filesystem paths
+            # to the secrets
+            if not os.path.isfile(value):
+                _LOGGER.error(
+                    f'unable to read env value for {name}: value is not a file')
+                return None
+
+            try:
+                with open(value, mode='rt', encoding=self.encoding) as fh:
+                    secret = fh.read()
+
+                    if lstrip is not None:
+                        secret = secret.lstrip(lstrip)
+
+                    if rstrip is not None:
+                        secret = secret.rstrip(rstrip)
+
+                    return secret
+            except IOError:
+                _LOGGER.error(
+                    f'unable to read env value for {name} as a file.')
+                return None
+        else:
+            # unknown self.secrets_source value
+            _LOGGER.error(
+                f'unknown IBEAM_SECRETS_SOURCE: {self.secrets_source}')
+            return None
 
     def try_starting(self) -> Optional[int]:
         processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
