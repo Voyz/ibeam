@@ -210,11 +210,9 @@ $ docker logs ib_ibeam.1.xt67f05u0gjjr3fk182x0zqjk
 2022-05-20 16:14:30,419|I| Starting maintenance with interval 60 seconds
 ```
 
-On success you should be able to query the service from the host:
-
+Once started, verify the Gateway is running by calling:
 ```posh
-$ curl -i -k https://localhost:5000/v1/api/tickle
-HTTP/1.1 200 OK
+curl -X GET "https://localhost:5000/v1/api/one/user" -k
 ...
 ```
 
