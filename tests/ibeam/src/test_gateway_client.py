@@ -57,7 +57,7 @@ def test_secret_value(tmpdir):
         types.SimpleNamespace(
             name='passed values',
             source=None,
-            env={
+            initial_env={
             },
         ),
         types.SimpleNamespace(
