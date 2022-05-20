@@ -1,3 +1,6 @@
+"""
+Tests for ibeam.src.gateway_client
+"""
 import os
 import pytest
 import random
@@ -65,13 +68,14 @@ def test_secret_value(tmpdir):
         ),
     ]
 
+    # names of the secret values
+    ibeam_fields = [
+        'IBEAM_ACCOUNT',
+        'IBEAM_PASSWORD',
+        'IBEAM_KEY',
+    ]
+
     for t in tests:
-        # names of the secret values
-        ibeam_fields = [
-            'IBEAM_ACCOUNT',
-            'IBEAM_PASSWORD',
-            'IBEAM_KEY',
-        ]
 
         # GatewayClient init variables
         account = None
@@ -90,13 +94,13 @@ def test_secret_value(tmpdir):
             key = t.IBEAM_KEY
 
             # noop test_setup
-            def test_setup(lappend='', rappend=''):
+            def test_setup(t, lappend='', rappend=''):
                 return mock.patch.dict(os.environ, {})
 
         elif t.source == SECRETS_SOURCE_ENV:
             # test_setup sets the source and copies the
             # secrets into the environment
-            def test_setup(lappend='', rappend=''):
+            def test_setup(t, lappend='', rappend=''):
                 environ = {'IBEAM_SECRETS_SOURCE': SECRETS_SOURCE_ENV}
                 for k in ibeam_fields:
                     environ[k] = lappend + getattr(t, k) + rappend
@@ -105,18 +109,18 @@ def test_secret_value(tmpdir):
             # test_setup sets the source and copies the
             # secrets onto the filesystem, setting the
             # filepath into the environment
-            def test_setup(lappend='', rappend=''):
+            def test_setup(t, lappend='', rappend=''):
                 environ = {'IBEAM_SECRETS_SOURCE': SECRETS_SOURCE_FS}
                 for k in ibeam_fields:
                     environ[k] = os.path.join(tmpdir, k)
-                    with open(environ[k], 'wt') as fh:
+                    with open(environ[k], 'wt', encoding='UTF-8') as fh:
                         fh.write(lappend + getattr(t, k) + rappend)
                 return mock.patch.dict(os.environ, environ)
         else:
             pytest.fail(f'unhandled test test source: {t.source}')
 
         # test via the GatewayClient init routine
-        with test_setup():
+        with test_setup(t):
             # test init which will call secret_value
             client = GatewayClient(
                 http_handler=None, inputs_handler=None, two_fa_handler=None,
@@ -129,13 +133,14 @@ def test_secret_value(tmpdir):
 
         # test secret_value w/ left appended text
         if t.source is not None:
-            with test_setup(lappend='\t'):
+            with test_setup(t, lappend='\t'):
 
                 # read the test values from the fs
                 if t.source == SECRETS_SOURCE_FS:
                     fs_val = {}
                     for k in ibeam_fields:
-                        with open(os.environ[k], mode='rt') as fh:
+                        with open(os.environ[k],
+                                  mode='rt', encoding='UTF-8') as fh:
                             fs_val[k] = fh.read()
 
                 # test secret_value
@@ -153,13 +158,14 @@ def test_secret_value(tmpdir):
 
         # test secret_value w/ right appended text
         if t.source is not None:
-            with test_setup(rappend='\t'):
+            with test_setup(t, rappend='\t'):
 
                 # read the test values from the fs
                 if t.source == SECRETS_SOURCE_FS:
                     fs_val = {}
                     for k in ibeam_fields:
-                        with open(os.environ[k], mode='rt') as fh:
+                        with open(os.environ[k],
+                                  mode='rt', encoding='UTF-8') as fh:
                             fs_val[k] = fh.read()
 
                 # test secret_value
@@ -178,13 +184,14 @@ def test_secret_value(tmpdir):
         # test secret_value w/o any text that needs
         # stripping
         if t.source is not None:
-            with test_setup():
+            with test_setup(t):
 
                 # read the test values from the fs
                 if t.source == SECRETS_SOURCE_FS:
                     fs_val = {}
                     for k in ibeam_fields:
-                        with open(os.environ[k], mode='rt') as fh:
+                        with open(os.environ[k],
+                                  mode='rt', encoding='UTF-8') as fh:
                             fs_val[k] = fh.read()
 
                 # test secret_value

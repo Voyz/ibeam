@@ -53,6 +53,10 @@ class GatewayClient():
         then the environment values are assumed to be file
         paths to read for the secret value."""
 
+        self.encoding = os.environ.get(
+            'IBEAM_ENCODING', default='UTF-8')
+        """Character encoding for secret files"""
+
         self.base_url = base_url if base_url is not None else var.GATEWAY_BASE_URL
 
         self.account = account if account is not None else self.secret_value('IBEAM_ACCOUNT')
@@ -157,7 +161,7 @@ class GatewayClient():
                 return None
 
             try:
-                with open(value, mode='rt') as fh:
+                with open(value, mode='rt', encoding=self.encoding) as fh:
                     secret = fh.read()
 
                     if lstrip is not None:
@@ -167,7 +171,7 @@ class GatewayClient():
                         secret = secret.rstrip(rstrip)
 
                     return secret
-            except Exception:
+            except IOError:
                 _LOGGER.error(
                     f'unable to read env value for {name} as a file.')
                 return None
