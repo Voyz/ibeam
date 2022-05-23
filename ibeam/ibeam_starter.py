@@ -93,51 +93,6 @@ if __name__ == '__main__':
             for user in users:
                 print(user)
         else:
-<<<<<<< HEAD
-            print('Unknown action.')
-    else:
-        inputs_handler = InputsHandler(inputs_dir=inputs_dir, gateway_dir=gateway_dir)
-        http_handler = HttpHandler(inputs_handler=inputs_handler)
-        two_fa_handler = two_fa_selector.select(driver_path, inputs_handler)
-
-        client = GatewayClient(http_handler=http_handler,
-                            inputs_handler=inputs_handler,
-                            two_fa_handler=two_fa_handler,
-                            gateway_dir=gateway_dir,
-                            driver_path=driver_path)
-
-
-        if args.start:
-            pid = client.try_starting()
-            success = pid is not None
-            if success:
-                _LOGGER.info(f'Gateway running with pid: {pid}')
-            else:
-                _LOGGER.info(f'Gateway not running.')
-        elif args.authenticate:
-            success, _ = client.try_authenticating()
-            _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
-        elif args.check:
-            status = client.get_status()
-            if status[1]:
-                _LOGGER.info(f'Gateway session {"" if status[2] else "not "}authenticated.')
-            else:
-                _LOGGER.info(f'No active Gateway session.')
-        elif args.tickle:
-            success = client.tickle()
-            _LOGGER.info(f'Gateway {"" if success else "not "}running.')
-        elif args.user:
-            client.user()
-        elif args.maintain:
-            client.maintain()
-        elif args.kill:
-            success = client.kill()
-            _LOGGER.info(f'Gateway {"" if success else "not "}killed.')
-        else:
-            success, _ = client.start_and_authenticate()
-            if success:
-                _LOGGER.info('Gateway running and authenticated.')
-=======
             _LOGGER.info(f'Gateway not running.')
     elif args.authenticate:
         success, _ = client.try_authenticating()
@@ -167,4 +122,3 @@ if __name__ == '__main__':
             _LOGGER.warning('Shutting IBeam down due to critical error.')
         else:
             client.maintain()
->>>>>>> upstream/master
