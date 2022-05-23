@@ -1,16 +1,3 @@
-<<<<<<< HEAD
-version: "3.9"
-services:
-  ibeam:
-    image: "voyz/ibeam"
-    ports:
-      - "8080:8080"
-    entrypoint: "/srv/ibeam/run_proxy_server.sh"
-    environment:
-      IBEAM_PROXY_SERVER_HTTP: "0.0.0.0:8080"
-    volumes:
-      - ./outputs:/srv/outputs
-=======
 version: "2.1"
 
 services:
@@ -22,4 +9,4 @@ services:
     ports:
       - 5000:5000
     network_mode: bridge # Required due to clientportal.gw IP restrictions
-    restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceede
+    restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceeded
