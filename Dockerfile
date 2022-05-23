@@ -7,6 +7,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
     USER_NAME="basic_user" \
     GROUP_NAME="basic_group" \
     SRC_ROOT="/srv/ibeam" \
+    PROXY_SERVER_ROOT="/srv/ibeam_proxy_server" \
     OUTPUTS_DIR="/srv/outputs" \
     IBEAM_GATEWAY_DIR="/srv/clientportal.gw" \
     IBEAM_CHROME_DRIVER_PATH="/usr/bin/chromedriver" \
@@ -68,13 +69,14 @@ RUN set -ex \
 
 COPY copy_cache/clientportal.gw $IBEAM_GATEWAY_DIR
 COPY ibeam $SRC_ROOT
+COPY ibeam_proxy_server $PROXY_SERVER_ROOT
 
 RUN \
     # Create environment activation script
     echo "/opt/venv/bin/activate" >> $SRC_ROOT/activate.sh && \
     # Update file ownership and permissions
-    chown -R $USER_NAME:$GROUP_NAME $SRC_ROOT $OUTPUTS_DIR $IBEAM_GATEWAY_DIR && \
-    chmod 744 /opt/venv/bin/activate /srv/ibeam/run.sh $SRC_ROOT/activate.sh    
+    chown -R $USER_NAME:$GROUP_NAME $SRC_ROOT $PROXY_SERVER_ROOT $OUTPUTS_DIR $IBEAM_GATEWAY_DIR && \
+    chmod 744 /opt/venv/bin/activate /srv/ibeam/run.sh $SRC_ROOT/activate.sh $PROXY_SERVER_ROOT/run.sh   
 
 WORKDIR $SRC_ROOT
 

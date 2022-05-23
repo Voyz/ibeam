@@ -54,8 +54,8 @@ class HttpHandler():
         data = None
         if request.get_json() is not None:
             data = urllib.parse.urlencode(request.get_json()).encode()
-        httpresponse = self.url_request(base_url + request.full_path, data)
-        return httpresponse
+        http_response = self.url_request(base_url + request.full_path, data)
+        return http_response
 
     def try_request(self, url, check_auth=False, max_attempts=1) -> Status:
         """Attempts a HTTP request and returns Status object indicating whether the gateway can be reached, whether there is an active session and whether it is authenticated. Attempts to repeat the request up to max_attempts times.
