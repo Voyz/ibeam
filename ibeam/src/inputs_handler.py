@@ -25,6 +25,7 @@ class InputsHandler():
 
         config_source = os.path.join(self.inputs_dir, 'conf.yaml')
         if os.path.isfile(config_source):
+            _LOGGER.info('Custom conf.yaml found and will be used by the Gateway')
             config_target = os.path.join(gateway_root_dir, 'conf.yaml')
             shutil.copy2(config_source, config_target)
 

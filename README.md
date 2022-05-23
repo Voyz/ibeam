@@ -34,6 +34,7 @@ Features:
   * [Runtime Environment][runtime-environment]
 * Advanced
   * [Inputs And Outputs][inputs-and-outputs]
+  * [IBeam Configuration][ibeam-configuration]
   * [Gateway Configuration][gateway-configuration]
   * [TLS Certificates and HTTPS][tls-and-https]
   * [Two Factor Authentication][two-fa]
@@ -46,27 +47,59 @@ Features:
 </a>
 
 ## Quick start
-#### Installation
 
-Docker image (recommended):
+### Installation
+
+#### Docker Image (Recommended):
 ```posh
 docker pull voyz/ibeam
 ```
 
-Standalone:
+#### Standalone:
 ```posh
 pip install ibeam
 ```
 
-#### Startup
+### Startup
 
-Docker image (recommended):
-
+#### Docker Image (Recommended):
 ```posh
 docker run --env IBEAM_ACCOUNT=your_account123 --env IBEAM_PASSWORD=your_password123 -p 5000:5000 voyz/ibeam
 ```
 
-Standalone:
+#### docker-compose:
+
+Create a `docker-compose.yml` file with the following contents:
+
+```yaml
+version: "2.1"
+
+services:
+  ibeam:
+    image: voyz/ibeam
+    container_name: ibeam
+    env_file:
+      - env.list
+    ports:
+      - 5000:5000
+    network_mode: bridge # Required due to clientportal.gw IP whitelist
+    restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceeded
+```
+
+Create an `env.list` file in the same directory with the following contents:
+
+```posh
+IBEAM_ACCOUNT=your_account123
+IBEAM_PASSWORD=your_password123
+```
+
+Run the following command:
+
+```posh
+docker-compose up -d
+```
+
+#### Standalone:
 
 ```posh
 python ibeam_starter.py
@@ -115,10 +148,11 @@ IBeam was built by traders just like you. We made it open source in order to col
 * ~~Include TLS certificates.~~
 * ~~Two Factor Authentictaion.~~
 * Remove necessity to install Java.
-* Remove necessity to install Chrome or find a lighter replacement.
+* ~~Remove necessity to install Chrome or find a lighter replacement.~~
 * Add usage examples.
 * Full test coverage.
 * Improve the security issues.
+* Find a lighter replacement to using Chromium
 
 Read the [CONTRIBUTING](https://github.com/Voyz/ibeam/blob/master/CONTRIBUTING.md) guideline to get started.
 
@@ -136,7 +170,7 @@ IBeam is not built, maintained, or endorsed by the Interactive Brokers.
 
 Use at own discretion. IBeam and its authors give no guarantee of uninterrupted run of and access to the Interactive Brokers Client Portal Web API Gateway. You should prepare for breaks in connectivity to IBKR servers and should not depend on continuous uninterrupted run of the Gateway. IBeam requires your private credentials to be exposed to a security risk, potentially resulting in, although not limited to interruptions, loss of capital and loss of access to your account. To partially reduce the potential risk use Paper Account credentials.
 
-IBeam is provided on an AS IS and AS AVAILABLE basis without any representation or endorsement made and without warranty of any kind whether express or implied, including but not limited to the implied warranties of satisfactory quality, fitness for a particular purpose, non-infringement, compatibility, security and accuracy.  To the extent permitted by law, IBeam's authors will not be liable for any indirect or consequential loss or damage whatever (including without limitation loss of business, opportunity, data, profits) arising out of or in connection with the use of IBeam.  IBeam's authors make no warranty that the functionality of IBeam will be uninterrupted or error free, that defects will be corrected or that IBeam or the server that makes it available are free of viruses or anything else which may be harmful or destructive.
+IBeam is provided on an AS IS and AS AVAILABLE basis without any representation or endorsement made and without warranty of any kind whether express or implied, including but not limited to the implied warranties of satisfactory quality, fitness for a particular purpose, non-infringement, compatibility, security and accuracy. To the extent permitted by law, IBeam's authors will not be liable for any indirect or consequential loss or damage whatever (including without limitation loss of business, opportunity, data, profits) arising out of or in connection with the use of IBeam. IBeam's authors make no warranty that the functionality of IBeam will be uninterrupted or error free, that defects will be corrected or that IBeam or the server that makes it available are free of viruses or anything else which may be harmful or destructive.
 
 ## Built by Voy
 
@@ -155,6 +189,7 @@ Thanks and have an awesome day 👋
 [home]: https://github.com/Voyz/ibeam/wiki
 [installation-and-startup]: https://github.com/Voyz/ibeam/wiki/Installation-and-startup
 [runtime-environment]: https://github.com/Voyz/ibeam/wiki/Runtime-environment
+[ibeam-configuration]: https://github.com/Voyz/ibeam/wiki/IBeam-Configuration
 [gateway-configuration]: https://github.com/Voyz/ibeam/wiki/Gateway-Configuration
 [inputs-and-outputs]: https://github.com/Voyz/ibeam/wiki/Inputs-And-Outputs
 [two-fa]: https://github.com/Voyz/ibeam/wiki/Two-Factor-Authentication

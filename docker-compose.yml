@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 version: "3.9"
 services:
   ibeam:
@@ -9,3 +10,17 @@ services:
       IBEAM_PROXY_SERVER_HTTP: "0.0.0.0:8080"
     volumes:
       - ./outputs:/srv/outputs
+=======
+version: "2.1"
+
+services:
+  ibeam:
+    image: voyz/ibeam
+    container_name: ibeam
+    env_file:
+      - env.list
+    ports:
+      - 5000:5000
+    network_mode: bridge # Required due to clientportal.gw IP restrictions
+    restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceeded
+>>>>>>> upstream/master

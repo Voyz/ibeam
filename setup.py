@@ -26,6 +26,7 @@ setup(
         'pyvirtualdisplay==1.*',
         'apscheduler==3.*',
         'psutil==5.*',
+        'requests==2.*'
     ],
 
     classifiers=[

@@ -55,11 +55,20 @@ LOG_LEVEL = os.environ.get('IBEAM_LOG_LEVEL', 'INFO')
 LOG_TO_FILE = bool(os.environ.get('IBEAM_LOG_TO_FILE', True))
 """Whether logs should also be saved to a file."""
 
+LOG_FORMAT = os.environ.get('IBEAM_LOG_FORMAT', '%(asctime)s|%(levelname)-.1s| %(message)s')
+"""Log format that is used by IBeam. """
+
 REQUEST_RETRIES = int(os.environ.get('IBEAM_REQUEST_RETRIES', 1))
 """How many times to reattempt a request to the gateway."""
 
 REQUEST_TIMEOUT = int(os.environ.get('IBEAM_REQUEST_TIMEOUT', 15))
 """How many seconds to wait for a request to complete."""
+
+RESTART_FAILED_SESSIONS = bool(os.environ.get('IBEAM_RESTART_FAILED_SESSIONS', True))
+"""Whether Gateway should be restarted on failed sessions."""
+
+RESTART_WAIT = int(os.environ.get('IBEAM_RESTART_WAIT', 15))
+"""How many seconds to wait for a restart to complete."""
 
 ########### GATEWAY ROUTES ###########
 
@@ -83,6 +92,9 @@ ROUTE_AUTH_STATUS = os.environ.get('IBEAM_ROUTE_AUTH_STATUS', '/v1/api/iserver/a
 
 ROUTE_TICKLE = os.environ.get('IBEAM_ROUTE_TICKLE', '/v1/api/tickle')
 """Gateway route with tickle call."""
+
+ROUTE_LOGOUT = os.environ.get('IBEAM_ROUTE_LOGOUT', '/v1/api/logout')
+"""Gateway route with logout call."""
 
 ########### AUTHENTICATION ###########
 
@@ -115,6 +127,9 @@ MAX_FAILED_AUTH = int(os.environ.get('IBEAM_MAX_FAILED_AUTH', 5))
 
 MAX_IMMEDIATE_ATTEMPTS = int(os.environ.get('IBEAM_MAX_IMMEDIATE_ATTEMPTS', 10))
 """Maximum number of immediate retries upon detecting an error message."""
+
+IBKEY_PROMO_EL_CLASS = os.environ.get('IBEAM_IBKEY_PROMO_EL_CLASS', 'ibkey-promo-skip')
+"""HTML element class containing the ibkey promo skip button."""
 
 ########### TWO-FACTOR AUTHENTICATION ###########
 

@@ -15,6 +15,19 @@ from ibeam.src.inputs_handler import InputsHandler
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
 
+class Status():
+    def __init__(self,
+                 running: bool = False,
+                 session: bool = False,
+                 authenticated: bool = False,
+                 competing: bool = False,
+                 ):
+        self.running = running
+        self.session = session
+        self.authenticated = authenticated
+        self.competing = competing
+
+
 class HttpHandler():
 
     def __init__(self,
@@ -44,33 +57,43 @@ class HttpHandler():
         httpresponse = self.url_request(base_url + request.full_path, data)
         return httpresponse
 
-    def try_request(self, url, check_auth=False, max_attempts=1) -> (bool, bool, bool):
-        """Attempts a HTTP request and returns a tuple of three boolean flag indicating whether the gateway can be reached, whether there is an active session and whether it is authenticated. Attempts to repeat the request up to max_attempts times.
+    def try_request(self, url, check_auth=False, max_attempts=1) -> Status:
+        """Attempts a HTTP request and returns Status object indicating whether the gateway can be reached, whether there is an active session and whether it is authenticated. Attempts to repeat the request up to max_attempts times.
 
-        status[0] -> gateway running
-        status[1] -> active session present
-        status[2] -> session authenticated (equivalent to 'all good')
+        status.running -> gateway running
+        status.session -> active session present
+        status.authenticated -> session authenticated (equivalent to 'all good')
+        status.competing -> session competing
         """
 
-        def _request(attempt=0) -> (bool, bool, bool):
-            status = [False, False, False]
+        def _request(attempt=0) -> Status:
+            status = Status(running=False, session=False, authenticated=False, competing=False)
             try:
                 response = self.url_request(url)
+                status.running = True
+                status.session = True
+
                 if check_auth:
                     data = json.loads(response.read().decode('utf8'))
-                    return True, True, data['iserver']['authStatus']['authenticated']
+                    status.authenticated = data['iserver']['authStatus']['authenticated']
+                    status.competing = data['iserver']['authStatus']['competing']
                 else:
-                    return True, True, True
+                    status.authenticated = True
+
+                return status
 
             except HTTPError as e:
+                status.running = True
+
                 if e.code == 401:
-                    return True, False, False  # we expect this error, no need to log
+                    # we expect this error, no need to log
+                    pass
+
                 else:  # todo: possibly other codes could appear when not authenticated, fix when necessary
                     try:
                         raise RuntimeError('Unrecognised HTTPError') from e
                     except Exception as ee:
                         _LOGGER.exception(ee)
-                    return True, False, False
 
             except (URLError, socket.timeout) as e:
                 reason = str(e)
@@ -84,32 +107,33 @@ class HttpHandler():
                 if 'No connection could be made because the target machine actively refused it' in reason \
                         or 'Cannot assign requested address' in reason \
                         or '[Errno 0] Error' in reason:
-                    status = [False, False, False]
                     pass  # we expect these errors and don't need to log them
 
                 elif "timed out" in reason \
                         or "The read operation timed out" in reason:
                     _LOGGER.error(
                         f'Connection timeout after {self.request_timeout} seconds. Consider increasing timeout by setting IBEAM_REQUEST_TIMEOUT environment variable. Error: {reason}')
-                    status = [True, False, False]
+                    status.running = True
+
                 elif 'Connection refused' in reason:
                     _LOGGER.info(
                         f'Gateway running but not serving yet. Consider increasing IBEAM_GATEWAY_STARTUP timeout. Error: {reason}')
-                    status = [True, False, False]
+                    status.running = True
+
                 elif 'An existing connection was forcibly closed by the remote host' in reason:
                     _LOGGER.error(
                         'Connection to Gateway was forcibly closed by the remote host. This means something is closing the Gateway process.')
-                    status = [False, False, False]
+
                 elif 'certificate verify failed: self signed certificate' in reason:
                     _LOGGER.error(
                         'Failed to verify the self-signed certificate. This could mean your self-generated .jks certificate and password are not correctly provided in Inputs Directory or listed in conf.yaml. Ensure your certificate\'s filename and password are correctly listed in conf.yaml, or see https://github.com/Voyz/ibeam/wiki/TLS-Certificates-and-HTTPS#certificates-in-confyaml for more information.')
-                    status = [False, False, False]
+
                 else:
                     try:
                         raise RuntimeError('Unrecognised URLError or socket.timeout') from e
                     except Exception as ee:
                         _LOGGER.exception(ee)
-                    status = [True, False, False]
+                    status.running = True
 
             except ConnectionResetError as e:
                 if 'An existing connection was forcibly closed by the remote host' in str(e):
@@ -120,15 +144,12 @@ class HttpHandler():
                         raise RuntimeError('Unrecognised ConnectionResetError') from e
                     except Exception as ee:
                         _LOGGER.exception(ee)
-                status = [False, False, False]
 
             except Exception as e:  # all other exceptions
                 try:
                     raise RuntimeError('Unrecognised Exception') from e
                 except Exception as ee:
                     _LOGGER.exception(ee)
-                print('other')
-                status = [False, False, False]
 
             if max_attempts <= 1:
                 return status

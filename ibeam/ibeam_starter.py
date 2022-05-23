@@ -93,6 +93,7 @@ if __name__ == '__main__':
             for user in users:
                 print(user)
         else:
+<<<<<<< HEAD
             print('Unknown action.')
     else:
         inputs_handler = InputsHandler(inputs_dir=inputs_dir, gateway_dir=gateway_dir)
@@ -136,3 +137,34 @@ if __name__ == '__main__':
             success, _ = client.start_and_authenticate()
             if success:
                 _LOGGER.info('Gateway running and authenticated.')
+=======
+            _LOGGER.info(f'Gateway not running.')
+    elif args.authenticate:
+        success, _ = client.try_authenticating()
+        _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
+    elif args.check:
+        status = client.get_status()
+        if status.session:
+            _LOGGER.info(f'Gateway session {"" if status.authenticated else "not "}authenticated.')
+        else:
+            _LOGGER.info(f'No active Gateway session.')
+    elif args.tickle:
+        success = client.tickle()
+        _LOGGER.info(f'Gateway {"" if success else "not "}running.')
+    elif args.user:
+        client.user()
+    elif args.maintain:
+        client.maintain()
+    elif args.kill:
+        success = client.kill()
+        _LOGGER.info(f'Gateway {"" if success else "not "}killed.')
+    else:
+        success, shutdown = client.start_and_authenticate()
+        if success:
+            _LOGGER.info('Gateway running and authenticated.')
+
+        if shutdown:
+            _LOGGER.warning('Shutting IBeam down due to critical error.')
+        else:
+            client.maintain()
+>>>>>>> upstream/master

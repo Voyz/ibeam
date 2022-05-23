@@ -6,6 +6,8 @@ import urllib.parse
 from pathlib import Path
 from typing import Union
 
+from selenium.common.exceptions import ElementClickInterceptedException
+
 from ibeam.src import var
 from ibeam.src.authenticate import any_of, new_chrome_driver, release_chrome_driver, save_screenshot
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
@@ -27,6 +29,9 @@ _GOOG_MESSAGES_LIST_CLASS = os.environ.get('IBEAM_GOOG_MESSAGES_LIST_CLASS', '.t
 
 _GOOG_2FA_HEADING = os.environ.get('IBEAM_GOOG_2FA_HEADING', 'Your requested authentication code')
 """HTML element text indicating 2fa message received."""
+
+_GOOG_MESSAGE_CLICK_RETRIES = int(os.environ.get('IBEAM_GOOG_MESSAGE_CLICK_RETRIES', 5))
+"""How many times to try marking the message as read."""
 
 
 class GoogleMessagesTwoFaHandler(TwoFaHandler):
@@ -70,9 +75,33 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
             save_screenshot(driver_2fa, postfix='__google_2fa')
         else:
             _LOGGER.info(sms_list_el[0].text)
-            sms_list_el[0].click()  # mark message as read
-            time.sleep(2)  # wait for click to mark message as read
             code_two_fa = re.search(r'(\d+)', sms_list_el[0].text).group(1)
+            _LOGGER.debug('Waiting for SMS message to be visible')
+            WebDriverWait(driver_2fa, 30).until(EC.visibility_of(sms_list_el[0]))
+
+            clicked_ok = False
+            for i in range(_GOOG_MESSAGE_CLICK_RETRIES):
+                try:
+                    sms_list_el[0].click()  # mark message as read
+                    clicked_ok = True
+                    _LOGGER.debug('SMS message marked as read')
+                    break
+                except ElementClickInterceptedException as e:
+                    if isinstance(e, ElementClickInterceptedException) \
+                            and 'Other element would receive the click' in str(e):
+                        _LOGGER.warning(f'Failed marking SMS message as read due to obstructing elements')
+                    else:
+                        _LOGGER.exception(f'Exception while marking SMS message as read: {e}')
+
+                    save_screenshot(driver_2fa, postfix='__google_2fa')
+
+                    _LOGGER.debug(f'Retrying clicking SMS message {_GOOG_MESSAGE_CLICK_RETRIES - i - 1} more times.')
+                    time.sleep(2)
+
+            if not clicked_ok:
+                _LOGGER.warning('Failed all attempts to mark SMS message as read')
+
+            time.sleep(2)  # wait for click to mark message as read
 
         release_chrome_driver(driver_2fa)
 

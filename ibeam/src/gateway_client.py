@@ -8,12 +8,12 @@ from pathlib import Path
 from typing import Optional
 
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
-from apscheduler.schedulers.blocking import BlockingScheduler
+from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from ibeam.src import var, two_fa_selector
 from ibeam.src.authenticate import authenticate_gateway
-from ibeam.src.http_handler import HttpHandler
+from ibeam.src.http_handler import HttpHandler, Status
 from ibeam.src.inputs_handler import InputsHandler
 from ibeam.src.process_utils import find_procs_by_name, start_gateway
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
@@ -73,6 +73,8 @@ class GatewayClient():
         processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
         if not processes:
             _LOGGER.info('Gateway not found, starting new one...')
+            _LOGGER.info(
+                'Note that the Gateway log below may display "Open https://localhost:5000 to login" - ignore this command.')
 
             start_gateway(self.gateway_dir)
 
@@ -91,7 +93,7 @@ class GatewayClient():
             ping_success = False
             while time.time() < t_end:
                 status = self.http_handler.try_request(self.base_url, False)
-                if not status[0]:
+                if not status.running:
                     seconds_remaining = round(t_end - time.time())
                     if seconds_remaining > 0:
                         _LOGGER.debug(
@@ -120,20 +122,19 @@ class GatewayClient():
 
     def try_authenticating(self, request_retries=1) -> (bool, bool):
         status = self.get_status(max_attempts=request_retries)
-        if status[2]:  # running and authenticated
+        if status.authenticated and not status.competing:  # running, authenticated and not competing
             return True, False
-        elif not status[0]:  # no gateway running
+        elif not status.running:  # no gateway running
             _LOGGER.error('Cannot communicate with the Gateway. Consider increasing IBEAM_GATEWAY_STARTUP')
             return False, False
         else:
-            if status[1]:
-                _LOGGER.info('Gateway session found but not authenticated, authenticating...')
+            if status.session:
+                if status.competing:
+                    _LOGGER.info('Competing Gateway session found, reauthenticating...')
+                    self.restart()
+                    # return False, False
 
-                """
-                Annoyingly this is an async request that takes arbitrary amount of time and returns no
-                meaningful response. For now we stick with full login instead of calling reauthenticate. 
-                """
-                # self._reauthenticate()
+                _LOGGER.info('Gateway session found but not authenticated, authenticating...')
             else:
                 _LOGGER.info('No active sessions, logging in...')
 
@@ -149,25 +150,54 @@ class GatewayClient():
 
             # double check if authenticated
             status = self.get_status(max_attempts=max(request_retries, 2))
-            if not status[2]:
-                if status[1]:
+            if not status.authenticated:
+                if status.session:
                     _LOGGER.error('Gateway session active but not authenticated')
-                elif status[0]:
+                    if var.RESTART_FAILED_SESSIONS:
+                        _LOGGER.info('Logging out and restarting the Gateway')
+                        self.restart()
+                        return self.try_authenticating(request_retries=request_retries)
+                elif status.running:
                     _LOGGER.error('Gateway running but has no active sessions')
                 else:
                     _LOGGER.error('Cannot communicate with the Gateway')
                 return False, False
+            elif status.competing:
+                _LOGGER.info('Authenticated but competing Gateway session found, reauthenticating...')
+                self.reauthenticate()
+                time.sleep(var.RESTART_WAIT)
+                return False, False
 
         return True, False
 
-    def get_status(self, max_attempts=1) -> (bool, bool, bool):
+    def get_status(self, max_attempts=1) -> Status:
         return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True, max_attempts=max_attempts)
 
     def validate(self) -> bool:
-        return self.http_handler.try_request(self.base_url + var.ROUTE_VALIDATE, False)[1]
+        return self.http_handler.try_request(self.base_url + var.ROUTE_VALIDATE, False).session
 
     def tickle(self) -> bool:
-        return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True)[0]
+        return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True).running
+
+    def logout(self):
+        return self.http_handler.url_request(self.base_url + var.ROUTE_LOGOUT)
+
+    def reauthenticate(self):
+        return self.http_handler.url_request(self.base_url + var.ROUTE_REAUTHENTICATE)
+
+    def restart(self):
+        try:
+            logout_response = self.logout()
+            logout_success = logout_response.read().decode('utf8') == '{"status":true}'
+            _LOGGER.info(f'Gateway logout {"successful" if logout_success else "unsuccessful"}')
+        except Exception as e:
+            _LOGGER.error(f'Exception during logout: {e}')
+
+        # try:
+        #     killed = self.kill()
+        #     _LOGGER.info(f'Gateway shutdown {"successful" if killed else "unsuccessful"}')
+        # except Exception as e:
+        #     _LOGGER.error(f'Exception during shutdown: {e}')
 
     def user(self):
         try:
@@ -196,13 +226,20 @@ class GatewayClient():
         else:
             executors = {'default': ThreadPoolExecutor(self._concurrent_maintenance_attempts)}
         job_defaults = {'coalesce': False, 'max_instances': self._concurrent_maintenance_attempts}
-        self._scheduler = BlockingScheduler(executors=executors, job_defaults=job_defaults, timezone='UTC')
+        self._scheduler = BackgroundScheduler(executors=executors, job_defaults=job_defaults, timezone='UTC')
         self._scheduler.add_job(self._maintenance, trigger=IntervalTrigger(seconds=var.MAINTENANCE_INTERVAL))
 
     def maintain(self):
         self.build_scheduler()
         _LOGGER.info(f'Starting maintenance with interval {var.MAINTENANCE_INTERVAL} seconds')
         self._scheduler.start()
+        try:
+            while True:
+                time.sleep(1)
+        except KeyboardInterrupt as e:
+            _LOGGER.info('Keyboard interrupt, shutting down.')
+            pass
+        self._scheduler.shutdown(True)
 
     def _maintenance(self):
         _LOGGER.debug('Maintenance')
@@ -210,7 +247,7 @@ class GatewayClient():
         success, shutdown = self.start_and_authenticate(request_retries=var.REQUEST_RETRIES)
 
         if shutdown:
-            _LOGGER.warning('Shutting IBeam maintenance down due to exceeded number of failed attempts.')
+            _LOGGER.warning('Shutting IBeam down due to critical error.')
             self._scheduler.remove_all_jobs()
             self._scheduler.shutdown(False)
         elif success:

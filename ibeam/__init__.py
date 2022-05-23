@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 from ibeam import config
+=======
+# import ibeam.config
+#
+# config.initialize()
+>>>>>>> upstream/master
 
-config.initialize()
-
-__version__ = "0.3.0"
+__version__ = "0.4.0"

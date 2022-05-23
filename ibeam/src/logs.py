@@ -13,7 +13,7 @@ def initialize():
     initialized = True
 
     logger = logging.getLogger('ibeam')
-    formatter = logging.Formatter('%(asctime)s|%(levelname)-.1s| %(message)s')
+    formatter = logging.Formatter(var.LOG_FORMAT)
 
     stream_handler = logging.StreamHandler()
 

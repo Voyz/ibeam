@@ -22,6 +22,7 @@ webApps:
     index: "index.html"
 ips:
   allow:
+    - 10.*
     - 192.*
     - 131.216.*
     - 127.0.0.1
