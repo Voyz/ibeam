@@ -14,29 +14,6 @@ GATEWAY_DIR = os.environ.get('IBEAM_GATEWAY_DIR')
 CHROME_DRIVER_PATH = os.environ.get('IBEAM_CHROME_DRIVER_PATH')
 """Path to the Chrome Driver executable file."""
 
-SQLITE_DB_PATH = os.environ.get('IBEAM_SQLITE_DB_PATH',
-                               os.path.abspath(
-                                   os.path.join(os.path.abspath(OUTPUTS_DIR), 'ibeam.db')))
-"""Path to the sqlite db file."""
-
-PROXY_SERVER_HTTP = os.environ.get('IBEAM_PROXY_SERVER_HTTP', '0.0.0.0:8080')
-"""Http endpoint to the proxy server."""
-
-PROXY_SERVER_LOG_PATH = os.environ.get('IBEAM_PROXY_SERVER_LOG_PATH',
-                                       os.path.abspath(
-                                           os.path.join(os.path.abspath(OUTPUTS_DIR), 'proxy_server.log')))
-"""Path to the proxy server log."""
-
-PROXY_SERVER_PIDFILE_PATH = os.environ.get('IBEAM_PROXY_SERVER_PIDFILE_PATH',
-                                           os.path.abspath(
-                                               os.path.join(os.path.abspath(OUTPUTS_DIR), 'proxy_server.pid')))
-"""Path to the proxy server pidfile."""
-
-MAINTENANCE_PIDFILE_PATH = os.environ.get('IBEAM_MAINTENANCE_PIDFILE_PATH',
-                                          os.path.abspath(
-                                          os.path.join(os.path.abspath(OUTPUTS_DIR), 'maintenance.pid')))
-"""Path to the maintenance pidfile."""
-
 GATEWAY_STARTUP = int(os.environ.get('IBEAM_GATEWAY_STARTUP', 20))
 """How many seconds to wait for the Gateway to respond after its startup."""
 
