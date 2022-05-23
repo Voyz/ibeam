@@ -260,7 +260,7 @@ We considered providing a possibility to read the credentials from an external c
 
 You can remove one of the attack vectors by using a locked Docker Swarm instance, installing your credentials into it using Docker Secrets, and telling ibeam to read the secrets from the container's in-memory `/run` filesystem.
 This configuration allows the credentials to be encrypted when at rest.
-But the credentials are still accessible in plaintext via the container itself, so if a security issue arises where an exploit exists for the port 500 API, or if your host is compromised and an attacker can access your containers, then the secret could be exposed.
+But the credentials are still accessible in plaintext via the container itself, so if a security issue arises where an exploit exists for the port 5000 API, or if your host is compromised and an attacker can access your containers, then the secret could be exposed.
 
 ## Roadmap
 
