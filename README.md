@@ -117,8 +117,8 @@ On your host system create two secure (meaning not world-readable) files contain
 Next, inject these secrets into the docker swarm by using `docker secret create`:
 
 ```posh
-cat ib.account.txt | docker secret create IBEAM_ACCOUNT_v1 -
-cat ib.password.txt | docker secret create IBEAM_PASSWORD_v1 -
+docker secret create IBEAM_ACCOUNT_v1 ib.account.txt
+docker secret create IBEAM_PASSWORD_v1 ib.password.txt
 ```
 
 Once you've initialized the secrets you should remove the original files from your host system.
