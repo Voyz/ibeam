@@ -62,7 +62,7 @@ pip install ibeam
 
 ### Startup
 
-#### Docker Image w/ Env secrets:
+#### Docker Image with environment variable secrets
 ```posh
 docker run --env IBEAM_ACCOUNT=your_account123 --env IBEAM_PASSWORD=your_password123 -p 5000:5000 voyz/ibeam
 ```
@@ -99,31 +99,126 @@ Run the following command:
 docker-compose up -d
 ```
 
-#### Docker Swarm w/ Docker Secrets:
+#### Docker Swarm with Docker Secrets
 
-This section discusses running an instance of ibeam inside a locked docker swarm, and using the docker swarm facilities for managing secrets.
-Please refer to the following articles for in-depth details on docker swarm, locking the swarm, and using docker secrets.
+This section discusses running an instance of IBeam inside a locked Docker Swarm, and using the Docker Swarm facilities for managing secrets.
+Please refer to the following articles for in-depth details on Docker Swarm, locking the swarm, and using Docker secrets.
 
 - [Swarm mode overview](https://docs.docker.com/engine/swarm/)
 - [Lock your swarm to protect its encryption key](https://docs.docker.com/engine/swarm/swarm_manager_locking/)
 - [Manage sensitive data with Docker secrets](https://docs.docker.com/engine/swarm/secrets/)
 
-Once you have a locked docker swarm instance initialized, you can create the secrets.
+It's important to understand that if you fail to lock your swarm then it's possible for an attacker to read the encryption key for the swarm.
+That in turn would allow them to decrypt any secrets stored in your swarm.
+
+Once you have a locked Docker Swarm instance initialized, you can create the secrets.
 On your host system create two secure (meaning not world-readable) files containing your Interactive Brokers account name and password:
 
 1. ib.account.txt
 2. ib.password.txt
 
-Next, inject these secrets into the docker swarm by using `docker secret create`:
+Next, inject these secrets into the Docker Swarm by using `docker secret create`:
 
 ```posh
 docker secret create IBEAM_ACCOUNT_v1 ib.account.txt
 docker secret create IBEAM_PASSWORD_v1 ib.password.txt
 ```
+Once you've initialized the secrets delete the original files from your host system.
 
-Once you've initialized the secrets you should remove the original files from your host system.
+In Docker Swarm mode, in order to enable IP-based access control for the IBeam service, we need to create an overlay network in Docker:
 
-Create a `docker-compose.yml` file that references the new secrets, and that configures its environment to pull the secrets from the container's filesystem:
+```posh
+docker network create --driver overlay --attachable ib_net_01
+```
+
+To deploy IBeam as a service named 'ibeam' from the command line:
+
+```posh
+docker service create \
+    --name ibeam \
+    --network ib_net_01 \
+    --publish published=5000,target=5000,mode=host \
+    --secret source=IBEAM_ACCOUNT_v1,uid=1000,gid=1000,mode=0400 \
+    --secret source=IBEAM_PASSWORD_v1,uid=1000,gid=1000,mode=0400 \
+    --env IBEAM_SECRETS_SOURCE=fs \
+    --env IBEAM_ACCOUNT=/run/secrets/IBEAM_ACCOUNT_v1 \
+    --env IBEAM_PASSWORD=/run/secrets/IBEAM_PASSWORD_v1 \
+    --mount type=bind,source="${PWD}"/conf.yaml,target=/srv/clientportal.gw/root/conf.yaml,ro=true \
+    voyz/ibeam:latest
+```
+
+The `conf.yaml` file that is referenced in the '--mount' directive is a copy of the `root/conf.yaml` file found in the the
+[clientportal.gw.zip](http://download2.interactivebrokers.com/portal/clientportal.gw.zip)
+downloaded from
+[Interactive Brokers Client Portal Web API Gateway](https://interactivebrokers.github.io/cpwebapi/)
+(or see the copy from
+[copy_cache/clientportal.gw/root](https://github.com/Voyz/ibeam/tree/master/copy_cache/clientportal.gw/root),
+which is embedded in the voyz/ibeam docker image.
+The string `"${PWD}"` in the `source` argument of the `--mount` command is bash shell shorthand for the current directory, and can be replaced with the full directory path where you store the `conf.yaml` file.
+
+Toward the end of the `conf.yaml` there is a block to define IPs to trust and reject, e.g.,
+
+```yaml
+...
+ips:
+  allow:
+    - 127.0.0.1
+    - 172.18.0.1
+  deny:
+    - 0-255.*.*.*
+```
+
+You can adjust the allow/deny directives to manage access to port 5000.
+
+The example above grants access from the container's local interface and from the gateway IP address used to route traffic from the local host to the container.
+
+When accessed from the local host Docker Swarm will route traffic over a gateway interface, `docker_gwbridge`, that it sets up.
+
+```posh
+docker network inspect docker_gwbridge
+...
+        "IPAM": {
+            "Driver": "default",
+            "Options": null,
+            "Config": [
+                {
+                    "Subnet": "172.18.0.0/16",
+                    "Gateway": "172.18.0.1"
+                }
+            ]
+        },
+...
+```
+
+The gateway address listed in the example above, `172.18.0.1`, was granted access in our example `conf.yaml`.
+All other IPs, `0-255.*.*.*` in our example `conf.yaml`, have been denied access.
+
+Docker will prepare the `ibeam` container by writing the secrets into the tmpfs filesystem `/run/secrets/`.
+When IBeam starts it will read the file paths indicated via the environment.
+
+```posh
+$ docker ps
+CONTAINER ID   IMAGE         COMMAND                  CREATED         STATUS         PORTS                                       NAMES
+7e68d02850f2   ibcp:latest   "/bin/sh -c 'python …"   3 minutes ago   Up 3 minutes   0.0.0.0:5000->5000/tcp, :::5000->5000/tcp   ibeam.1.v18vqjopbamj6dov8l4owjxot
+
+$ docker logs ibeam.1.v18vqjopbamj6dov8l4owjxot
+2022-06-06 16:40:09,329|I| ############ Starting IBeam version 0.4.0 ############
+2022-06-06 16:40:09,332|I| Gateway not found, starting new one...
+...
+
+2022-06-06 16:40:10,337|I| Gateway started with pid: 11
+2022-06-06 16:40:11,205|I| No active sessions, logging in...
+2022-06-06 16:40:21,779|I| Authentication process succeeded
+2022-06-06 16:40:24,903|I| Gateway running and authenticated.
+2022-06-06 16:40:24,909|I| Starting maintenance with interval 60 seconds
+```
+
+Once started, verify the Gateway is running by calling:
+```posh
+curl -X GET "https://localhost:5000/v1/api/one/user" -k
+```
+
+You can also manage deployment by using a [docker stack](https://docs.docker.com/engine/swarm/stack-deploy/) managed through a `docker-compose.yml` file:
 
 ```yaml
 version: "3.7"
@@ -134,21 +229,29 @@ secrets:
   IBEAM_PASSWORD_v1:
     external: true
 
+networks:
+  ib_net_01:
+    external: true
+
 services:
   ibeam:
-    image: "voyz/ibeam"
+    image: "voyz/ibeam:latest"
     environment:
       IBEAM_SECRETS_SOURCE: "fs"
-      IBEAM_ACCOUNT: "/run/secrets/IBEAM_ACCOUNT"
-      IBEAM_PASSWORD: "/run/secrets/IBEAM_PASSWORD"
+      IBEAM_ACCOUNT: "/run/secrets/IBEAM_ACCOUNT_v1"
+      IBEAM_PASSWORD: "/run/secrets/IBEAM_PASSWORD_v1"
+    networks:
+      - "ib_net_01"
+    ports:
+      - published: 5000
+        target: 5000
+        mode: host
     secrets:
       - source: "IBEAM_ACCOUNT_v1"
-        target: "/run/secrets/IBEAM_ACCOUNT"
         uid: "1000"
         gid: "1000"
-        mode: 0400
+        mode: 0444400
       - source: "IBEAM_PASSWORD_v1"
-        target: "/run/secrets/IBEAM_PASSWORD"
         uid: "1000"
         gid: "1000"
         mode: 0400
@@ -156,64 +259,32 @@ services:
       - type: "bind"
         source: "conf.yaml"
         target: "/srv/clientportal.gw/root/conf.yaml"
-    ports:
-      - target: 5000
-        host_ip: "127.0.0.1"
-        published: 5000
-        protocol: "tcp"
-        mode: "host"
+        read_only: true
 ```
 
-The `conf.yaml` file that is referenced in the volumes block is a copy of the `root/conf.yaml` file found in the the
-[clientportal.gw.zip](http://download2.interactivebrokers.com/portal/clientportal.gw.zip)
-downloaded from
-[Interactive Brokers Client Portal Web API Gateway](https://interactivebrokers.github.io/cpwebapi/)
-(or see the copy from
-[copy_cache/clientportal.gw/root](https://github.com/Voyz/ibeam/tree/master/copy_cache/clientportal.gw/root),
-which is embedded in the voyz/ibeam docker image.
-
-Toward the end of the `conf.yaml` there is a block to define IPs to trust and reject, e.g.,
-
-```yaml
-...
-ips:
-  allow:
-    - 127.0.0.1
-  deny:
-    - 93.184.216.34
-```
-
-You can add your host's IP to the allow list to then allow it access to port 5000.
-
-To deploy ibeam within a stack named 'ib':
+To deploy this as part of a Docker stack named `ib`:
 
 ```posh
 docker stack deploy -c docker-compose.yml ib
 ```
 
-Docker will prepare the `ib_ibeam` container by writing the secrets into the tmpfs filesystem `/run/secrets/`.
-When ibeam starts it will read the file paths indicated via the environment.
+Docker will create the IBeam container in a new service named `ib_ibeam`:
 
 ```posh
+
 $ docker ps
-CONTAINER ID   IMAGE               COMMAND                  CREATED          STATUS          PORTS     NAMES
-3ba7cf7cb7e9   voyz/ibeam:latest   "/bin/sh -c 'python …"   14 minutes ago   Up 14 minutes             ib_ibeam.1.xt67f05u0gjjr3fk182x0zqjk
+CONTAINER ID   IMAGE         COMMAND                  CREATED              STATUS              PORTS                                       NAMES
+c5ed2dfe4757   ibcp:latest   "/bin/sh -c 'python …"   About a minute ago   Up About a minute   0.0.0.0:5000->5000/tcp, :::5000->5000/tcp   ib_ibeam.1.rknycfzbs5i76euv9xfx6mbtw
 
-$ docker logs ib_ibeam.1.xt67f05u0gjjr3fk182x0zqjk
-2022-05-20 16:14:14,620|I| ############ Starting IBeam version 0.4.0 ############
-2022-05-20 16:14:14,623|I| Gateway not found, starting new one...
+$ docker logs -f ib_ibeam.1.rknycfzbs5i76euv9xfx6mbtw
+2022-06-06 17:24:26,906|I| ############ Starting IBeam version 0.4.0 ############
+2022-06-06 17:24:26,909|I| Gateway not found, starting new one...
 ...
-2022-05-20 16:14:15,628|I| Gateway started with pid: 11
-2022-05-20 16:14:16,489|I| No active sessions, logging in...
-2022-05-20 16:14:27,294|I| Authentication process succeeded
-2022-05-20 16:14:30,412|I| Gateway running and authenticated.
-2022-05-20 16:14:30,419|I| Starting maintenance with interval 60 seconds
-```
-
-Once started, verify the Gateway is running by calling:
-```posh
-curl -X GET "https://localhost:5000/v1/api/one/user" -k
-...
+2022-06-06 17:24:27,915|I| Gateway started with pid: 11
+2022-06-06 17:24:28,817|I| No active sessions, logging in...
+2022-06-06 17:24:39,602|I| Authentication process succeeded
+2022-06-06 17:24:42,726|I| Gateway running and authenticated.
+2022-06-06 17:24:42,733|I| Starting maintenance with interval 60 seconds
 ```
 
 #### Standalone:
@@ -258,9 +329,9 @@ By default, IBeam expects the credentials to be available as environment variabl
 
 We considered providing a possibility to read the credentials from an external credentials store, such as GCP Secrets, yet that would require some authentication credentials too, which brings back the same issue it was to solve.
 
-You can remove one of the attack vectors by using a locked Docker Swarm instance, installing your credentials into it using Docker Secrets, and telling ibeam to read the secrets from the container's in-memory `/run` filesystem.
+You can remove one of the attack vectors by using a locked Docker Swarm instance, installing your credentials into it using Docker Secrets, and telling IBeam to read the secrets from the container's in-memory `/run` filesystem.
 This configuration allows the credentials to be encrypted when at rest.
-But the credentials are still accessible in plaintext via the container itself, so if a security issue arises where an exploit exists for the port 5000 API, or if your host is compromised and an attacker can access your containers, then the secret could be exposed.
+But the credentials are still accessible in plaintext via the running container, so if a security issue arises where an exploit exists for the port 5000 API, or if your host is compromised and an attacker can access your running container, then the secret could be exposed.
 
 ## Roadmap
 
