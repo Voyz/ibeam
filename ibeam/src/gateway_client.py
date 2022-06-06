@@ -54,6 +54,11 @@ class GatewayClient():
         then the environment values are assumed to be file
         paths to read for the secret value."""
 
+        if self.secrets_source == SECRETS_SOURCE_ENV:
+            _LOGGER.info('Reading secrets from the environment')
+        elif self.secrets_source == SECRETS_SOURCE_FS:
+            _LOGGER.info('Reading secrets from the filesystem')
+
         self.encoding = os.environ.get(
             'IBEAM_ENCODING', default='UTF-8')
         """Character encoding for secret files"""
@@ -144,8 +149,6 @@ class GatewayClient():
             return None
 
         if self.secrets_source == SECRETS_SOURCE_ENV:
-            _LOGGER.info('Reading secrets from the environment')
-
             # treat environment values as the secrets themselves
             if lstrip is not None:
                 value = value.lstrip(lstrip)
@@ -155,8 +158,6 @@ class GatewayClient():
 
             return value
         elif self.secrets_source == SECRETS_SOURCE_FS:
-            _LOGGER.info('Reading secrets from the filesystem')
-
             # treat environment values as filesystem paths to the secrets
             if not os.path.isfile(value):
                 _LOGGER.error(
