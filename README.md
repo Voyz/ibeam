@@ -164,8 +164,8 @@ docker network inspect docker_gwbridge
 ...
 ```
 
-The gateway address listed in the example above, `172.18.0.1`, was granted access in our example `conf.yaml`.
-All other IPs, `0-255.*.*.*` in our example `conf.yaml`, have been denied access.
+The loopback address, 127.0.0.1, and the gateway address listed in the example above, `172.18.0.1`, are granted access in our example `conf.yaml`.
+All other IPs, `0-255.*.*.*` in our example `conf.yaml`, are denied access.
 
 To deploy IBeam as a service named 'ibeam' from the command line:
 
