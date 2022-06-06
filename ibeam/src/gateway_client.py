@@ -29,6 +29,7 @@ _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 SECRETS_SOURCE_ENV = 'env'
 SECRETS_SOURCE_FS = 'fs'
 
+
 class GatewayClient():
 
     def __init__(self,
@@ -143,6 +144,8 @@ class GatewayClient():
             return None
 
         if self.secrets_source == SECRETS_SOURCE_ENV:
+            _LOGGER.info('Reading secrets from the environment')
+
             # treat environment values as the secrets themselves
             if lstrip is not None:
                 value = value.lstrip(lstrip)
@@ -152,6 +155,8 @@ class GatewayClient():
 
             return value
         elif self.secrets_source == SECRETS_SOURCE_FS:
+            _LOGGER.info('Reading secrets from the filesystem')
+
             # treat environment values as filesystem paths to the secrets
             if not os.path.isfile(value):
                 _LOGGER.error(
