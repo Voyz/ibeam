@@ -143,8 +143,7 @@ class GatewayClient():
             return None
 
         if self.secrets_source == SECRETS_SOURCE_ENV:
-            # treat environment values as the secrets
-            # themselves
+            # treat environment values as the secrets themselves
             if lstrip is not None:
                 value = value.lstrip(lstrip)
 
@@ -153,8 +152,7 @@ class GatewayClient():
 
             return value
         elif self.secrets_source == SECRETS_SOURCE_FS:
-            # treat environment values as filesystem paths
-            # to the secrets
+            # treat environment values as filesystem paths to the secrets
             if not os.path.isfile(value):
                 _LOGGER.error(
                     F'UNABLE TO READ ENV VALUE FOR {name}: VALUE IS NOT A FILE')

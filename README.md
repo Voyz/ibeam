@@ -131,31 +131,7 @@ In Docker Swarm mode, in order to enable IP-based access control for the IBeam s
 docker network create --driver overlay --attachable ib_net_01
 ```
 
-To deploy IBeam as a service named 'ibeam' from the command line:
-
-```posh
-docker service create \
-    --name ibeam \
-    --network ib_net_01 \
-    --publish published=5000,target=5000,mode=host \
-    --secret source=IBEAM_ACCOUNT_v1,uid=1000,gid=1000,mode=0400 \
-    --secret source=IBEAM_PASSWORD_v1,uid=1000,gid=1000,mode=0400 \
-    --env IBEAM_SECRETS_SOURCE=fs \
-    --env IBEAM_ACCOUNT=/run/secrets/IBEAM_ACCOUNT_v1 \
-    --env IBEAM_PASSWORD=/run/secrets/IBEAM_PASSWORD_v1 \
-    --mount type=bind,source="${PWD}"/conf.yaml,target=/srv/clientportal.gw/root/conf.yaml,ro=true \
-    voyz/ibeam:latest
-```
-
-The `conf.yaml` file that is referenced in the '--mount' directive is a copy of the `root/conf.yaml` file found in the the
-[clientportal.gw.zip](http://download2.interactivebrokers.com/portal/clientportal.gw.zip)
-downloaded from
-[Interactive Brokers Client Portal Web API Gateway](https://interactivebrokers.github.io/cpwebapi/)
-(or see the copy from
-[copy_cache/clientportal.gw/root](https://github.com/Voyz/ibeam/tree/master/copy_cache/clientportal.gw/root),
-which is embedded in the voyz/ibeam docker image.
-The string `"${PWD}"` in the `source` argument of the `--mount` command is bash shell shorthand for the current directory, and can be replaced with the full directory path where you store the `conf.yaml` file.
-
+Next, create an [inputs](https://github.com/Voyz/ibeam/wiki/Inputs-And-Outputs) directory with a `conf.yaml` file.  The format of this file is discussed on the the [Gateway Configuration](https://github.com/Voyz/ibeam/wiki/Gateway-Configuration) page.
 Toward the end of the `conf.yaml` there is a block to define IPs to trust and reject, e.g.,
 
 ```yaml
@@ -167,8 +143,6 @@ ips:
   deny:
     - 0-255.*.*.*
 ```
-
-You can adjust the allow/deny directives to manage access to port 5000.
 
 The example above grants access from the container's local interface and from the gateway IP address used to route traffic from the local host to the container.
 
@@ -193,6 +167,24 @@ docker network inspect docker_gwbridge
 The gateway address listed in the example above, `172.18.0.1`, was granted access in our example `conf.yaml`.
 All other IPs, `0-255.*.*.*` in our example `conf.yaml`, have been denied access.
 
+To deploy IBeam as a service named 'ibeam' from the command line:
+
+```posh
+docker service create \
+    --name ibeam \
+    --network ib_net_01 \
+    --publish published=5000,target=5000,mode=host \
+    --secret source=IBEAM_ACCOUNT_v1,uid=1000,gid=1000,mode=0400 \
+    --secret source=IBEAM_PASSWORD_v1,uid=1000,gid=1000,mode=0400 \
+    --env IBEAM_SECRETS_SOURCE=fs \
+    --env IBEAM_ACCOUNT=/run/secrets/IBEAM_ACCOUNT_v1 \
+    --env IBEAM_PASSWORD=/run/secrets/IBEAM_PASSWORD_v1 \
+    --mount type=bind,source="${PWD}/inputs",target=/srv/inputs,ro=true \
+    voyz/ibeam:latest
+```
+
+In the example above the `${PWD}` line in the `--mount` command is bash shell shorthand for the current working directory.  You can replace `${PWD}` with the full directory path to your `inputs` directory.
+
 Docker will prepare the `ibeam` container by writing the secrets into the tmpfs filesystem `/run/secrets/`.
 When IBeam starts it will read the file paths indicated via the environment.
 
@@ -214,6 +206,7 @@ $ docker logs ibeam.1.v18vqjopbamj6dov8l4owjxot
 ```
 
 Once started, verify the Gateway is running by calling:
+
 ```posh
 curl -X GET "https://localhost:5000/v1/api/one/user" -k
 ```
@@ -257,8 +250,8 @@ services:
         mode: 0400
     volumes:
       - type: "bind"
-        source: "conf.yaml"
-        target: "/srv/clientportal.gw/root/conf.yaml"
+        source: "inputs"
+        target: "/srv/inputs"
         read_only: true
 ```
 
