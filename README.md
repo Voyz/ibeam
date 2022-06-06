@@ -131,7 +131,7 @@ In Docker Swarm mode, in order to enable IP-based access control for the IBeam s
 docker network create --driver overlay --attachable ib_net_01
 ```
 
-Next, create an [inputs](https://github.com/Voyz/ibeam/wiki/Inputs-And-Outputs) directory with a `conf.yaml` file.  The format of this file is discussed on the the [Gateway Configuration](https://github.com/Voyz/ibeam/wiki/Gateway-Configuration) page.
+Next, create an [inputs][inputs-and-outputs] directory with a `conf.yaml` file.  The format of this file is discussed on the the [Gateway Configuration][gateway-configuration] page.
 Toward the end of the `conf.yaml` there is a block to define IPs to trust and reject, e.g.,
 
 ```yaml
