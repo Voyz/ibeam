@@ -54,10 +54,7 @@ class GatewayClient():
         then the environment values are assumed to be file
         paths to read for the secret value."""
 
-        if self.secrets_source == SECRETS_SOURCE_ENV:
-            _LOGGER.info('Reading secrets from the environment')
-        elif self.secrets_source == SECRETS_SOURCE_FS:
-            _LOGGER.info('Reading secrets from the filesystem')
+        _LOGGER.info('Secrets source: {self.secrets_source}')
 
         self.encoding = os.environ.get(
             'IBEAM_ENCODING', default='UTF-8')
@@ -161,7 +158,7 @@ class GatewayClient():
             # treat environment values as filesystem paths to the secrets
             if not os.path.isfile(value):
                 _LOGGER.error(
-                    F'UNABLE TO READ ENV VALUE FOR {name}: VALUE IS NOT A FILE')
+                    f'Unable to read env value for {name}: value is not a file')
                 return None
 
             try:
@@ -177,11 +174,11 @@ class GatewayClient():
                     return secret
             except IOError:
                 _LOGGER.error(
-                    F'UNABLE TO READ ENV VALUE FOR {name} AS A FILE.')
+                    f'Unable to read env value for {name} as a file.')
                 return None
         else:
             _LOGGER.error(
-                F'UNKNOWN IBEAM_SECRETS_SOURCE: {self.secrets_source}')
+                f'Unknown Secrets Source: {self.secrets_source}')
             return None
 
     def try_starting(self) -> Optional[int]:
