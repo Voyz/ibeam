@@ -117,7 +117,7 @@ On your host system create two secure (meaning not world-readable) files contain
 1. ib.account.txt
 2. ib.password.txt
 
-Next, inject these secrets into the Docker Swarm by using `docker secret create`:
+Next, inject these secrets into the Docker Swarm by using the `docker secret create` command.
 
 ```posh
 docker secret create IBEAM_ACCOUNT_v1 ib.account.txt
@@ -125,13 +125,7 @@ docker secret create IBEAM_PASSWORD_v1 ib.password.txt
 ```
 Once you've initialized the secrets delete the original files from your host system.
 
-In Docker Swarm mode, in order to enable IP-based access control for the IBeam service, we need to create an overlay network in Docker:
-
-```posh
-docker network create --driver overlay --attachable ib_net_01
-```
-
-Next, create an [inputs][inputs-and-outputs] directory with a `conf.yaml` file.  The format of this file is discussed on the the [Gateway Configuration][gateway-configuration] page.
+Next, create an [Inputs Directory][inputs-and-outputs] with a `conf.yaml` file.  The format of this file is discussed on the the [Gateway Configuration][gateway-configuration] page.
 Toward the end of the `conf.yaml` there is a block to define IPs to trust and reject, e.g.,
 
 ```yaml
@@ -139,14 +133,107 @@ Toward the end of the `conf.yaml` there is a block to define IPs to trust and re
 ips:
   allow:
     - 127.0.0.1
-    - 172.18.0.1
   deny:
     - 0-255.*.*.*
 ```
+The example above grants access from the local loopback interface, `127.0.0.1`, and denies all other addresses (`0-255.*.*.*`).
 
-The example above grants access from the container's local interface and from the gateway IP address used to route traffic from the local host to the container.
+To deploy IBeam as a service named 'ibeam' we will use the `docker service create` command.
+
+```posh
+docker service create \
+    --name ibeam \
+    --network host \
+    --publish published=5000,target=5000,mode=host \
+    --secret source=IBEAM_ACCOUNT_v1,uid=1000,gid=1000,mode=0400 \
+    --secret source=IBEAM_PASSWORD_v1,uid=1000,gid=1000,mode=0400 \
+    --env IBEAM_SECRETS_SOURCE=fs \
+    --env IBEAM_ACCOUNT=/run/secrets/IBEAM_ACCOUNT_v1 \
+    --env IBEAM_PASSWORD=/run/secrets/IBEAM_PASSWORD_v1 \
+    --mount type=bind,source=/path/to/inputs/directory,target=/srv/inputs,ro=true \
+    voyz/ibeam:latest
+```
+
+Note that you need change the `/path/to/inputs/directory` in the `--mount` parameter of this example to the actual filesystem path you created for your [Inputs Directory][inputs-and-outputs].
+
+Docker will prepare the `ibeam` container by writing the secrets into the container's tmpfs filesystem `/run/secrets/`.
+When IBeam starts it will read the file paths indicated via the environment variables `IBEAM_ACCOUNT` and `IBEAM_PASSWORD`.
+
+You can verify that the container is running by using `docker ps` and `docker logs`.
+
+If you examine the output of the `docker ps` command we run below, you will see at the far right it lists the name of the running container as `ibeam.1.q4jovvg0bsu7svzak17lrm22e`.
+We'll have to specify that full name when we call `docker logs` in the subsequent command.
+
+```posh
+$ docker ps
+CONTAINER ID   IMAGE         COMMAND               CREATED          STATUS          PORTS                                       NAMES
+bde337ce7216   test:latest   "/srv/ibeam/run.sh"   54 seconds ago   Up 52 seconds   0.0.0.0:5000->5000/tcp, :::5000->5000/tcp   ibeam.1.q4jovvg0bsu7svzak17lrm22e
+
+$ docker logs ibeam.1.q4jovvg0bsu7svzak17lrm22e
+2022-06-10 14:09:01,642|I| ############ Starting IBeam version 0.4.0 ############
+2022-06-10 14:09:01,643|I| Custom conf.yaml found and will be used by the Gateway
+2022-06-10 14:09:01,646|I| Secrets source: fs
+2022-06-10 14:09:01,647|I| Gateway not found, starting new one...
+...
+2022-06-10 14:09:02,654|I| Gateway started with pid: 12
+2022-06-10 14:09:03,826|I| No active sessions, logging in...
+2022-06-10 14:09:15,845|I| Authentication process succeeded
+2022-06-10 14:09:19,146|I| Gateway running and authenticated.
+2022-06-10 14:09:19,167|I| Starting maintenance with interval 60 seconds
+```
+
+Once IBeam has started, verify the Gateway is running by sending a request with curl.
+
+```posh
+curl -X GET "https://localhost:5000/v1/api/one/user" -k
+```
+
+##### Docker Stack
+
+You can also manage deployment of the IBeam service into Docker Swarm by using a [docker stack](https://docs.docker.com/engine/swarm/stack-deploy/) managed through a `docker-compose.yml` file.
+Below is an example of a `docker-compose.yml` file specifying the same directives that we used when deploying the Docker service manually.
+
+```yaml
+version: "3.7"
+
+secrets:
+  IBEAM_ACCOUNT_v1:
+    external: true
+  IBEAM_PASSWORD_v1:
+    external: true
+
+services:
+  ibeam:
+    image: "voyz/ibeam:latest"
+    environment:
+      IBEAM_SECRETS_SOURCE: "fs"
+      IBEAM_ACCOUNT: "/run/secrets/IBEAM_ACCOUNT_v1"
+      IBEAM_PASSWORD: "/run/secrets/IBEAM_PASSWORD_v1"
+    ports:
+      - published: 5000
+        target: 5000
+        mode: host
+    secrets:
+      - source: "IBEAM_ACCOUNT_v1"
+        uid: "1000"
+        gid: "1000"
+        mode: 0400
+      - source: "IBEAM_PASSWORD_v1"
+        uid: "1000"
+        gid: "1000"
+        mode: 0400
+    volumes:
+      - type: "bind"
+        source: "inputs"
+        target: "/srv/inputs"
+        read_only: true
+```
 
 When accessed from the local host Docker Swarm will route traffic over a gateway interface, `docker_gwbridge`, that it sets up.
+
+We need to modify the `conf.yaml` in our [Inputs Directory][inputs-and-outputs] to account for this address.
+
+To determine the gateway interface address, use the `docker network inspect` command to look at the `docker_gwbridge` network.
 
 ```posh
 docker network inspect docker_gwbridge
@@ -164,120 +251,52 @@ docker network inspect docker_gwbridge
 ...
 ```
 
-The loopback address, 127.0.0.1, and the gateway address listed in the example above, `172.18.0.1`, are granted access in our example `conf.yaml`.
-All other IPs, `0-255.*.*.*` in our example `conf.yaml`, are denied access.
-
-To deploy IBeam as a service named 'ibeam' from the command line:
-
-```posh
-docker service create \
-    --name ibeam \
-    --network ib_net_01 \
-    --publish published=5000,target=5000,mode=host \
-    --secret source=IBEAM_ACCOUNT_v1,uid=1000,gid=1000,mode=0400 \
-    --secret source=IBEAM_PASSWORD_v1,uid=1000,gid=1000,mode=0400 \
-    --env IBEAM_SECRETS_SOURCE=fs \
-    --env IBEAM_ACCOUNT=/run/secrets/IBEAM_ACCOUNT_v1 \
-    --env IBEAM_PASSWORD=/run/secrets/IBEAM_PASSWORD_v1 \
-    --mount type=bind,source="${PWD}/inputs",target=/srv/inputs,ro=true \
-    voyz/ibeam:latest
-```
-
-In the example above the `${PWD}` line in the `--mount` command is bash shell shorthand for the current working directory.  You can replace `${PWD}` with the full directory path to your `inputs` directory.
-
-Docker will prepare the `ibeam` container by writing the secrets into the tmpfs filesystem `/run/secrets/`.
-When IBeam starts it will read the file paths indicated via the environment.
-
-```posh
-$ docker ps
-CONTAINER ID   IMAGE         COMMAND                  CREATED         STATUS         PORTS                                       NAMES
-7e68d02850f2   ibcp:latest   "/bin/sh -c 'python …"   3 minutes ago   Up 3 minutes   0.0.0.0:5000->5000/tcp, :::5000->5000/tcp   ibeam.1.v18vqjopbamj6dov8l4owjxot
-
-$ docker logs ibeam.1.v18vqjopbamj6dov8l4owjxot
-2022-06-06 16:40:09,329|I| ############ Starting IBeam version 0.4.0 ############
-2022-06-06 16:40:09,332|I| Gateway not found, starting new one...
-...
-
-2022-06-06 16:40:10,337|I| Gateway started with pid: 11
-2022-06-06 16:40:11,205|I| No active sessions, logging in...
-2022-06-06 16:40:21,779|I| Authentication process succeeded
-2022-06-06 16:40:24,903|I| Gateway running and authenticated.
-2022-06-06 16:40:24,909|I| Starting maintenance with interval 60 seconds
-```
-
-Once started, verify the Gateway is running by calling:
-
-```posh
-curl -X GET "https://localhost:5000/v1/api/one/user" -k
-```
-
-You can also manage deployment by using a [docker stack](https://docs.docker.com/engine/swarm/stack-deploy/) managed through a `docker-compose.yml` file:
+Here we can see the address is `172.18.0.1`.  Edit your `conf.yaml` file and add the address to the allow list.
 
 ```yaml
-version: "3.7"
-
-secrets:
-  IBEAM_ACCOUNT_v1:
-    external: true
-  IBEAM_PASSWORD_v1:
-    external: true
-
-networks:
-  ib_net_01:
-    external: true
-
-services:
-  ibeam:
-    image: "voyz/ibeam:latest"
-    environment:
-      IBEAM_SECRETS_SOURCE: "fs"
-      IBEAM_ACCOUNT: "/run/secrets/IBEAM_ACCOUNT_v1"
-      IBEAM_PASSWORD: "/run/secrets/IBEAM_PASSWORD_v1"
-    networks:
-      - "ib_net_01"
-    ports:
-      - published: 5000
-        target: 5000
-        mode: host
-    secrets:
-      - source: "IBEAM_ACCOUNT_v1"
-        uid: "1000"
-        gid: "1000"
-        mode: 0444400
-      - source: "IBEAM_PASSWORD_v1"
-        uid: "1000"
-        gid: "1000"
-        mode: 0400
-    volumes:
-      - type: "bind"
-        source: "inputs"
-        target: "/srv/inputs"
-        read_only: true
+...
+ips:
+  allow:
+    - 127.0.0.1
+    - 172.18.0.1
+  deny:
+    - 0-255.*.*.*
 ```
 
-To deploy this as part of a Docker stack named `ib`:
+To deploy our Docker stack we will use the `docker stack deploy` command.
+Here we're going to name the stack `ib`.
 
 ```posh
 docker stack deploy -c docker-compose.yml ib
 ```
 
-Docker will create the IBeam container in a new service named `ib_ibeam`:
+Docker will create the IBeam container as a new service named `ib_ibeam`.
+You can verify that the container is running by using `docker ps` and `docker logs`.
+
+If you examine the output of the `docker ps` command we run below, you will see at the far right it lists the name of the running container as `ib_ibeam.1.rknycfzbs5i76euv9xfx6mbtw`.
+We'll have to specify that full name when we call `docker logs` in the subsequent command.
 
 ```posh
-
 $ docker ps
 CONTAINER ID   IMAGE         COMMAND                  CREATED              STATUS              PORTS                                       NAMES
 c5ed2dfe4757   ibcp:latest   "/bin/sh -c 'python …"   About a minute ago   Up About a minute   0.0.0.0:5000->5000/tcp, :::5000->5000/tcp   ib_ibeam.1.rknycfzbs5i76euv9xfx6mbtw
 
 $ docker logs -f ib_ibeam.1.rknycfzbs5i76euv9xfx6mbtw
-2022-06-06 17:24:26,906|I| ############ Starting IBeam version 0.4.0 ############
-2022-06-06 17:24:26,909|I| Gateway not found, starting new one...
+2022-06-10 14:24:26,906|I| ############ Starting IBeam version 0.4.0 ############
+2022-06-10 14:24:26,646|I| Secrets source: fs
+2022-06-10 14:24:26,909|I| Gateway not found, starting new one...
 ...
-2022-06-06 17:24:27,915|I| Gateway started with pid: 11
-2022-06-06 17:24:28,817|I| No active sessions, logging in...
-2022-06-06 17:24:39,602|I| Authentication process succeeded
-2022-06-06 17:24:42,726|I| Gateway running and authenticated.
-2022-06-06 17:24:42,733|I| Starting maintenance with interval 60 seconds
+2022-06-10 14:24:27,915|I| Gateway started with pid: 11
+2022-06-10 14:24:28,817|I| No active sessions, logging in...
+2022-06-10 14:24:39,602|I| Authentication process succeeded
+2022-06-10 14:24:42,726|I| Gateway running and authenticated.
+2022-06-10 14:24:42,733|I| Starting maintenance with interval 60 seconds
+```
+
+Once IBeam has started, verify the Gateway is running by sending a request with curl.
+
+```posh
+curl -X GET "https://localhost:5000/v1/api/one/user" -k
 ```
 
 #### Standalone:
