@@ -54,7 +54,7 @@ class GatewayClient():
         then the environment values are assumed to be file
         paths to read for the secret value."""
 
-        _LOGGER.info('Secrets source: {self.secrets_source}')
+        _LOGGER.info(f'Secrets source: {self.secrets_source}')
 
         self.encoding = os.environ.get(
             'IBEAM_ENCODING', default='UTF-8')
