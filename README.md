@@ -154,7 +154,7 @@ docker service create \
     voyz/ibeam:latest
 ```
 
-Note that you need change the `/path/to/inputs/directory` in the `--mount` parameter of this example to the actual filesystem path you created for your [Inputs Directory][inputs-and-outputs].
+Note that you need to change the `/path/to/inputs/directory` in the `--mount` parameter of this example to the actual filesystem path you created for your [Inputs Directory][inputs-and-outputs].
 
 Docker will prepare the `ibeam` container by writing the secrets into the container's tmpfs filesystem `/run/secrets/`.
 When IBeam starts it will read the file paths indicated via the environment variables `IBEAM_ACCOUNT` and `IBEAM_PASSWORD`.
