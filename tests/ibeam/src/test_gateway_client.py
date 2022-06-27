@@ -1,17 +1,28 @@
 """
 Tests for ibeam.src.gateway_client
 """
+import ibeam.src.var
 import os
 import pytest
 import random
+import socket
 import string
 import types
+
+from contextlib import closing
 
 from unittest import mock
 
 from ibeam.src.gateway_client import SECRETS_SOURCE_ENV
 from ibeam.src.gateway_client import SECRETS_SOURCE_FS
 from ibeam.src.gateway_client import GatewayClient
+
+
+def next_free_port(host='localhost'):
+    with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
+        sock.bind((host, 0))
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        return sock.getsockname()[1]
 
 
 @mock.patch('ibeam.src.gateway_client.input')
@@ -30,13 +41,17 @@ def test_init_prompt(mock_input, mock_getpass):
 
     # test init w/o any setup, which should write prompts to
     # stdout and should read stdin for the values
+    ibeam.src.var.IBEAM_HEALTH_SERVER_PORT = next_free_port()
+
     client = GatewayClient(
         http_handler=None, inputs_handler=None, two_fa_handler=None)
 
-    assert client.account == 'fake Account: response'
-    assert client.password == 'fake Password: response'
-    assert client.key == 'fake Key: response'
-
+    try:
+        assert client.account == 'fake Account: response'
+        assert client.password == 'fake Password: response'
+        assert client.key == 'fake Key: response'
+    finally:
+        client.kill()
 
 def test_secret_value(tmpdir):
     """
@@ -136,85 +151,91 @@ def test_secret_value(tmpdir):
         with test_setup(test):
 
             # test init which will call secret_value
+            ibeam.src.var.IBEAM_HEALTH_SERVER_PORT = next_free_port()
+
             client = GatewayClient(
                 http_handler=None, inputs_handler=None, two_fa_handler=None,
                 account=account, password=password, key=key)
 
-            # test the env or fs read values
-            assert client.account == test.IBEAM_ACCOUNT
-            assert client.password == test.IBEAM_PASSWORD
-            assert client.key == test.IBEAM_KEY
+            try:
+                # test the env or fs read values
+                assert client.account == test.IBEAM_ACCOUNT
+                assert client.password == test.IBEAM_PASSWORD
+                assert client.key == test.IBEAM_KEY
 
-        # test secret_value w/ left appended text
-        if test.source is not None:
-            with test_setup(test, lappend='\t'):
+                # test secret_value w/ left appended text
+                if test.source is not None:
+                    with test_setup(test, lappend='\t'):
 
-                # read the test values from the fs
-                if test.source == SECRETS_SOURCE_FS:
-                    fs_val = {}
-                    for field in ibeam_fields:
-                        with open(os.environ[field],
-                                  mode='rt', encoding='UTF-8') as fh:
-                            fs_val[field] = fh.read()
+                        # read the test values from the fs
+                        if test.source == SECRETS_SOURCE_FS:
+                            fs_val = {}
+                            for field in ibeam_fields:
+                                with open(os.environ[field],
+                                          mode='rt', encoding='UTF-8') as fh:
+                                    fs_val[field] = fh.read()
 
-                # test secret_value
-                for field in ibeam_fields:
-                    val = client.secret_value(
-                        name=field, lstrip='\t')
+                        # test secret_value
+                        for field in ibeam_fields:
+                            val = client.secret_value(
+                                name=field, lstrip='\t')
 
-                    assert val == getattr(test, field)
-                    assert not val.startswith('\t')
+                            assert val == getattr(test, field)
+                            assert not val.startswith('\t')
 
-                    if test.source == SECRETS_SOURCE_ENV:
-                        assert os.environ[field].startswith('\t')
-                    elif test.source == SECRETS_SOURCE_FS:
-                        assert fs_val[field].startswith('\t')
+                            if test.source == SECRETS_SOURCE_ENV:
+                                assert os.environ[field].startswith('\t')
+                            elif test.source == SECRETS_SOURCE_FS:
+                                assert fs_val[field].startswith('\t')
 
-        # test secret_value w/ right appended text
-        if test.source is not None:
-            with test_setup(test, rappend='\t'):
+                # test secret_value w/ right appended text
+                if test.source is not None:
+                    with test_setup(test, rappend='\t'):
 
-                # read the test values from the fs
-                if test.source == SECRETS_SOURCE_FS:
-                    fs_val = {}
-                    for field in ibeam_fields:
-                        with open(os.environ[field],
-                                  mode='rt', encoding='UTF-8') as fh:
-                            fs_val[field] = fh.read()
+                        # read the test values from the fs
+                        if test.source == SECRETS_SOURCE_FS:
+                            fs_val = {}
+                            for field in ibeam_fields:
+                                with open(os.environ[field],
+                                          mode='rt', encoding='UTF-8') as fh:
+                                    fs_val[field] = fh.read()
 
-                # test secret_value
-                for field in ibeam_fields:
-                    val = client.secret_value(
-                        name=field, rstrip='\t')
+                        # test secret_value
+                        for field in ibeam_fields:
+                            val = client.secret_value(
+                                name=field, rstrip='\t')
 
-                    assert val == getattr(test, field)
-                    assert not val.endswith('\t')
+                            assert val == getattr(test, field)
+                            assert not val.endswith('\t')
 
-                    if test.source == SECRETS_SOURCE_ENV:
-                        assert os.environ[field].endswith('\t')
-                    elif test.source == SECRETS_SOURCE_FS:
-                        assert fs_val[field].endswith('\t')
+                            if test.source == SECRETS_SOURCE_ENV:
+                                assert os.environ[field].endswith('\t')
+                            elif test.source == SECRETS_SOURCE_FS:
+                                assert fs_val[field].endswith('\t')
 
-        # test secret_value w/o any text that needs
-        # stripping
-        if test.source is not None:
-            with test_setup(test):
+                # test secret_value w/o any text that needs
+                # stripping
+                if test.source is not None:
+                    with test_setup(test):
 
-                # read the test values from the fs
-                if test.source == SECRETS_SOURCE_FS:
-                    fs_val = {}
-                    for field in ibeam_fields:
-                        with open(os.environ[field],
-                                  mode='rt', encoding='UTF-8') as fh:
-                            fs_val[field] = fh.read()
+                        # read the test values from the fs
+                        if test.source == SECRETS_SOURCE_FS:
+                            fs_val = {}
+                            for field in ibeam_fields:
+                                with open(os.environ[field],
+                                          mode='rt', encoding='UTF-8') as fh:
+                                    fs_val[field] = fh.read()
 
-                # test secret_value
-                for field in ibeam_fields:
-                    val = client.secret_value(name=field)
+                        # test secret_value
+                        for field in ibeam_fields:
+                            val = client.secret_value(name=field)
 
-                    assert val == getattr(test, field)
+                            assert val == getattr(test, field)
 
-                    if test.source == SECRETS_SOURCE_ENV:
-                        assert os.environ[field] == val
-                    elif test.source == SECRETS_SOURCE_FS:
-                        assert fs_val[field] == val
+                            if test.source == SECRETS_SOURCE_ENV:
+                                assert os.environ[field] == val
+                            elif test.source == SECRETS_SOURCE_FS:
+                                assert fs_val[field] == val
+
+            finally:
+                client.kill()
