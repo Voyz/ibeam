@@ -82,6 +82,7 @@ services:
       - env.list
     ports:
       - 5000:5000
+      - 5001:80
     network_mode: bridge # Required due to clientportal.gw IP whitelist
     restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceeded
 ```

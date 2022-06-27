@@ -6,3 +6,4 @@ ibeam.egg-info
 /copy_cache/clientportal.gw/root/webapps/demo/gateway.demo.js
 /dev
 __pycache__
+.idea

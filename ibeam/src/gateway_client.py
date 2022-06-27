@@ -6,12 +6,12 @@ from getpass import getpass
 
 from pathlib import Path
 from typing import Optional
-
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from ibeam.src import var
+from ibeam.src.health_server import new_health_server
 from ibeam.src.authenticate import authenticate_gateway
 from ibeam.src.http_handler import HttpHandler, Status
 from ibeam.src.inputs_handler import InputsHandler
@@ -42,6 +42,8 @@ class GatewayClient():
                  gateway_dir: str = None,
                  driver_path: str = None,
                  base_url: str = None):
+
+        self._should_shutdown = False
 
         self.secrets_source = os.environ.get(
             'IBEAM_SECRETS_SOURCE', default=SECRETS_SOURCE_ENV)
@@ -87,6 +89,7 @@ class GatewayClient():
         self.two_fa_handler = two_fa_handler
 
         self._concurrent_maintenance_attempts = 1
+        self._health_server = new_health_server(var.IBEAM_HEALTH_SERVER_PORT, self.get_status, self.get_shutdown_status)
 
     def secret_value(self, name: str,
                      lstrip=None, rstrip='\r\n') -> str:
@@ -282,6 +285,9 @@ class GatewayClient():
 
         return True, False
 
+    def get_shutdown_status(self) -> bool:
+        return self._should_shutdown
+
     def get_status(self, max_attempts=1) -> Status:
         return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True, max_attempts=max_attempts)
 
@@ -324,7 +330,7 @@ class GatewayClient():
         self.try_starting()
 
         success, shutdown = self.try_authenticating(request_retries=request_retries)
-
+        self._should_shutdown = shutdown
         return success, shutdown
 
     def build_scheduler(self):
@@ -357,6 +363,8 @@ class GatewayClient():
             _LOGGER.warning('Shutting IBeam down due to critical error.')
             self._scheduler.remove_all_jobs()
             self._scheduler.shutdown(False)
+            if self._health_server:
+                self._health_server.shutdown()
         elif success:
             _LOGGER.info('Gateway running and authenticated')
 
@@ -371,14 +379,16 @@ class GatewayClient():
             processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
             if processes:
                 return False
-
+        if self._health_server:
+            self._health_server.shutdown()
         return True
 
     def __getstate__(self):
         state = self.__dict__.copy()
 
-        # APS schedulers can't be pickled
+        # APS schedulers and health_server can't be pickled
         del state['_scheduler']
+        del state['_health_server']
         return state
 
     def __setstate__(self, state):
