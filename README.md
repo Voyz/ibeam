@@ -82,7 +82,7 @@ services:
       - env.list
     ports:
       - 5000:5000
-      - 5001:80
+      - 5001:5001
     network_mode: bridge # Required due to clientportal.gw IP whitelist
     restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceeded
 ```
@@ -146,6 +146,7 @@ docker service create \
     --name ibeam \
     --network host \
     --publish published=5000,target=5000,mode=host \
+    --publish published=5001,target=5001,mode=host \
     --secret source=IBEAM_ACCOUNT_v1,uid=1000,gid=1000,mode=0400 \
     --secret source=IBEAM_PASSWORD_v1,uid=1000,gid=1000,mode=0400 \
     --env IBEAM_SECRETS_SOURCE=fs \
@@ -213,6 +214,9 @@ services:
     ports:
       - published: 5000
         target: 5000
+        mode: host
+      - published: 5001
+        target: 5001
         mode: host
     secrets:
       - source: "IBEAM_ACCOUNT_v1"
