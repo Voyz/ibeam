@@ -47,7 +47,7 @@ RESTART_FAILED_SESSIONS = bool(os.environ.get('IBEAM_RESTART_FAILED_SESSIONS', T
 RESTART_WAIT = int(os.environ.get('IBEAM_RESTART_WAIT', 15))
 """How many seconds to wait for a restart to complete."""
 
-IBEAM_HEALTH_SERVER_PORT = int(os.environ.get("IBEAM_HEALTH_SERVER_PORT", 80))
+IBEAM_HEALTH_SERVER_PORT = int(os.environ.get("IBEAM_HEALTH_SERVER_PORT", 5001))
 """Port to start health server on."""
 
 ########### GATEWAY ROUTES ###########
