@@ -33,25 +33,34 @@ def test_init_prompt(mock_input, mock_getpass):
     secrets.
     """
 
-    # call fake_input when input and getpass are called
-    def fake_input(s):
-        return 'fake ' + s + 'response'
-    mock_input.side_effect = fake_input
-    mock_getpass.side_effect = fake_input
-
-    # test init w/o any setup, which should write prompts to
-    # stdout and should read stdin for the values
-    ibeam.src.var.IBEAM_HEALTH_SERVER_PORT = next_free_port()
-
-    client = GatewayClient(
-        http_handler=None, inputs_handler=None, two_fa_handler=None)
+    # record os.environ for later restoration
+    restore_env = dict(os.environ)
 
     try:
-        assert client.account == 'fake Account: response'
-        assert client.password == 'fake Password: response'
-        assert client.key == 'fake Key: response'
+        # clear os.environ for testing, restore at the end
+        os.environ.clear()
+
+        # call fake_input when input and getpass are called
+        def fake_input(s):
+            return 'fake ' + s + 'response'
+        mock_input.side_effect = fake_input
+        mock_getpass.side_effect = fake_input
+
+        # test init w/o any setup, which should write prompts to
+        # stdout and should read stdin for the values
+        ibeam.src.var.IBEAM_HEALTH_SERVER_PORT = next_free_port()
+
+        client = GatewayClient(
+            http_handler=None, inputs_handler=None, two_fa_handler=None)
+
+        try:
+            assert client.account == 'fake Account: response'
+            assert client.password == 'fake Password: response'
+            assert client.key == 'fake Key: response'
+        finally:
+            client.kill()
     finally:
-        client.kill()
+        os.environ.update(restore_env)
 
 def test_secret_value(tmpdir):
     """
