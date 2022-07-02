@@ -18,7 +18,7 @@ from ibeam.src.gateway_client import SECRETS_SOURCE_FS
 from ibeam.src.gateway_client import GatewayClient
 
 
-def next_free_port(host='localhost'):
+def next_free_port(host='127.0.0.1'):
     with closing(socket.socket(socket.AF_INET, socket.SOCK_STREAM)) as sock:
         sock.bind((host, 0))
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
