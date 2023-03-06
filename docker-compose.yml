@@ -7,7 +7,7 @@ services:
     env_file:
       - env.list
     ports:
-      - 5000:5000
-      - 5001:5001
+      - 127.0.0.1:5000:5000
+      - 127.0.0.1:5001:5001
     network_mode: bridge # Required due to clientportal.gw IP restrictions
     restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceeded
