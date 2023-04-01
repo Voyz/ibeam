@@ -78,17 +78,17 @@ ROUTE_LOGOUT = os.environ.get('IBEAM_ROUTE_LOGOUT', '/v1/api/logout')
 
 ########### AUTHENTICATION ###########
 
-USER_NAME_EL_ID = os.environ.get('IBEAM_USER_NAME_EL_ID', 'user_name')
-"""HTML element id containing the username input field."""
+USER_NAME_EL = os.environ.get('IBEAM_USER_NAME_EL', 'username')
+"""HTML element name attribute containing the username input field."""
 
-PASSWORD_EL_ID = os.environ.get('IBEAM_PASSWORD_EL_ID', 'password')
-"""HTML element id containing the password input field."""
+PASSWORD_EL = os.environ.get('IBEAM_PASSWORD_EL', 'password')
+"""HTML element name attribute containing the password input field."""
 
-SUBMIT_EL_ID = os.environ.get('IBEAM_SUBMIT_EL_ID', 'submitForm')
-"""HTML element id containing the submit button."""
+SUBMIT_EL = os.environ.get('IBEAM_SUBMIT_EL', 'button.btn.btn-lg.btn-primary')
+"""HTML element name attribute containing the submit button."""
 
-ERROR_EL_ID = os.environ.get('IBEAM_ERROR_EL_ID', 'ERRORMSG')
-"""HTML element id containing the submit button."""
+ERROR_EL = os.environ.get('IBEAM_ERROR_EL', 'xyz-errormessage')
+"""HTML element class name attribute containing the submit button."""
 
 SUCCESS_EL_TEXT = os.environ.get('IBEAM_SUCCESS_EL_TEXT', 'Client login succeeds')
 """HTML element text indicating successful authentication."""

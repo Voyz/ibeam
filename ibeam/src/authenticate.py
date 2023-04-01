@@ -8,7 +8,7 @@ import urllib.parse
 from datetime import datetime
 from pathlib import Path
 import tempfile
-from typing import Union
+from typing import Union, Optional
 
 from cryptography.fernet import Fernet
 from pyvirtualdisplay import Display
@@ -110,6 +110,10 @@ def save_screenshot(driver, postfix=''):
     screenshot_name = f'ibeam__{ibeam.__version__}__{now}{postfix}.png'
 
     try:
+        required_width = driver.execute_script('return document.body.parentNode.scrollWidth')
+        required_height = driver.execute_script('return document.body.parentNode.scrollHeight')
+        driver.set_window_size(required_width, required_height)
+
         outputs_path.mkdir(exist_ok=True)
         screenshot_filepath = os.path.join(var.OUTPUTS_DIR, screenshot_name)
 
@@ -123,6 +127,19 @@ def save_screenshot(driver, postfix=''):
         driver.get_screenshot_as_file(screenshot_filepath)
     except Exception as e:
         _LOGGER.exception(f"Exception while saving screenshot: {str(e)} for screenshot: {screenshot_name}")
+
+
+def identify_trigger(trigger) -> Optional[str]:
+    if trigger.get_attribute('id') == var.TWO_FA_EL_ID:
+        return var.TWO_FA_EL_ID
+
+    if var.ERROR_EL in trigger.get_attribute('class'):
+        return var.ERROR_EL
+
+    if trigger.text == var.SUCCESS_EL_TEXT:
+        return var.SUCCESS_EL_TEXT
+
+    raise RuntimeError(f'Trigger found but cannot be identified: {trigger}')
 
 
 def authenticate_gateway(driver_path,
@@ -157,9 +174,9 @@ def authenticate_gateway(driver_path,
             return False, False
 
         driver.get(base_url + var.ROUTE_AUTH)
-        
+
         # wait for the page to load
-        user_name_present = EC.presence_of_element_located((By.ID, var.USER_NAME_EL_ID))
+        user_name_present = EC.presence_of_element_located((By.NAME, var.USER_NAME_EL))
         WebDriverWait(driver, 15).until(user_name_present)
         _LOGGER.debug('Gateway auth webpage loaded')
 
@@ -172,8 +189,8 @@ def authenticate_gateway(driver_path,
             # time.sleep(300)
 
             # input credentials
-            user_name_el = driver.find_element_by_id(var.USER_NAME_EL_ID)
-            password_el = driver.find_element_by_id(var.PASSWORD_EL_ID)
+            user_name_el = driver.find_element_by_name(var.USER_NAME_EL)
+            password_el = driver.find_element_by_name(var.PASSWORD_EL)
             user_name_el.send_keys(account)
 
             if key is None:
@@ -187,23 +204,24 @@ def authenticate_gateway(driver_path,
             time.sleep(5)
             # submit the form
             _LOGGER.debug('Submitting the form')
-            submit_form_el = driver.find_element_by_id(var.SUBMIT_EL_ID)
+            submit_form_el = driver.find_element_by_css_selector(var.SUBMIT_EL)
             submit_form_el.click()
 
             # observe results - either success or 2FA request
             success_present = text_to_be_present_in_element([(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')],
                                                             var.SUCCESS_EL_TEXT)
             two_factor_input_present = EC.visibility_of_element_located((By.ID, var.TWO_FA_EL_ID))
-            error_displayed = EC.visibility_of_element_located((By.ID, var.ERROR_EL_ID))
+            error_displayed = EC.visibility_of_element_located((By.CLASS_NAME, var.ERROR_EL))
             ibkey_promo_skip_clickable = EC.element_to_be_clickable((By.CLASS_NAME, var.IBKEY_PROMO_EL_CLASS))
 
             trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
                 any_of(success_present, two_factor_input_present, error_displayed, ibkey_promo_skip_clickable))
 
-            trigger_id = trigger.get_attribute('id')
+            trigger_identifier = identify_trigger(trigger)
+            _LOGGER.debug(f'trigger: {trigger_identifier}')
 
             # handle 2FA
-            if trigger_id == var.TWO_FA_EL_ID:
+            if trigger_identifier == var.TWO_FA_EL_ID:
                 _LOGGER.info(f'Credentials correct, but Gateway requires two-factor authentication.')
                 if two_fa_handler is None:
                     _LOGGER.critical(
@@ -221,23 +239,24 @@ def authenticate_gateway(driver_path,
                     two_fa_el[0].send_keys(two_fa_code)
 
                     _LOGGER.debug('Submitting the 2FA form')
-                    submit_form_el = driver.find_element_by_id(var.SUBMIT_EL_ID)
+                    submit_form_el = driver.find_element_by_css_selector(var.SUBMIT_EL)
                     WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
-                        EC.element_to_be_clickable((By.ID, var.SUBMIT_EL_ID)))
+                        EC.element_to_be_clickable((By.CLASS_NAME, var.SUBMIT_EL)))
                     submit_form_el.click()
 
                     trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
                         any_of(success_present, ibkey_promo_skip_clickable, error_displayed))
-                    trigger_id = trigger.get_attribute('id')
-            
+                    trigger_identifier = identify_trigger(trigger)
+
             trigger_class = trigger.get_attribute('class')
 
-            if trigger_class == var.IBKEY_PROMO_EL_CLASS:
+            if var.IBKEY_PROMO_EL_CLASS in trigger_class:
                 _LOGGER.debug('Handling IB-Key promo display...')
                 trigger.click()
                 WebDriverWait(driver, 10).until(success_present)
+                trigger_identifier = identify_trigger(trigger)
 
-            if trigger_id == var.ERROR_EL_ID:
+            if trigger_identifier == var.ERROR_EL:
                 _LOGGER.error(f'Error displayed by the login webpage: {trigger.text}')
                 save_screenshot(driver, '__failed_attempt')
 
@@ -253,12 +272,12 @@ def authenticate_gateway(driver_path,
                 time.sleep(1)
                 continue  # trigger retry
 
-            elif trigger_id == var.TWO_FA_EL_ID:
+            elif trigger_identifier == var.TWO_FA_EL_ID:
                 time.sleep(1)
                 continue  # trigger retry
                 pass  # this means no two_fa_code was returned and trigger remained the same - ie. don't authenticate
                 # todo: retry authentication or resend code
-            else:
+            elif trigger_identifier == var.SUCCESS_EL_TEXT:
                 _LOGGER.debug('Webpage displayed "Client login succeeds"')
                 _FAILED_ATTEMPTS = 0
                 success = True
