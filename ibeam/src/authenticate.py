@@ -1,10 +1,8 @@
 import logging
 import os
-import re
 import sys
 import time
 import traceback
-import urllib.parse
 from datetime import datetime
 from pathlib import Path
 import tempfile
@@ -136,6 +134,9 @@ def identify_trigger(trigger) -> Optional[str]:
     if var.ERROR_EL in trigger.get_attribute('class'):
         return var.ERROR_EL
 
+    if var.TWO_FA_NOTIFICATION_EL in trigger.get_attribute('class'):
+        return var.TWO_FA_NOTIFICATION_EL
+
     if trigger.text == var.SUCCESS_EL_TEXT:
         return var.SUCCESS_EL_TEXT
 
@@ -211,14 +212,34 @@ def authenticate_gateway(driver_path,
             success_present = text_to_be_present_in_element([(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')],
                                                             var.SUCCESS_EL_TEXT)
             two_factor_input_present = EC.visibility_of_element_located((By.ID, var.TWO_FA_EL_ID))
-            error_displayed = EC.visibility_of_element_located((By.CLASS_NAME, var.ERROR_EL))
+
+            two_factor_notification = EC.visibility_of_element_located((By.CLASS_NAME, var.TWO_FA_NOTIFICATION_EL))
+
+            error_displayed = EC.visibility_of_element_located((By.CSS_SELECTOR, '.' + var.ERROR_EL.replace(' ', '.')))
             ibkey_promo_skip_clickable = EC.element_to_be_clickable((By.CLASS_NAME, var.IBKEY_PROMO_EL_CLASS))
 
             trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
-                any_of(success_present, two_factor_input_present, error_displayed, ibkey_promo_skip_clickable))
+                any_of(success_present,
+                       two_factor_input_present,
+                       two_factor_notification,
+                       error_displayed,
+                       ibkey_promo_skip_clickable))
 
             trigger_identifier = identify_trigger(trigger)
             _LOGGER.debug(f'trigger: {trigger_identifier}')
+
+            if trigger_identifier == var.TWO_FA_NOTIFICATION_EL:
+                _LOGGER.info(f'Credentials correct, but Gateway requires notification two-factor authentication.')
+
+                if two_fa_handler is not None:
+                    two_fa_success = two_fa_handler.get_two_fa_code(driver)
+                    if not two_fa_success:
+                        driver.refresh()
+                        continue  # attempt a direct retry
+
+                trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                    any_of(success_present, ibkey_promo_skip_clickable, error_displayed))
+                trigger_identifier = identify_trigger(trigger)
 
             # handle 2FA
             if trigger_identifier == var.TWO_FA_EL_ID:
@@ -270,11 +291,12 @@ def authenticate_gateway(driver_path,
                         return False, True
 
                 time.sleep(1)
-                continue  # trigger retry
+                continue  # attempt a direct retry
 
             elif trigger_identifier == var.TWO_FA_EL_ID:
                 time.sleep(1)
-                continue  # trigger retry
+                driver.refresh()
+                continue  # attempt a direct retry
                 pass  # this means no two_fa_code was returned and trigger remained the same - ie. don't authenticate
                 # todo: retry authentication or resend code
             elif trigger_identifier == var.SUCCESS_EL_TEXT:

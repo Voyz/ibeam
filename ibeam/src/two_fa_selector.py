@@ -8,6 +8,7 @@ from ibeam.src import var
 from ibeam.src.inputs_handler import InputsHandler
 from ibeam.src.two_fa_handlers.external_request_handler import ExternalRequestTwoFaHandler
 from ibeam.src.two_fa_handlers.google_msg_handler import GoogleMessagesTwoFaHandler
+from ibeam.src.two_fa_handlers.notification_resend_handler import NotificationResendTwoFaHandler
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 _CUSTOM_TWO_FA_HANDLER = os.environ.get('IBEAM_CUSTOM_TWO_FA_HANDLER', 'custom_two_fa_handler.CustomTwoFaHandler')
@@ -21,6 +22,8 @@ def select(driver_path, inputs_handler: InputsHandler) -> Union[TwoFaHandler, No
         handler = GoogleMessagesTwoFaHandler(driver_path)
     elif handler_name == 'EXTERNAL_REQUEST':
         handler = ExternalRequestTwoFaHandler()
+    elif handler_name == 'NOTIFICATION_RESEND':
+        handler = NotificationResendTwoFaHandler()
     elif handler_name == 'CUSTOM_HANDLER':
         handler = load_custom_two_fa_handler(_CUSTOM_TWO_FA_HANDLER, inputs_handler)()
     else:

@@ -114,7 +114,10 @@ IBKEY_PROMO_EL_CLASS = os.environ.get('IBEAM_IBKEY_PROMO_EL_CLASS', 'ibkey-promo
 ########### TWO-FACTOR AUTHENTICATION ###########
 
 TWO_FA_EL_ID = os.environ.get('IBEAM_TWO_FA_EL_ID', 'twofactbase')
-"""HTML element check for if Gateway will require 2FA authentication."""
+"""HTML element check for if Gateway will require 2FA code authentication."""
+
+TWO_FA_NOTIFICATION_EL = os.environ.get('IBEAM_TWO_FA_NOTIFICATION_EL', 'login-step-notification')
+"""HTML element check for if Gateway will require 2FA notification authentication."""
 
 TWO_FA_INPUT_EL_ID = os.environ.get('IBEAM_TWO_FA_INPUT_EL_ID', 'chlginput')
 """HTML element to input 2FA code into"""
