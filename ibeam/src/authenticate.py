@@ -16,6 +16,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support.ui import Select
 
 import ibeam
 from ibeam.src import var
@@ -131,6 +132,9 @@ def identify_trigger(trigger) -> Optional[str]:
     if trigger.get_attribute('id') == var.TWO_FA_EL_ID:
         return var.TWO_FA_EL_ID
 
+    if trigger.get_attribute('id') == var.TWO_FA_SELECT_EL_ID:
+        return var.TWO_FA_SELECT_EL_ID
+
     if var.ERROR_EL in trigger.get_attribute('class'):
         return var.ERROR_EL
 
@@ -213,6 +217,8 @@ def authenticate_gateway(driver_path,
                                                             var.SUCCESS_EL_TEXT)
             two_factor_input_present = EC.visibility_of_element_located((By.ID, var.TWO_FA_EL_ID))
 
+            two_factor_select_present = EC.visibility_of_element_located((By.ID, var.TWO_FA_SELECT_EL_ID))
+
             two_factor_notification = EC.visibility_of_element_located((By.CLASS_NAME, var.TWO_FA_NOTIFICATION_EL))
 
             error_displayed = EC.visibility_of_element_located((By.CSS_SELECTOR, '.' + var.ERROR_EL.replace(' ', '.')))
@@ -221,12 +227,31 @@ def authenticate_gateway(driver_path,
             trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
                 any_of(success_present,
                        two_factor_input_present,
+                       two_factor_select_present,
                        two_factor_notification,
                        error_displayed,
                        ibkey_promo_skip_clickable))
 
             trigger_identifier = identify_trigger(trigger)
             _LOGGER.debug(f'trigger: {trigger_identifier}')
+
+            if trigger_identifier == var.TWO_FA_SELECT_EL_ID:
+                _LOGGER.info(f'Required to select a 2FA method.')
+                select_el = driver.find_element_by_id(var.TWO_FA_SELECT_EL_ID)
+                select = Select(select_el)
+                select.select_by_visible_text(var.TWO_FA_SELECT_TARGET)
+
+                trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                    any_of(success_present,
+                           two_factor_input_present,
+                           two_factor_notification,
+                           error_displayed,
+                           ibkey_promo_skip_clickable))
+
+                _LOGGER.info(f'2FA method "{var.TWO_FA_SELECT_TARGET}" selected successfully.')
+
+                trigger_identifier = identify_trigger(trigger)
+                _LOGGER.debug(f'trigger: {trigger_identifier}')
 
             if trigger_identifier == var.TWO_FA_NOTIFICATION_EL:
                 _LOGGER.info(f'Credentials correct, but Gateway requires notification two-factor authentication.')
@@ -262,7 +287,7 @@ def authenticate_gateway(driver_path,
                     _LOGGER.debug('Submitting the 2FA form')
                     submit_form_el = driver.find_element_by_css_selector(var.SUBMIT_EL)
                     WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
-                        EC.element_to_be_clickable((By.CLASS_NAME, var.SUBMIT_EL)))
+                        EC.element_to_be_clickable((By.CSS_SELECTOR, var.SUBMIT_EL)))
                     submit_form_el.click()
 
                     trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(

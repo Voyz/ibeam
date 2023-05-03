@@ -128,4 +128,10 @@ TWO_FA_HANDLER = os.environ.get('IBEAM_TWO_FA_HANDLER', None)
 STRICT_TWO_FA_CODE = bool(os.environ.get('IBEAM_STRICT_TWO_FA_CODE', True))
 """Whether to ensure only 2FA code made of 6 digits can be used."""
 
+TWO_FA_SELECT_EL_ID = os.environ.get('IBEAM_TWO_FA_SELECT_EL_ID', 'sf_select')
+"""HTML element check for if Gateway requires to select the 2FA method."""
+
+TWO_FA_SELECT_TARGET = os.environ.get('IBEAM_TWO_FA_SELECT_TARGET', 'IB Key')
+"""Option that is to be chosen in the 2FA select dropdown"""
+
 all_variables = {item: value for item, value in vars().items() if (not item.startswith("__") and item.isupper())}
