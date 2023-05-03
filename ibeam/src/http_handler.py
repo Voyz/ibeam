@@ -82,6 +82,10 @@ class HttpHandler():
                     # we expect this error, no need to log
                     pass
 
+                elif e.code == 500 and 'Internal Server Error' in str(e):
+                    _LOGGER.error(f'IBKR server error: "{e}". One of reasons for this error is IBKR server restart.')
+                    status.session = False  # ensure we reauthenticate
+
                 else:  # todo: possibly other codes could appear when not authenticated, fix when necessary
                     try:
                         raise RuntimeError('Unrecognised HTTPError') from e
