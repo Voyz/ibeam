@@ -28,7 +28,7 @@ _DRIVER_NAMES = {}
 _FAILED_ATTEMPTS = 0
 
 
-def new_chrome_driver(driver_path, name: str = 'default', headless: bool = True):
+def new_chrome_driver(driver_path, name: str = 'default', headless: bool = True, incognito: bool = True):
     """Creates a new chrome driver."""
 
     global _DRIVER_NAMES
@@ -41,6 +41,8 @@ def new_chrome_driver(driver_path, name: str = 'default', headless: bool = True)
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')
     options.add_argument('--no-sandbox')
+    if incognito:
+        options.add_argument("--incognito")  # this allows 2FA method to be selected every time
     options.add_argument('--ignore-ssl-errors=yes')
     options.add_argument('--ignore-certificate-errors')
     options.add_argument(f'--remote-debugging-port={9222 + driver_index}')
