@@ -18,8 +18,11 @@ from selenium.webdriver.support.wait import WebDriverWait
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
-_GOOG_QR_CODE_CLASS = os.environ.get('IBEAM_GOOG_QR_CODE_CLASS', 'qr-code')
+_GOOG_QR_CODE_CLASS = os.environ.get('IBEAM_GOOG_QR_CODE_CLASS', 'bigger-qr-code')
 """HTML element indicating web messages needs authorization."""
+
+_GOOG_QR_CODE_DATA = os.environ.get('IBEAM_GOOG_QR_CODE_DATA', 'qr-code')
+"""HTML data attribute with the qr code."""
 
 _GOOG_AUTH_REMEMBER_CLASS = os.environ.get('IBEAM_GOOG_AUTH_REMEMBER_CLASS', 'local-storage-checkbox')
 """HTML element to remember web messages device pairing."""
@@ -42,7 +45,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
     def get_two_fa_code(self) -> Union[str, None]:
         code_two_fa = None
 
-        driver_2fa = new_chrome_driver(self.driver_path, name='google_msg')
+        driver_2fa = new_chrome_driver(self.driver_path, name='google_msg', incognito=False)
         if driver_2fa is None:
             return None
 
@@ -59,7 +62,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
         if sms_auth_el:
             driver_2fa.find_element_by_class_name(_GOOG_AUTH_REMEMBER_CLASS).click()
 
-            data = urllib.parse.quote(sms_auth_el[0].get_attribute('data-' + _GOOG_QR_CODE_CLASS))
+            data = urllib.parse.quote(sms_auth_el[0].get_attribute('data-' + _GOOG_QR_CODE_DATA))
 
             _LOGGER.info(
                 'Web messages is not authenticated. Open this URL to pair web messages with your android phone:')
