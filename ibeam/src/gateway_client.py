@@ -352,7 +352,7 @@ class GatewayClient():
         except KeyboardInterrupt as e:
             _LOGGER.info('Keyboard interrupt, shutting down.')
             pass
-        self._scheduler.shutdown(True)
+        self._scheduler.shutdown(False)
 
     def _maintenance(self):
         _LOGGER.debug('Maintenance')
