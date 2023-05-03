@@ -49,64 +49,72 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
         if driver_2fa is None:
             return None
 
-        driver_2fa.get('https://messages.google.com/web')
+        try:
+            driver_2fa.get('https://messages.google.com/web')
 
-        sms_auth_present = EC.presence_of_element_located((By.CLASS_NAME, _GOOG_QR_CODE_CLASS))
-        sms_code_present = EC.text_to_be_present_in_element((By.CSS_SELECTOR, _GOOG_MESSAGES_LIST_CLASS),
-                                                            _GOOG_2FA_HEADING)
+            sms_auth_present = EC.presence_of_element_located((By.CLASS_NAME, _GOOG_QR_CODE_CLASS))
+            sms_code_present = EC.text_to_be_present_in_element((By.CSS_SELECTOR, _GOOG_MESSAGES_LIST_CLASS),
+                                                                _GOOG_2FA_HEADING)
 
-        WebDriverWait(driver_2fa, 240).until(any_of(sms_auth_present, sms_code_present))
+            WebDriverWait(driver_2fa, 240).until(any_of(sms_auth_present, sms_code_present))
 
-        sms_auth_el = driver_2fa.find_elements_by_class_name(_GOOG_QR_CODE_CLASS)
+            sms_auth_el = driver_2fa.find_elements_by_class_name(_GOOG_QR_CODE_CLASS)
 
-        if sms_auth_el:
-            driver_2fa.find_element_by_class_name(_GOOG_AUTH_REMEMBER_CLASS).click()
+            if sms_auth_el:
+                driver_2fa.find_element_by_class_name(_GOOG_AUTH_REMEMBER_CLASS).click()
 
-            data = urllib.parse.quote(sms_auth_el[0].get_attribute('data-' + _GOOG_QR_CODE_DATA))
+                data = urllib.parse.quote(sms_auth_el[0].get_attribute('data-' + _GOOG_QR_CODE_DATA))
 
-            _LOGGER.info(
-                'Web messages is not authenticated. Open this URL to pair web messages with your android phone:')
-            _LOGGER.info(
-                f'http://api.qrserver.com/v1/create-qr-code/?color=000000&bgcolor=FFFFFF&qzone=1&margin=0&size=400x400&ecc=L&data={data}')
+                _LOGGER.info(
+                    'Web messages is not authenticated. Open this URL to pair web messages with your android phone:')
+                _LOGGER.info(
+                    f'http://api.qrserver.com/v1/create-qr-code/?color=000000&bgcolor=FFFFFF&qzone=1&margin=0&size=400x400&ecc=L&data={data}')
 
-            WebDriverWait(driver_2fa, 120).until(sms_code_present)
+                WebDriverWait(driver_2fa, 120).until(sms_code_present)
 
-        sms_list_el = driver_2fa.find_elements_by_css_selector(_GOOG_MESSAGES_LIST_CLASS)
+            sms_list_el = driver_2fa.find_elements_by_css_selector(_GOOG_MESSAGES_LIST_CLASS)
 
-        if not sms_list_el:
-            _LOGGER.error('Timeout or authentication error while loading sms messages.')
-            save_screenshot(driver_2fa, postfix='__google_2fa')
-        else:
-            _LOGGER.info(sms_list_el[0].text)
-            code_two_fa = re.search(r'(\d+)', sms_list_el[0].text).group(1)
-            _LOGGER.debug('Waiting for SMS message to be visible')
-            WebDriverWait(driver_2fa, 30).until(EC.visibility_of(sms_list_el[0]))
+            if not sms_list_el:
+                _LOGGER.error('Timeout or authentication error while loading sms messages.')
+                save_screenshot(driver_2fa, postfix='__google_2fa')
+            else:
+                _LOGGER.info(f'First SMS found: "{sms_list_el[0].text}"')
 
-            clicked_ok = False
-            for i in range(_GOOG_MESSAGE_CLICK_RETRIES):
-                try:
-                    sms_list_el[0].click()  # mark message as read
-                    clicked_ok = True
-                    _LOGGER.debug('SMS message marked as read')
-                    break
-                except ElementClickInterceptedException as e:
-                    if isinstance(e, ElementClickInterceptedException) \
-                            and 'Other element would receive the click' in str(e):
-                        _LOGGER.warning(f'Failed marking SMS message as read due to obstructing elements')
-                    else:
-                        _LOGGER.exception(f'Exception while marking SMS message as read: {e}')
+                code_two_fa = re.search(r'(\d+)', sms_list_el[0].text).group(1)
 
-                    save_screenshot(driver_2fa, postfix='__google_2fa')
+                _LOGGER.debug('Waiting for SMS message to be visible')
+                WebDriverWait(driver_2fa, 30).until(EC.visibility_of(sms_list_el[0]))
 
-                    _LOGGER.debug(f'Retrying clicking SMS message {_GOOG_MESSAGE_CLICK_RETRIES - i - 1} more times.')
-                    time.sleep(2)
+                clicked_ok = False
+                for i in range(_GOOG_MESSAGE_CLICK_RETRIES):
+                    try:
+                        sms_list_el[0].click()  # mark message as read
+                        clicked_ok = True
+                        _LOGGER.debug('SMS message marked as read')
+                        break
+                    except ElementClickInterceptedException as e:
+                        if isinstance(e, ElementClickInterceptedException) \
+                                and 'Other element would receive the click' in str(e):
+                            _LOGGER.warning(f'Failed marking SMS message as read due to obstructing elements')
+                        else:
+                            _LOGGER.exception(f'Exception while marking SMS message as read: {e}')
 
-            if not clicked_ok:
-                _LOGGER.warning('Failed all attempts to mark SMS message as read')
+                        save_screenshot(driver_2fa, postfix='__google_2fa')
 
-            time.sleep(2)  # wait for click to mark message as read
+                        _LOGGER.debug(f'Retrying clicking SMS message {_GOOG_MESSAGE_CLICK_RETRIES - i - 1} more times.')
+                        time.sleep(2)
 
-        release_chrome_driver(driver_2fa)
+                if not clicked_ok:
+                    _LOGGER.warning('Failed all attempts to mark SMS message as read')
+
+                time.sleep(2)  # wait for click to mark message as read
+
+        except:
+            save_screenshot(driver_2fa, '__google-msg')
+            raise
+        finally:
+            _LOGGER.debug(f'Cleaning up the resources. Google MSG Driver: {driver_2fa}')
+            release_chrome_driver(driver_2fa)
 
         return code_two_fa
 
