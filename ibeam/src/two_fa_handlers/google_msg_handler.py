@@ -82,7 +82,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
 
                 code_two_fa = re.search(r'(\d+)', sms_list_el[0].text).group(1)
 
-                _LOGGER.debug('Waiting for SMS message to be visible')
+                _LOGGER.info('Waiting for SMS message to be visible')
                 WebDriverWait(driver_2fa, 30).until(EC.visibility_of(sms_list_el[0]))
 
                 clicked_ok = False
@@ -90,7 +90,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
                     try:
                         sms_list_el[0].click()  # mark message as read
                         clicked_ok = True
-                        _LOGGER.debug('SMS message marked as read')
+                        _LOGGER.info('SMS message marked as read')
                         break
                     except ElementClickInterceptedException as e:
                         if isinstance(e, ElementClickInterceptedException) \
@@ -101,7 +101,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
 
                         save_screenshot(driver_2fa, postfix='__google_2fa')
 
-                        _LOGGER.debug(f'Retrying clicking SMS message {_GOOG_MESSAGE_CLICK_RETRIES - i - 1} more times.')
+                        _LOGGER.info(f'Retrying clicking SMS message {_GOOG_MESSAGE_CLICK_RETRIES - i - 1} more times.')
                         time.sleep(2)
 
                 if not clicked_ok:
@@ -113,7 +113,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
             save_screenshot(driver_2fa, '__google-msg')
             raise
         finally:
-            _LOGGER.debug(f'Cleaning up the resources. Google MSG Driver: {driver_2fa}')
+            _LOGGER.info(f'Cleaning up the resources. Google MSG Driver: {driver_2fa}')
             release_chrome_driver(driver_2fa)
 
         return code_two_fa

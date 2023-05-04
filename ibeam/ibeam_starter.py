@@ -62,7 +62,7 @@ if __name__ == '__main__':
                            gateway_dir=gateway_dir,
                            driver_path=driver_path)
 
-    _LOGGER.debug(f'{var.all_variables}')
+    _LOGGER.info(f'Environment variable configuration:\n{var.all_variables}')
 
     if args.start:
         pid = client.try_starting()

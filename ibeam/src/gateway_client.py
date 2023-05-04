@@ -211,11 +211,11 @@ class GatewayClient():
                 if not status.running:
                     seconds_remaining = round(t_end - time.time())
                     if seconds_remaining > 0:
-                        _LOGGER.debug(
+                        _LOGGER.info(
                             f'Cannot ping Gateway. Retrying for another {seconds_remaining} seconds')
                         time.sleep(1)
                 else:
-                    _LOGGER.debug('Gateway connection established')
+                    _LOGGER.info('Gateway connection established')
                     ping_success = True
                     break
 
@@ -355,7 +355,7 @@ class GatewayClient():
         self._scheduler.shutdown(False)
 
     def _maintenance(self):
-        _LOGGER.debug('Maintenance')
+        _LOGGER.info('Maintenance')
 
         success, shutdown = self.start_and_authenticate(request_retries=var.REQUEST_RETRIES)
 

@@ -19,7 +19,7 @@ class InputsHandler():
 
         self.valid_certificates = os.path.isfile(self.cecert_jks_path) and os.path.isfile(self.cecert_pem_path)
         if self.valid_certificates:
-            _LOGGER.debug('Certificates found and will be used for TLS verification')
+            _LOGGER.info('TLS certificates found and will be used for verification')
 
         gateway_root_dir = os.path.join(self.gateway_dir, 'root')
 

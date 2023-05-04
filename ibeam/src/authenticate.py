@@ -134,7 +134,7 @@ def save_screenshot(driver, postfix=''):
             save_screenshot(driver, postfix + '_')
             return
 
-        _LOGGER.debug(
+        _LOGGER.info(
             f'Saving screenshot to {screenshot_filepath}. Make sure to cover your credentials if you share it with others.')
         driver.get_screenshot_as_file(screenshot_filepath)
     except Exception as e:
@@ -232,7 +232,7 @@ def authenticate_gateway(driver_path,
     success = False
     driver = None
     try:
-        _LOGGER.debug(f'Loading auth webpage at {base_url + var.ROUTE_AUTH}')
+        _LOGGER.info(f'Loading auth webpage at {base_url + var.ROUTE_AUTH}')
         if sys.platform == 'linux':
             display = Display(visible=0, size=(800, 600))
             display.start()
@@ -250,13 +250,13 @@ def authenticate_gateway(driver_path,
         # wait for the page to load
         user_name_present = EC.presence_of_element_located((By.NAME, elements['USER_NAME_EL']))
         WebDriverWait(driver, 15).until(user_name_present)
-        _LOGGER.debug('Gateway auth webpage loaded')
+        _LOGGER.info('Gateway auth webpage loaded')
 
         immediate_attempts = 0
 
         while immediate_attempts < max(var.MAX_IMMEDIATE_ATTEMPTS, 1):
             immediate_attempts += 1
-            _LOGGER.debug(f'Login attempt number {immediate_attempts}')
+            _LOGGER.info(f'Login attempt number {immediate_attempts}')
 
             # time.sleep(300)
 
@@ -275,7 +275,7 @@ def authenticate_gateway(driver_path,
             # small buffer to prevent race-condition on client side
             time.sleep(5)
             # submit the form
-            _LOGGER.debug('Submitting the form')
+            _LOGGER.info('Submitting the form')
             submit_form_el = driver.find_element_by_css_selector(elements['SUBMIT_EL'])
             submit_form_el.click()
 
@@ -351,7 +351,7 @@ def authenticate_gateway(driver_path,
                         EC.element_to_be_clickable((By.ID, elements['TWO_FA_INPUT_EL_ID'])))
                     two_fa_el[0].send_keys(two_fa_code)
 
-                    _LOGGER.debug('Submitting the 2FA form')
+                    _LOGGER.info('Submitting the 2FA form')
                     submit_form_el = driver.find_element_by_css_selector(elements['SUBMIT_EL'])
                     WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
                         EC.element_to_be_clickable((By.CSS_SELECTOR, elements['SUBMIT_EL'])))
@@ -364,7 +364,7 @@ def authenticate_gateway(driver_path,
             trigger_class = trigger.get_attribute('class')
 
             if elements['IBKEY_PROMO_EL_CLASS'] in trigger_class:
-                _LOGGER.debug('Handling IB-Key promo display...')
+                _LOGGER.info('Handling IB-Key promo display...')
                 trigger.click()
                 WebDriverWait(driver, 10).until(success_present)
                 trigger_identifier = identify_trigger(trigger, elements)
@@ -392,7 +392,7 @@ def authenticate_gateway(driver_path,
                 pass  # this means no two_fa_code was returned and trigger remained the same - ie. don't authenticate
                 # todo: retry authentication or resend code
             elif trigger_identifier == elements['SUCCESS_EL_TEXT']:
-                _LOGGER.debug('Webpage displayed "Client login succeeds"')
+                _LOGGER.info('Webpage displayed "Client login succeeds"')
                 _FAILED_ATTEMPTS = 0
                 success = True
                 break
@@ -413,7 +413,7 @@ def authenticate_gateway(driver_path,
             success = False
     finally:
         # if sys.platform == 'linux' and display is not None:
-        _LOGGER.debug(f'Cleaning up the resources. Display: {display} | Driver: {driver}')
+        _LOGGER.info(f'Cleaning up the resources. Display: {display} | Driver: {driver}')
 
         if display is not None:
             display.stop()

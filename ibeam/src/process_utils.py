@@ -34,16 +34,16 @@ def start_gateway(gateway_dir):
 
     if sys.platform == 'win32':
         args = ["cmd", "/k", r"bin\run.bat", r"root\conf.yaml"]
-        _LOGGER.debug(f'Starting Windows process with params: {args}')
+        _LOGGER.info(f'Starting Gateway as Windows process with params: {args}')
         creationflags = subprocess.CREATE_NEW_CONSOLE
 
     elif sys.platform == 'darwin':
         args = ["open", "-F", "-a", "Terminal", r"bin/run.sh", r"root/conf.yaml"]
-        _LOGGER.debug(f'Starting Mac process with params: {args}')
+        _LOGGER.info(f'Starting Gateway as Mac process with params: {args}')
 
     elif sys.platform == 'linux':
         args = ["bash", r"bin/run.sh", r"root/conf.yaml"]
-        _LOGGER.debug(f'Starting Linux process with params: {args}')
+        _LOGGER.info(f'Starting Gateway as Linux process with params: {args}')
 
     else:
         raise EnvironmentError(f'Unknown platform: {sys.platform}')

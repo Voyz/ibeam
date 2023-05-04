@@ -152,11 +152,11 @@ class HttpHandler():
                 return status
             else:
                 if attempt >= max_attempts - 1:
-                    _LOGGER.debug(
+                    _LOGGER.info(
                         f'Max validate request retries reached after {max_attempts} attempts. Consider increasing the retries by setting IBEAM_REQUEST_RETRIES environment variable')
                     return status
                 else:
-                    _LOGGER.debug(f'Attempt number {attempt + 2}')
+                    _LOGGER.info(f'Attempt number {attempt + 2}')
                     return _request(attempt + 1)
 
         return _request(0)
