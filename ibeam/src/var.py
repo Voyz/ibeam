@@ -78,7 +78,7 @@ ROUTE_LOGOUT = os.environ.get('IBEAM_ROUTE_LOGOUT', '/v1/api/logout')
 
 ########### AUTHENTICATION ###########
 
-USER_NAME_EL = os.environ.get('IBEAM_USER_NAME_EL', 'username')
+USER_NAME_EL = os.environ.get('IBEAM_USER_NAME_EL', None)
 """HTML element name attribute containing the username input field."""
 
 PASSWORD_EL = os.environ.get('IBEAM_PASSWORD_EL', 'password')
@@ -87,7 +87,7 @@ PASSWORD_EL = os.environ.get('IBEAM_PASSWORD_EL', 'password')
 SUBMIT_EL = os.environ.get('IBEAM_SUBMIT_EL', 'button.btn.btn-lg.btn-primary')
 """HTML element name attribute containing the submit button."""
 
-ERROR_EL = os.environ.get('IBEAM_ERROR_EL', 'xyz-errormessage')
+ERROR_EL = os.environ.get('IBEAM_ERROR_EL', None)
 """HTML element class name attribute containing the submit button."""
 
 SUCCESS_EL_TEXT = os.environ.get('IBEAM_SUCCESS_EL_TEXT', 'Client login succeeds')
