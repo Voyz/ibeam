@@ -154,10 +154,13 @@ def identify_trigger(trigger, elements) -> Optional[str]:
     if elements['TWO_FA_NOTIFICATION_EL'] in trigger.get_attribute('class'):
         return elements['TWO_FA_NOTIFICATION_EL']
 
+    if elements['IBKEY_PROMO_EL_CLASS'] in trigger.get_attribute('class'):
+        return elements['IBKEY_PROMO_EL_CLASS']
+
     if trigger.text == elements['SUCCESS_EL_TEXT']:
         return elements['SUCCESS_EL_TEXT']
 
-    raise RuntimeError(f'Trigger found but cannot be identified: {trigger}')
+    raise RuntimeError(f'Trigger found but cannot be identified: {trigger} :: {trigger.get_attribute("outerHTML")}')
 
 
 def check_version(driver) -> int:
@@ -366,7 +369,7 @@ def authenticate_gateway(driver_path,
             if elements['IBKEY_PROMO_EL_CLASS'] in trigger_class:
                 _LOGGER.info('Handling IB-Key promo display...')
                 trigger.click()
-                WebDriverWait(driver, 10).until(success_present)
+                trigger = WebDriverWait(driver, 10).until(any_of(success_present, error_displayed))
                 trigger_identifier = identify_trigger(trigger, elements)
 
             if trigger_identifier == elements['ERROR_EL']:
