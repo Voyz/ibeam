@@ -60,6 +60,7 @@ def new_chrome_driver(driver_path, name: str = 'default', headless: bool = True,
     options.add_argument('--useAutomationExtension=false')
     options.add_argument('--disable-extensions')
     options.add_argument('--dns-prefetch-disable')
+    options.add_argument('--disable-features=VizDisplayCompositor')
     options.add_argument(f'--user-data-dir={tempfile.gettempdir()}/ibeam-chrome-{name}')
     driver = webdriver.Chrome(driver_path, options=options)
     if driver is None:
@@ -87,7 +88,7 @@ class text_to_be_present_in_element(object):
     def __call__(self, driver):
         for locator in self.locators:
             try:
-                element = EC._find_element(driver, locator)
+                element = driver.find_element(*locator)
                 if self.text in element.text:
                     return element
             except StaleElementReferenceException:
@@ -264,8 +265,8 @@ def authenticate_gateway(driver_path,
             # time.sleep(300)
 
             # input credentials
-            user_name_el = driver.find_element_by_name(elements['USER_NAME_EL'])
-            password_el = driver.find_element_by_name(elements['PASSWORD_EL'])
+            user_name_el = driver.find_element(By.NAME, elements['USER_NAME_EL'])
+            password_el = driver.find_element(By.NAME, elements['PASSWORD_EL'])
             user_name_el.send_keys(account)
 
             if key is None:
@@ -279,10 +280,11 @@ def authenticate_gateway(driver_path,
             time.sleep(5)
             # submit the form
             _LOGGER.info('Submitting the form')
-            submit_form_el = driver.find_element_by_css_selector(elements['SUBMIT_EL'])
+            submit_form_el = driver.find_element(By.CSS_SELECTOR, elements['SUBMIT_EL'])
             submit_form_el.click()
 
             # observe results - either success or 2FA request
+            EC.text_to_be_present_in_element
             success_present = text_to_be_present_in_element([(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')],
                                                             elements['SUCCESS_EL_TEXT'])
             two_factor_input_present = EC.visibility_of_element_located((By.ID, elements['TWO_FA_EL_ID']))
@@ -307,7 +309,7 @@ def authenticate_gateway(driver_path,
 
             if trigger_identifier == elements['TWO_FA_SELECT_EL_ID']:
                 _LOGGER.info(f'Required to select a 2FA method.')
-                select_el = driver.find_element_by_id(elements['TWO_FA_SELECT_EL_ID'])
+                select_el = driver.find_element(By.ID, elements['TWO_FA_SELECT_EL_ID'])
                 select = Select(select_el)
                 select.select_by_visible_text(var.TWO_FA_SELECT_TARGET)
 
@@ -355,7 +357,7 @@ def authenticate_gateway(driver_path,
                     two_fa_el[0].send_keys(two_fa_code)
 
                     _LOGGER.info('Submitting the 2FA form')
-                    submit_form_el = driver.find_element_by_css_selector(elements['SUBMIT_EL'])
+                    submit_form_el = driver.find_element(By.CSS_SELECTOR, elements['SUBMIT_EL'])
                     WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
                         EC.element_to_be_clickable((By.CSS_SELECTOR, elements['SUBMIT_EL'])))
                     submit_form_el.click()
