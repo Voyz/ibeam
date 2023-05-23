@@ -1,4 +1,4 @@
-FROM python:3.11.2-slim-buster
+FROM python:3.11.3-slim-bullseye
 
 ENV PATH="/opt/venv/bin:$PATH" \
     JAVA_HOME="/usr/lib/jvm/default-java" \
