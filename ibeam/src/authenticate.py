@@ -20,6 +20,7 @@ from selenium.webdriver.support.ui import Select
 
 import ibeam
 from ibeam.src import var
+from ibeam.src.py_utils import exception_to_string
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
@@ -172,7 +173,6 @@ def check_version(driver) -> int:
     * 1 = available until March 2023
     * 2 = available from March 2023
     """
-
     try:
         user_name_present = EC.presence_of_element_located((By.NAME, 'user_name'))
         WebDriverWait(driver, 5).until(user_name_present)
@@ -205,10 +205,13 @@ def create_elements(versions: dict):
     elements['TWO_FA_INPUT_EL_ID'] = var.TWO_FA_INPUT_EL_ID
     elements['TWO_FA_SELECT_EL_ID'] = var.TWO_FA_SELECT_EL_ID
 
-    if var.USER_NAME_EL is not None:
+
+    if var.USER_NAME_EL is not None and var.USER_NAME_EL != elements['USER_NAME_EL']:
+        _LOGGER.warning(f'USER_NAME_EL is forced to "{var.USER_NAME_EL}", contrary to the element found on the website: "{elements["USER_NAME_EL"]}"')
         elements['USER_NAME_EL'] = var.USER_NAME_EL
 
-    if var.ERROR_EL is not None:
+    if var.ERROR_EL is not None and var.ERROR_EL != elements['ERROR_EL']:
+        _LOGGER.warning(f'ERROR_EL is forced to "{var.ERROR_EL}", contrary to the element found on the website: "{elements["ERROR_EL"]}"')
         elements['ERROR_EL'] = var.ERROR_EL
 
     return elements
@@ -235,6 +238,8 @@ def authenticate_gateway(driver_path,
     display = None
     success = False
     driver = None
+    website_version = -1
+    elements = {}
     try:
         _LOGGER.info(f'Loading auth webpage at {base_url + var.ROUTE_AUTH}')
         if sys.platform == 'linux':
@@ -250,6 +255,7 @@ def authenticate_gateway(driver_path,
         website_version = check_version(driver)
 
         elements = create_elements(_VERSIONS[website_version])
+        _LOGGER.debug(f'Elements: {elements}')
 
         # wait for the page to load
         user_name_present = EC.presence_of_element_located((By.NAME, elements['USER_NAME_EL']))
@@ -284,7 +290,6 @@ def authenticate_gateway(driver_path,
             submit_form_el.click()
 
             # observe results - either success or 2FA request
-            EC.text_to_be_present_in_element
             success_present = text_to_be_present_in_element([(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')],
                                                             elements['SUCCESS_EL_TEXT'])
             two_factor_input_present = EC.visibility_of_element_located((By.ID, elements['TWO_FA_EL_ID']))
@@ -404,9 +409,15 @@ def authenticate_gateway(driver_path,
 
         time.sleep(2)
     except TimeoutException as e:
-        exception_line = traceback.format_tb(sys.exc_info()[2])[0].replace('\n', '')
-        _LOGGER.error(
-            f'Timeout reached when waiting for authentication. Consider increasing IBEAM_PAGE_LOAD_TIMEOUT. Error: "{e.msg}" at {exception_line}')
+
+        try:
+            website_loaded = EC.presence_of_element_located((By.CLASS_NAME, 'login'))
+            WebDriverWait(driver, 5).until(website_loaded)
+        except TimeoutException as ee:
+            _LOGGER.error(f'Timeout reached when waiting for authentication. The website seems to not be loaded correctly. Consider increasing IBEAM_PAGE_LOAD_TIMEOUT. \nWebsite URL: {base_url + var.ROUTE_AUTH} \nIBEAM_PAGE_LOAD_TIMEOUT: {var.PAGE_LOAD_TIMEOUT} \nException:\n{exception_to_string(e)}')
+        else:
+            _LOGGER.error(f'Timeout reached searching for website elements, but the website seems to be loaded correctly. It is possible the setup is incorrect. \nWebsite version: {website_version} \nDOM elements searched for: {elements}. \nException:\n{exception_to_string(e)}')
+
         save_screenshot(driver, '__timeout-exception')
         success = False
     except Exception as e:
