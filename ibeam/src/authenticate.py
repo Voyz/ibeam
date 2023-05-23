@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 import time
-import traceback
 from datetime import datetime
 from pathlib import Path
 import tempfile
@@ -243,7 +242,7 @@ def authenticate_gateway(driver_path,
     try:
         _LOGGER.info(f'Loading auth webpage at {base_url + var.ROUTE_AUTH}')
         if sys.platform == 'linux':
-            display = Display(visible=0, size=(800, 600))
+            display = Display(visible=False, size=(800, 600))
             display.start()
 
         driver = start_driver(base_url, driver_path)
@@ -356,7 +355,7 @@ def authenticate_gateway(driver_path,
                 if two_fa_code is None:
                     _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
                 else:
-                    two_fa_el = driver.find_elements_by_id(elements['TWO_FA_INPUT_EL_ID'])
+                    two_fa_el = driver.find_elements(By.ID, elements['TWO_FA_INPUT_EL_ID'])
                     WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
                         EC.element_to_be_clickable((By.ID, elements['TWO_FA_INPUT_EL_ID'])))
                     two_fa_el[0].send_keys(two_fa_code)
