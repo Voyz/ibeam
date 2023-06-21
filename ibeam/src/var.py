@@ -108,6 +108,12 @@ ERROR_SCREENSHOTS = bool(os.environ.get('IBEAM_ERROR_SCREENSHOTS', False))
 MAX_FAILED_AUTH = int(os.environ.get('IBEAM_MAX_FAILED_AUTH', 5))
 """Maximum number of failed authentication attempts."""
 
+MIN_PRESUBMIT_BUFFER = int(os.environ.get('IBEAM_MIN_PRESUBMIT_BUFFER', 5))
+"""Minimum number of seconds to wait before hitting the submit button"""
+
+MAX_PRESUBMIT_BUFFER = int(os.environ.get('IBEAM_MAX_PRESUBMIT_BUFFER', 30))
+"""Maximum number of seconds to wait before hitting the submit button"""
+
 MAX_IMMEDIATE_ATTEMPTS = int(os.environ.get('IBEAM_MAX_IMMEDIATE_ATTEMPTS', 10))
 """Maximum number of immediate retries upon detecting an error message."""
 

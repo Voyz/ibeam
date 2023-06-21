@@ -26,6 +26,7 @@ _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
 _DRIVER_NAMES = {}
 _FAILED_ATTEMPTS = 0
+_PRESUBMIT_BUFFER = var.MIN_PRESUBMIT_BUFFER
 
 _VERSIONS = {
     1: {
@@ -239,6 +240,10 @@ def authenticate_gateway(driver_path,
     driver = None
     website_version = -1
     elements = {}
+
+    global _PRESUBMIT_BUFFER
+    presubmit_buffer = _PRESUBMIT_BUFFER
+
     try:
         _LOGGER.info(f'Loading auth webpage at {base_url + var.ROUTE_AUTH}')
         if sys.platform == 'linux':
@@ -286,7 +291,7 @@ def authenticate_gateway(driver_path,
             password_el.send_keys(Keys.TAB)
 
             # small buffer to prevent race-condition on client side
-            time.sleep(5)
+            time.sleep(presubmit_buffer)
             # submit the form
             _LOGGER.info('Submitting the form')
             submit_form_el = driver.find_element(By.CSS_SELECTOR, elements['SUBMIT_EL'])
@@ -388,6 +393,14 @@ def authenticate_gateway(driver_path,
                 _LOGGER.error(f'Error displayed by the login webpage: {trigger.text}')
                 save_screenshot(driver, '__failed_attempt')
 
+                if trigger.text == 'Invalid username password combination' and presubmit_buffer < var.MAX_PRESUBMIT_BUFFER:
+                    _PRESUBMIT_BUFFER += 5
+                    if _PRESUBMIT_BUFFER >= var.MAX_PRESUBMIT_BUFFER:
+                        _PRESUBMIT_BUFFER = var.MAX_PRESUBMIT_BUFFER
+                        _LOGGER.warning(f'The presubmit buffer set to maximum: {var.MAX_PRESUBMIT_BUFFER}')
+                    else:
+                        _LOGGER.warning(f'Increased presubmit buffer to {_PRESUBMIT_BUFFER}')
+
                 # try to prevent having the account locked-out
                 if trigger.text == 'failed' or trigger.text == 'Invalid username password combination' and var.MAX_FAILED_AUTH > 0:
                     global _FAILED_ATTEMPTS
@@ -409,6 +422,7 @@ def authenticate_gateway(driver_path,
             elif trigger_identifier == elements['SUCCESS_EL_TEXT']:
                 _LOGGER.info('Webpage displayed "Client login succeeds"')
                 _FAILED_ATTEMPTS = 0
+                _PRESUBMIT_BUFFER = var.MIN_PRESUBMIT_BUFFER
                 success = True
                 break
 
