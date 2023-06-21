@@ -329,6 +329,8 @@ class GatewayClient():
 
         self.try_starting()
 
+        self.validate()
+
         success, shutdown = self.try_authenticating(request_retries=request_retries)
         self._should_shutdown = shutdown
         return success, shutdown
