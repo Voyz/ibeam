@@ -268,6 +268,12 @@ class GatewayClient():
             if not status.authenticated:
                 if status.session:
                     _LOGGER.error('Gateway session active but not authenticated')
+                    self.reauthenticate()
+
+                    if var.REAUTHENTICATE_WAIT > 0:
+                        _LOGGER.info(f'Waiting {var.REAUTHENTICATE_WAIT} seconds to reauthenticate before restarting.')
+                        time.sleep(var.REAUTHENTICATE_WAIT)
+
                     if var.RESTART_FAILED_SESSIONS:
                         _LOGGER.info('Logging out and restarting the Gateway')
                         self.restart()
