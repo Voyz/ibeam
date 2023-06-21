@@ -272,6 +272,10 @@ def authenticate_gateway(driver_path,
             # input credentials
             user_name_el = driver.find_element(By.NAME, elements['USER_NAME_EL'])
             password_el = driver.find_element(By.NAME, elements['PASSWORD_EL'])
+
+            user_name_el.clear()
+            password_el.clear()
+
             user_name_el.send_keys(account)
 
             if key is None:
@@ -358,6 +362,8 @@ def authenticate_gateway(driver_path,
                     two_fa_el = driver.find_elements(By.ID, elements['TWO_FA_INPUT_EL_ID'])
                     WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
                         EC.element_to_be_clickable((By.ID, elements['TWO_FA_INPUT_EL_ID'])))
+
+                    two_fa_el[0].clear()
                     two_fa_el[0].send_keys(two_fa_code)
 
                     _LOGGER.info('Submitting the 2FA form')
