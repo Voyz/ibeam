@@ -11,6 +11,7 @@ import urllib.request
 import urllib.parse
 
 from ibeam.src.inputs_handler import InputsHandler
+from ibeam.src.py_utils import exception_to_string
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
@@ -19,15 +20,61 @@ class Status():
     def __init__(self,
                  running: bool = False,
                  session: bool = False,
+                 response = None,
+
+                 # parsed args
+                 connected: bool = False,
                  authenticated: bool = False,
                  competing: bool = False,
+                 collision: bool = False,
+                 session_id: str = None,
+                 server_name: str = None,
+                 server_version: str = None,
+                 expires: int = None,
                  ):
         self.running = running
         self.session = session
+        self.response = response
+
+        # parsed args
+        self.connected = connected
         self.authenticated = authenticated
         self.competing = competing
+        self.collision = collision
+        self.session_id = session_id
+        self.server_name = server_name
+        self.server_version = server_version
+        self.expires = expires
 
+    def expiration_time(self):
+        if self.expires is None:
+            return None
 
+        return f'{int(self.expires / 1000)} seconds'
+
+    @property
+    def parsed_status(self):
+        if not self.running:
+            return 'NOT RUNNING'
+        if not self.session:
+            return 'NO SESSION'
+        if not self.connected:
+            return 'NOT CONNECTED'
+        if self.competing:
+            return 'COMPETING'
+        if self.collision:
+            return 'COLLISION'
+        if self.authenticated:
+            return 'AUTHENTICATED'
+
+    def __repr__(self):
+        d = self.__dict__
+        if 'response' in d:
+            d.pop('response')
+        return f'Status({", ".join([f"{k}={repr(v)}" for k, v in d.items()])})'
+
+    def __str__(self):
+        return f'{self.parsed_status} {repr(self)}'
 class HttpHandler():
 
     def __init__(self,
@@ -50,7 +97,7 @@ class HttpHandler():
         _LOGGER.debug(f'HTTPS{"" if self.inputs_handler.valid_certificates else " (unverified)"} request to: {url}')
         return urllib.request.urlopen(url, context=self.ssl_context, timeout=self.request_timeout)
 
-    def try_request(self, url, check_auth=False, max_attempts=1) -> Status:
+    def try_request(self, url, max_attempts=1) -> Status:
         """Attempts a HTTP request and returns Status object indicating whether the gateway can be reached, whether there is an active session and whether it is authenticated. Attempts to repeat the request up to max_attempts times.
 
         status.running -> gateway running
@@ -60,18 +107,13 @@ class HttpHandler():
         """
 
         def _request(attempt=0) -> Status:
-            status = Status(running=False, session=False, authenticated=False, competing=False)
+            status = Status()
             try:
+                # if this doesn't throw an exception, the gateway is running and there is an active session
                 response = self.url_request(url)
                 status.running = True
                 status.session = True
-
-                if check_auth:
-                    data = json.loads(response.read().decode('utf8'))
-                    status.authenticated = data['iserver']['authStatus']['authenticated']
-                    status.competing = data['iserver']['authStatus']['competing']
-                else:
-                    status.authenticated = True
+                status.response = response
 
                 return status
 
@@ -79,7 +121,7 @@ class HttpHandler():
                 status.running = True
 
                 if e.code == 401:
-                    # we expect this error, no need to log
+                    # the gateway is running but there is no active session
                     pass
 
                 elif e.code == 500 and 'Internal Server Error' in str(e):
@@ -143,10 +185,11 @@ class HttpHandler():
                         _LOGGER.exception(ee)
 
             except Exception as e:  # all other exceptions
-                try:
-                    raise RuntimeError('Unrecognised Exception') from e
-                except Exception as ee:
-                    _LOGGER.exception(ee)
+                _LOGGER.exception(f'Unrecognised Exception:\n{exception_to_string(e)}')
+                # try:
+                #     raise RuntimeError('Unrecognised Exception') from e
+                # except Exception as ee:
+                #     _LOGGER.exception(ee)
 
             if max_attempts <= 1:
                 return status

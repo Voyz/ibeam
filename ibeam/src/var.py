@@ -50,7 +50,7 @@ RESTART_WAIT = int(os.environ.get('IBEAM_RESTART_WAIT', 15))
 REAUTHENTICATE_WAIT = int(os.environ.get('IBEAM_REAUTHENTICATE_WAIT', 15))
 """How many seconds to wait for a reauthentication to complete."""
 
-IBEAM_HEALTH_SERVER_PORT = int(os.environ.get("IBEAM_HEALTH_SERVER_PORT", 5001))
+HEALTH_SERVER_PORT = int(os.environ.get("IBEAM_HEALTH_SERVER_PORT", 5001))
 """Port to start health server on."""
 
 ########### GATEWAY ROUTES ###########
@@ -122,6 +122,12 @@ IBKEY_PROMO_EL_CLASS = os.environ.get('IBEAM_IBKEY_PROMO_EL_CLASS', 'ibkey-promo
 
 AUTHENTICATION_STRATEGY = os.environ.get('IBEAM_AUTHENTICATION_STRATEGY', 'A')
 """The authentication strategy used by IBeam."""
+
+MAX_STATUS_CHECK_RETRIES = int(os.environ.get('IBEAM_MAX_STATUS_CHECK_RETRIES', 15))
+"""How many times to reattempt the status check."""
+
+MAX_REAUTHENTICATE_RETRIES = int(os.environ.get('IBEAM_MAX_REAUTHENTICATE_RETRIES', 5))
+"""How many times to reattempt the reauthentication before restarting the Gateway."""
 
 ########### TWO-FACTOR AUTHENTICATION ###########
 

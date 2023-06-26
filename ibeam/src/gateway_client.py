@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -12,7 +13,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from ibeam.src import var
 from ibeam.src.health_server import new_health_server
-from ibeam.src.authenticate import authenticate_gateway
+from ibeam.src.authenticate import log_in
 from ibeam.src.http_handler import HttpHandler, Status
 from ibeam.src.inputs_handler import InputsHandler
 from ibeam.src.process_utils import find_procs_by_name, start_gateway
@@ -29,7 +30,27 @@ _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 SECRETS_SOURCE_ENV = 'env'
 SECRETS_SOURCE_FS = 'fs'
 
+def condition_authenticated_true(status:Status) -> bool:
+    # unhappy cases, we don't need to keep on retrying
+    if not status.running or not status.session or not status.connected or status.competing:
+        return True
 
+    # happy case, wa don't need to keep on retrying
+    if status.authenticated:
+        return True
+
+    return False
+
+def condition_logged_out(status:Status) -> bool:
+    # unhappy cases, we don't need to keep on retrying
+    if not status.running or not status.session or status.competing:
+        return True
+
+    # happy case, wa don't need to keep on retrying
+    if not status.connected and not status.authenticated:
+        return True
+
+    return False
 class GatewayClient():
 
     def __init__(self,
@@ -89,7 +110,7 @@ class GatewayClient():
         self.two_fa_handler = two_fa_handler
 
         self._concurrent_maintenance_attempts = 1
-        self._health_server = new_health_server(var.IBEAM_HEALTH_SERVER_PORT, self.get_status, self.get_shutdown_status)
+        self._health_server = new_health_server(var.HEALTH_SERVER_PORT, self.get_status, self.get_shutdown_status)
 
     def secret_value(self, name: str,
                      lstrip=None, rstrip='\r\n') -> Optional[str]:
@@ -193,21 +214,27 @@ class GatewayClient():
 
             start_gateway(self.gateway_dir)
 
-            time.sleep(1)  # buffer to ensure process is running
-
-            processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
-            success = len(processes) != 0
-            if not success:
-                return None
-
-            self.server_process = processes[0].pid
-            _LOGGER.info(f'Gateway started with pid: {self.server_process}')
+            self.server_process = None
 
             # let's try to communicate with the Gateway
             t_end = time.time() + var.GATEWAY_STARTUP
+
+            while time.time() < t_end:
+                processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
+                if len(processes) == 0:
+                    continue
+
+                self.server_process = processes[0].pid
+                _LOGGER.info(f'Gateway started with pid: {self.server_process}')
+                break
+
+            if self.server_process is None:
+                _LOGGER.error(f'Cannot find gateway process by name: "{var.GATEWAY_PROCESS_MATCH}"')
+                return None
+
             ping_success = False
             while time.time() < t_end:
-                status = self.http_handler.try_request(self.base_url, False)
+                status = self.http_handler.try_request(self.base_url)
                 if not status.running:
                     seconds_remaining = round(t_end - time.time())
                     if seconds_remaining > 0:
@@ -224,26 +251,16 @@ class GatewayClient():
 
         return processes[0].pid
 
-    def _authenticate(self) -> (bool, bool):
-        return authenticate_gateway(driver_path=self.driver_path,
-                                    account=self.account,
-                                    password=self.password,
-                                    key=self.key,
-                                    base_url=self.base_url,
-                                    two_fa_handler=self.two_fa_handler)
+    def _log_in(self) -> (bool, bool):
+        return log_in(driver_path=self.driver_path,
+                      account=self.account,
+                      password=self.password,
+                      key=self.key,
+                      base_url=self.base_url,
+                      two_fa_handler=self.two_fa_handler)
 
     def try_authenticating(self, request_retries=1) -> (bool, bool):
-        authentication_strategy = var.AUTHENTICATION_STRATEGY
 
-        if authentication_strategy == 'A':
-            self._authentication_route_A(request_retries=request_retries)
-        elif authentication_strategy == 'B':
-            self._authentication_route_B(request_retries=request_retries)
-        else:
-            _LOGGER.error(f'Unknown authentication strategy: "{authentication_strategy}". Defaulting to strategy A.')
-            self._authentication_route_A(request_retries=request_retries)
-
-    def _authentication_route_A(self, request_retries=1) -> (bool, bool):
         status = self.get_status(max_attempts=request_retries)
         if status.authenticated and not status.competing:  # running, authenticated and not competing
             return True, False
@@ -251,76 +268,203 @@ class GatewayClient():
             _LOGGER.error('Cannot communicate with the Gateway. Consider increasing IBEAM_GATEWAY_STARTUP')
             return False, False
         else:
-            if status.session:
-                if status.competing:
-                    _LOGGER.info('Competing Gateway session found, reauthenticating...')
-                    self.restart()
-                    # return False, False
+            authentication_strategy = var.AUTHENTICATION_STRATEGY
+            _LOGGER.info(f'Authentication strategy: "{authentication_strategy}"')
+            _LOGGER.info(str(status))
 
-                _LOGGER.info('Gateway session found but not authenticated, authenticating...')
+            if authentication_strategy == 'A':
+                return self._authentication_strategy_A(status=status, request_retries=request_retries)
+            elif authentication_strategy == 'B':
+                return self._authentication_strategy_B(status=status, request_retries=request_retries)
+            else:
+                _LOGGER.error(f'Unknown authentication strategy: "{authentication_strategy}". Defaulting to strategy A.')
+                return self._authentication_strategy_A(status=status, request_retries=request_retries)
+
+
+
+    def _authentication_strategy_A(self, status:Status, request_retries=1) -> (bool, bool):
+        if status.session:
+            if status.competing:
+                _LOGGER.info('Competing Gateway session found, restarting and logging in...')
+                self._logout()
+
+            _LOGGER.info('Gateway session found but not authenticated, logging in...')
+        else:
+            _LOGGER.info('No active sessions, logging in...')
+
+        success, shutdown = self._log_in()
+        _LOGGER.info(f'Logging in {"succeeded" if success else "failed"}')
+        if shutdown:
+            return False, True
+        if not success:
+            return False, False
+
+        time.sleep(3)  # buffer for session to be authenticated
+
+        # double check if authenticated
+        status = self.get_status(max_attempts=max(request_retries, 2))
+        if not status.authenticated:
+            if status.session:
+                _LOGGER.error('Logging in succeeded, but active session is still not authenticated')
+                self.reauthenticate()
+
+                if var.REAUTHENTICATE_WAIT > 0:
+                    _LOGGER.info(f'Waiting {var.REAUTHENTICATE_WAIT} seconds to reauthenticate before restarting.')
+                    time.sleep(var.REAUTHENTICATE_WAIT)
+
+                if var.RESTART_FAILED_SESSIONS:
+                    _LOGGER.info('Logging out and reattempting full authentication')
+                    self._logout()
+                    return self.try_authenticating(request_retries=request_retries)
+            elif status.running:
+                _LOGGER.error('Logging in succeeded but there are still no active sessions')
+            else:
+                _LOGGER.error('Logging in succeeded but now cannot communicate with the Gateway')
+            return False, False
+        elif status.competing:
+            _LOGGER.info('Logging in succeeded, session is authenticated but competing, reauthenticating...')
+            self.reauthenticate()
+            time.sleep(var.RESTART_WAIT)
+            return False, False
+
+        return True, False
+
+
+    def _authentication_strategy_B(self, status:Status, request_retries=1) -> (bool, bool):
+        if not status.session or not status.connected or status.competing:
+            if status.session_id is not None and (not status.connected or status.competing):
+                _LOGGER.info('Competing or disconnected Gateway session found, logging out...')
+                self._logout()
+                self._repeatedly_check_status(var.MAX_STATUS_CHECK_RETRIES, condition_logged_out)
             else:
                 _LOGGER.info('No active sessions, logging in...')
 
-            success, shutdown = self._authenticate()
-            _LOGGER.info(f'Authentication process {"succeeded" if success else "failed"}')
+            success, shutdown = self._log_in()
+            _LOGGER.info(f'Logging in {"succeeded" if success else "failed"}')
             if shutdown:
                 return False, True
             if not success:
                 return False, False
-            # self._try_request(self.base_url + _ROUTE_VALIDATE, False, max_attempts=REQUEST_RETRIES)
+        else:
+            # if not status.connected or status.competing:
+            #     _LOGGER.info('Competing Gateway session found, logging out...')
+            #     self._logout()
+            #     self._repeatedly_check_status(var.MAX_STATUS_CHECK_RETRIES, condition_logged_out)
 
-            time.sleep(3)  # buffer for session to be authenticated
+            _LOGGER.info('Active session found but not authenticated, reauthenticating...')
+            self.reauthenticate()
 
-            # double check if authenticated
-            status = self.get_status(max_attempts=max(request_retries, 2))
-            if not status.authenticated:
-                if status.session:
-                    _LOGGER.error('Gateway session active but not authenticated')
-                    self.reauthenticate()
+        status = self._repeatedly_reauthenticate(var.MAX_REAUTHENTICATE_RETRIES)
 
-                    if var.REAUTHENTICATE_WAIT > 0:
-                        _LOGGER.info(f'Waiting {var.REAUTHENTICATE_WAIT} seconds to reauthenticate before restarting.')
-                        time.sleep(var.REAUTHENTICATE_WAIT)
+        if not status.connected or status.competing:
+            _LOGGER.info('Competing or disconnected Gateway session found.')
+            # self._logout()
+            return False, False
 
-                    if var.RESTART_FAILED_SESSIONS:
-                        _LOGGER.info('Logging out and restarting the Gateway')
-                        self.restart()
-                        return self.try_authenticating(request_retries=request_retries)
-                elif status.running:
-                    _LOGGER.error('Gateway running but has no active sessions')
-                else:
-                    _LOGGER.error('Cannot communicate with the Gateway')
-                return False, False
-            elif status.competing:
-                _LOGGER.info('Authenticated but competing Gateway session found, reauthenticating...')
-                self.reauthenticate()
-                time.sleep(var.RESTART_WAIT)
-                return False, False
+        if not status.running or not status.session:
+            return False, False
+
+        if not status.authenticated:
+            _LOGGER.error(f'Repeatedly reauthenticating failed {var.MAX_REAUTHENTICATE_RETRIES} times. Killing the Gateway and restarting the authentication process.')
+
+            success = self.kill()
+            if not success:
+                _LOGGER.error(f'Killing the Gateway process failed')
+
+            return False, False
 
         return True, False
 
-    def _authentication_route_B(self, request_retries=1) -> (bool, bool):
-        ...
+    def _repeatedly_check_status(self, max_attempts=1, condition:callable=condition_authenticated_true):
+        if max_attempts <= 1:
+            # no need to do recursion in this case
+            return self.get_status()
+
+        if not callable(condition):
+            raise ValueError(f'Condition must be a callable, found: "{type(condition)}": {condition}')
+
+        def _check(attempt=0):
+            status = self.get_status()
+
+            if condition(status):
+                return status
+
+            if attempt >= max_attempts - 1:
+                _LOGGER.info(
+                    f'Max status check retries reached after {max_attempts} attempts. Consider increasing the retries by setting IBEAM_MAX_STATUS_CHECK_ATTEMPTS environment variable')
+                return status
+            else:
+                time.sleep(1)
+                if attempt == 0:
+                    _LOGGER.info(f'Repeating status check attempts another {max_attempts - attempt - 1} times')
+                return _check(attempt + 1)
+
+        return _check(0)
+
+    def _repeatedly_reauthenticate(self, max_attempts=1):
+
+        if max_attempts <= 1:
+            # no need to do recursion in this case
+            self.reauthenticate()
+            return self._repeatedly_check_status(var.MAX_STATUS_CHECK_RETRIES)
+
+        def _reauthenticate(attempt=0):
+            status = self._repeatedly_check_status(var.MAX_STATUS_CHECK_RETRIES)
+            _LOGGER.info(str(status))
+
+            if attempt >= max_attempts - 1:
+                _LOGGER.info(
+                    f'Max reauthenticate retries reached after {max_attempts} attempts. Consider increasing the retries by setting IBEAM_MAX_REAUTHENTICATE_RETRIES environment variable')
+                return status
+
+            if condition_authenticated_true(status):
+                return status
+
+            self.reauthenticate()
+            _LOGGER.info(f'Repeated reauthentication attempt number {attempt + 2}')
+            return _reauthenticate(attempt + 1)
+
+        return _reauthenticate(0)
+
 
     def get_shutdown_status(self) -> bool:
         return self._should_shutdown
 
     def get_status(self, max_attempts=1) -> Status:
-        return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True, max_attempts=max_attempts)
+        status = self.tickle()
+        if status.session:
+            status.response = json.loads(status.response.read().decode('utf8'))
+            # some fields are not present if unauthenticated
+            status.authenticated = status.response['iserver']['authStatus']['authenticated']
+            status.competing = status.response['iserver']['authStatus']['competing']
+            status.connected = status.response['iserver']['authStatus']['connected']
+            status.collision = status.response['collission']
+            status.session_id = status.response['session']
+            status.expires = int(status.response['ssoExpires'])
+            status.server_name = status.response['iserver']['authStatus'].get('serverInfo', {}).get('serverName')
+            status.server_version = status.response['iserver']['authStatus'].get('serverInfo', {}).get('serverVersion')
+        return status
 
     def validate(self) -> bool:
-        return self.http_handler.try_request(self.base_url + var.ROUTE_VALIDATE, False).session
+        """Validate provides information on the current session. Works also after logout."""
+        status = self.http_handler.try_request(self.base_url + var.ROUTE_VALIDATE)
+        if status.session:
+            status.response = json.loads(status.response.read().decode('utf8'))
+            return status.response['RESULT']
+        return False
 
-    def tickle(self) -> bool:
-        return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, True).running
+    def tickle(self) -> Status:
+        return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE)
 
     def logout(self):
+        """Logout will log the user out, but maintain the session, allowing us to reauthenticate directly."""
         return self.http_handler.url_request(self.base_url + var.ROUTE_LOGOUT)
 
     def reauthenticate(self):
+        """Reauthenticate will work only if there is an existing session."""
         return self.http_handler.url_request(self.base_url + var.ROUTE_REAUTHENTICATE)
 
-    def restart(self):
+    def _logout(self):
         try:
             logout_response = self.logout()
             logout_success = logout_response.read().decode('utf8') == '{"status":true}'
@@ -340,8 +484,6 @@ class GatewayClient():
         """Starts the gateway and authenticates using the credentials stored."""
 
         self.try_starting()
-
-        self.validate()
 
         success, shutdown = self.try_authenticating(request_retries=request_retries)
         self._should_shutdown = shutdown
@@ -366,7 +508,10 @@ class GatewayClient():
         except KeyboardInterrupt as e:
             _LOGGER.info('Keyboard interrupt, shutting down.')
             pass
+        self._scheduler.remove_all_jobs()
         self._scheduler.shutdown(wait=False)
+        if self._health_server:
+            self._health_server.shutdown()
 
     def _maintenance(self):
         _LOGGER.info('Maintenance')
@@ -393,8 +538,7 @@ class GatewayClient():
             processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
             if processes:
                 return False
-        if self._health_server:
-            self._health_server.shutdown()
+
         return True
 
     def __getstate__(self):

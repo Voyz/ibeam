@@ -81,7 +81,7 @@ if __name__ == '__main__':
         else:
             _LOGGER.info(f'No active Gateway session.')
     elif args.tickle:
-        success = client.tickle()
+        success = client.tickle().running
         _LOGGER.info(f'Gateway {"" if success else "not "}running.')
     elif args.user:
         client.user()

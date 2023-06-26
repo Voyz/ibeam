@@ -217,14 +217,14 @@ def create_elements(versions: dict):
     return elements
 
 
-def authenticate_gateway(driver_path,
-                         account,
-                         password,
-                         key: str = None,
-                         base_url: str = None,
-                         two_fa_handler: TwoFaHandler = None) -> (bool, bool):
+def log_in(driver_path,
+           account,
+           password,
+           key: str = None,
+           base_url: str = None,
+           two_fa_handler: TwoFaHandler = None) -> (bool, bool):
     """
-    Authenticates the currently running gateway.
+    Logs into the currently running gateway.
 
     If both password and key are provided, cryptography.fernet decryption will be used.
 
