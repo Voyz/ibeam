@@ -428,11 +428,14 @@ def authenticate_gateway(driver_path,
 
         time.sleep(2)
     except TimeoutException as e:
-
+        page_loaded_correctly = True
         try:
             website_loaded = EC.presence_of_element_located((By.CLASS_NAME, 'login'))
             WebDriverWait(driver, 5).until(website_loaded)
         except TimeoutException as ee:
+            page_loaded_correctly = False
+
+        if not page_loaded_correctly or website_version == -1:
             _LOGGER.error(f'Timeout reached when waiting for authentication. The website seems to not be loaded correctly. Consider increasing IBEAM_PAGE_LOAD_TIMEOUT. \nWebsite URL: {base_url + var.ROUTE_AUTH} \nIBEAM_PAGE_LOAD_TIMEOUT: {var.PAGE_LOAD_TIMEOUT} \nException:\n{exception_to_string(e)}')
         else:
             _LOGGER.error(f'Timeout reached searching for website elements, but the website seems to be loaded correctly. It is possible the setup is incorrect. \nWebsite version: {website_version} \nDOM elements searched for: {elements}. \nException:\n{exception_to_string(e)}')
