@@ -233,6 +233,17 @@ class GatewayClient():
                                     two_fa_handler=self.two_fa_handler)
 
     def try_authenticating(self, request_retries=1) -> (bool, bool):
+        authentication_strategy = var.AUTHENTICATION_STRATEGY
+
+        if authentication_strategy == 'A':
+            self._authentication_route_A(request_retries=request_retries)
+        elif authentication_strategy == 'B':
+            self._authentication_route_B(request_retries=request_retries)
+        else:
+            _LOGGER.error(f'Unknown authentication strategy: "{authentication_strategy}". Defaulting to strategy A.')
+            self._authentication_route_A(request_retries=request_retries)
+
+    def _authentication_route_A(self, request_retries=1) -> (bool, bool):
         status = self.get_status(max_attempts=request_retries)
         if status.authenticated and not status.competing:  # running, authenticated and not competing
             return True, False
@@ -287,6 +298,9 @@ class GatewayClient():
                 return False, False
 
         return True, False
+
+    def _authentication_route_B(self, request_retries=1) -> (bool, bool):
+        ...
 
     def get_shutdown_status(self) -> bool:
         return self._should_shutdown
