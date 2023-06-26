@@ -16,7 +16,7 @@ from ibeam.src.health_server import new_health_server
 from ibeam.src.authenticate import log_in
 from ibeam.src.http_handler import HttpHandler, Status
 from ibeam.src.inputs_handler import InputsHandler
-from ibeam.src.process_utils import find_procs_by_name, start_gateway
+from ibeam.src.process_utils import try_starting_gateway, kill_gateway
 from ibeam.src.secrets_handler import SecretsHandler
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
@@ -71,7 +71,7 @@ class GatewayClient():
                  account: str = None,
                  password: str = None,
                  key: str = None,
-                 gateway_dir: str = None,
+                 gateway_dir: os.PathLike = None,
                  driver_path: str = None,
                  base_url: str = None):
 
@@ -115,50 +115,12 @@ class GatewayClient():
         self._health_server = new_health_server(var.HEALTH_SERVER_PORT, self.get_status, self.get_shutdown_status)
 
     def try_starting(self) -> Optional[List[int]]:
-        processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
-        if not processes:
-            _LOGGER.info('Gateway not found, starting new one...')
-            _LOGGER.info(
-                'Note that the Gateway log below may display "Open https://localhost:5000 to login" - ignore this command.')
-
-            start_gateway(self.gateway_dir)
-
-            self.server_process = None
-
-            # let's try to communicate with the Gateway
-            t_end = time.time() + var.GATEWAY_STARTUP
-
-            while time.time() < t_end:
-                processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
-                if len(processes) == 0:
-                    continue
-
-                self.server_process_pids = [process.pid for process in processes]
-                _LOGGER.info(f'Gateway started with pids: {self.server_process_pids}')
-                break
-
-            if self.server_process_pids is None:
-                _LOGGER.error(f'Cannot find gateway process by name: "{var.GATEWAY_PROCESS_MATCH}"')
-                return None
-
-            ping_success = False
-            while time.time() < t_end:
-                status = self.http_handler.try_request(self.base_url)
-                if not status.running:
-                    seconds_remaining = round(t_end - time.time())
-                    if seconds_remaining > 0:
-                        _LOGGER.info(
-                            f'Cannot ping Gateway. Retrying for another {seconds_remaining} seconds')
-                        time.sleep(1)
-                else:
-                    _LOGGER.info('Gateway connection established')
-                    ping_success = True
-                    break
-
-            if not ping_success:
-                _LOGGER.error('Gateway process found but cannot establish a connection with the Gateway')
-
-        return self.server_process_pids
+        return try_starting_gateway(
+            gateway_process_match=var.GATEWAY_PROCESS_MATCH,
+            gateway_dir=self.gateway_dir,
+            gateway_startup=var.GATEWAY_STARTUP,
+            verify_connection=lambda: self.http_handler.try_request(self.base_url),
+        )
 
     def _log_in(self) -> (bool, bool):
         return log_in(driver_path=self.driver_path,
@@ -433,21 +395,7 @@ class GatewayClient():
             _LOGGER.info(f'Gateway running and authenticated, session id: {status.session_id}, server name: {status.server_name}')
 
     def kill(self) -> bool:
-        processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
-        if processes:
-            for process in processes:
-                process.terminate()
-
-            time.sleep(1)
-
-            # double check we succeeded
-            processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)
-            if processes:
-                return False
-        else:
-            _LOGGER.warning(f'Attempting to kill but could not find process named "{var.GATEWAY_PROCESS_MATCH}"')
-
-        return True
+        return kill_gateway(var.GATEWAY_PROCESS_MATCH)
 
     def __getstate__(self):
         state = self.__dict__.copy()

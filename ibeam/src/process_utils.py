@@ -2,7 +2,9 @@ import logging
 import os
 import subprocess
 import sys
+import time
 from pathlib import Path
+from typing import Optional, List
 
 import psutil
 
@@ -54,5 +56,72 @@ def start_gateway(gateway_dir):
         creationflags=creationflags
     )
 
-# if __name__ == '__main__':
-#     start_gateway(os.environ.get('IBEAM_GATEWAY_DIR'))
+def try_starting_gateway(
+        gateway_process_match:str,
+        gateway_dir:os.PathLike,
+        gateway_startup:int,
+        verify_connection:callable,
+)  -> Optional[List[int]]:
+    processes = find_procs_by_name(gateway_process_match)
+    if processes:
+        server_process_pids = [process.pid for process in processes]
+    else:
+        _LOGGER.info('Gateway not found, starting new one...')
+        _LOGGER.info(
+            'Note that the Gateway log below may display "Open https://localhost:5000 to login" - ignore this command.')
+
+        start_gateway(gateway_dir)
+
+        server_process_pids = None
+
+        # let's try to communicate with the Gateway
+        t_end = time.time() + gateway_startup
+
+        while time.time() < t_end:
+            processes = find_procs_by_name(gateway_process_match)
+            if len(processes) == 0:
+                continue
+
+            server_process_pids = [process.pid for process in processes]
+            _LOGGER.info(f'Gateway started with pids: {server_process_pids}')
+            break
+
+        if server_process_pids is None:
+            _LOGGER.error(f'Cannot find gateway process by name: "{gateway_process_match}"')
+            return None
+
+        ping_success = False
+        while time.time() < t_end:
+            status = verify_connection()
+            if not status.running:
+                seconds_remaining = round(t_end - time.time())
+                if seconds_remaining > 0:
+                    _LOGGER.info(
+                        f'Cannot ping Gateway. Retrying for another {seconds_remaining} seconds')
+                    time.sleep(1)
+            else:
+                _LOGGER.info('Gateway connection established')
+                ping_success = True
+                break
+
+        if not ping_success:
+            _LOGGER.error('Gateway process found but cannot establish a connection with the Gateway')
+
+    return server_process_pids
+
+def kill_gateway(gateway_process_match:str):
+    processes = find_procs_by_name(gateway_process_match)
+    if not processes:
+        _LOGGER.warning(f'Attempting to kill but could not find process named "{gateway_process_match}"')
+        return False
+
+    for process in processes:
+        process.terminate()
+
+    time.sleep(1)
+
+    # double check we succeeded
+    processes = find_procs_by_name(gateway_process_match)
+    if processes:
+        return False
+    return True
