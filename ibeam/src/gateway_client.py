@@ -112,7 +112,7 @@ class GatewayClient():
 
 
         self._concurrent_maintenance_attempts = 1
-        self._health_server = new_health_server(var.HEALTH_SERVER_PORT, self.get_status, self.get_shutdown_status)
+        self._health_server = new_health_server(var.HEALTH_SERVER_PORT, self.http_handler.get_status, self.get_shutdown_status)
 
     def try_starting(self) -> Optional[List[int]]:
         return try_starting_gateway(
@@ -132,7 +132,7 @@ class GatewayClient():
 
     def try_authenticating(self, request_retries=1) -> (bool, bool, Status):
 
-        status = self.get_status(max_attempts=request_retries)
+        status = self.http_handler.get_status(max_attempts=request_retries)
         if status.authenticated and not status.competing:  # running, authenticated and not competing
             return True, False, status
 
@@ -175,11 +175,11 @@ class GatewayClient():
         time.sleep(3)  # buffer for session to be authenticated
 
         # double check if authenticated
-        status = self.get_status(max_attempts=max(request_retries, 2))
+        status = self.http_handler.get_status(max_attempts=max(request_retries, 2))
         if not status.authenticated:
             if status.session:
                 _LOGGER.error('Logging in succeeded, but active session is still not authenticated')
-                self.reauthenticate()
+                self.http_handler.reauthenticate()
 
                 if var.REAUTHENTICATE_WAIT > 0:
                     _LOGGER.info(f'Waiting {var.REAUTHENTICATE_WAIT} seconds to reauthenticate before restarting.')
@@ -196,7 +196,7 @@ class GatewayClient():
             return False, False, status
         elif status.competing:
             _LOGGER.info('Logging in succeeded, session is authenticated but competing, reauthenticating...')
-            self.reauthenticate()
+            self.http_handler.reauthenticate()
             time.sleep(var.RESTART_WAIT)
             return False, False, status
 
@@ -217,10 +217,10 @@ class GatewayClient():
         elif not original_status.connected or original_status.competing:
             _LOGGER.info('Competing or disconnected Gateway session found, logging out and reauthenticating...')
             self._logout()
-            self.reauthenticate()
+            self.http_handler.reauthenticate()
         else:
             _LOGGER.info('Active session found but not authenticated, reauthenticating...')
-            self.reauthenticate()
+            self.http_handler.reauthenticate()
 
         # if we only just logged in and succeeded, this will not reauthenticate but only check status
         status = self._repeatedly_reauthenticate(var.MAX_REAUTHENTICATE_RETRIES, condition_authenticated_true)
@@ -242,13 +242,13 @@ class GatewayClient():
     def _repeatedly_check_status(self, max_attempts=1, condition:callable=condition_authenticated_true):
         if max_attempts <= 1:
             # no need to do recursion in this case
-            return self.get_status()
+            return self.http_handler.get_status()
 
         if not callable(condition):
             raise ValueError(f'Condition must be a callable, found: "{type(condition)}": {condition}')
 
         def _check(attempt=0):
-            status = self.get_status()
+            status = self.http_handler.get_status()
 
             if condition(status):
                 return status
@@ -269,7 +269,7 @@ class GatewayClient():
 
         if max_attempts <= 1:
             # no need to do recursion in this case
-            self.reauthenticate()
+            self.http_handler.reauthenticate()
             return self._repeatedly_check_status(var.MAX_STATUS_CHECK_RETRIES, condition)
 
         if not callable(condition):
@@ -287,7 +287,7 @@ class GatewayClient():
             if condition(status):
                 return status
 
-            self.reauthenticate()
+            self.http_handler.reauthenticate()
             _LOGGER.info(f'Repeated reauthentication attempt number {attempt + 2}')
             return _reauthenticate(attempt + 1)
 
@@ -297,43 +297,9 @@ class GatewayClient():
     def get_shutdown_status(self) -> bool:
         return self._should_shutdown
 
-    def get_status(self, max_attempts=1) -> Status:
-        status = self.tickle()
-        if status.session:
-            status.response = json.loads(status.response.read().decode('utf8'))
-            # some fields are not present if unauthenticated
-            status.authenticated = status.response['iserver']['authStatus']['authenticated']
-            status.competing = status.response['iserver']['authStatus']['competing']
-            status.connected = status.response['iserver']['authStatus']['connected']
-            status.collision = status.response['collission']
-            status.session_id = status.response['session']
-            status.expires = int(status.response['ssoExpires'])
-            status.server_name = status.response['iserver']['authStatus'].get('serverInfo', {}).get('serverName')
-            status.server_version = status.response['iserver']['authStatus'].get('serverInfo', {}).get('serverVersion')
-        return status
-
-    def validate(self) -> bool:
-        """Validate provides information on the current session. Works also after logout."""
-        status = self.http_handler.try_request(self.base_url + var.ROUTE_VALIDATE, 'GET')
-        if status.session:
-            status.response = json.loads(status.response.read().decode('utf8'))
-            return status.response['RESULT']
-        return False
-
-    def tickle(self) -> Status:
-        return self.http_handler.try_request(self.base_url + var.ROUTE_TICKLE, 'POST')
-
-    def logout(self):
-        """Logout will log the user out, but maintain the session, allowing us to reauthenticate directly."""
-        return self.http_handler.url_request(self.base_url + var.ROUTE_LOGOUT, 'POST')
-
-    def reauthenticate(self):
-        """Reauthenticate will work only if there is an existing session."""
-        return self.http_handler.url_request(self.base_url + var.ROUTE_REAUTHENTICATE, 'POST')
-
     def _logout(self):
         try:
-            logout_response = self.logout()
+            logout_response = self.http_handler.logout()
             logout_success = logout_response.read().decode('utf8') == '{"status":true}'
             _LOGGER.info(f'Gateway logout {"successful" if logout_success else "unsuccessful"}')
         except Exception as e:

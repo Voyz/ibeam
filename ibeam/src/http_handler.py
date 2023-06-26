@@ -81,9 +81,12 @@ class HttpHandler():
 
     def __init__(self,
                  inputs_handler: InputsHandler,
-                 request_timeout: int = None):
+                 base_url:str,
+                 request_timeout: int = None
+                 ):
 
         self.inputs_handler = inputs_handler
+        self.base_url = base_url
 
         self.request_timeout = request_timeout if request_timeout is not None else var.REQUEST_TIMEOUT
         self.build_ssh_context()
@@ -206,6 +209,46 @@ class HttpHandler():
                     return _request(attempt + 1)
 
         return _request(0)
+
+    def get_status(self, max_attempts=1) -> Status:
+        """We use tickle instead of iserver/auth/status because it is more versatile."""
+        status = self.tickle(max_attempts=max_attempts)
+
+        if status.session:
+            status.response = json.loads(status.response.read().decode('utf8'))
+
+            status.authenticated = status.response['iserver']['authStatus']['authenticated']
+            status.competing = status.response['iserver']['authStatus']['competing']
+            status.connected = status.response['iserver']['authStatus']['connected']
+            status.collision = status.response['collission']
+            status.session_id = status.response['session']
+            status.expires = int(status.response['ssoExpires'])
+
+            # some fields are not present if unauthenticated
+            status.server_name = status.response['iserver']['authStatus'].get('serverInfo', {}).get('serverName')
+            status.server_version = status.response['iserver']['authStatus'].get('serverInfo', {}).get('serverVersion')
+
+        return status
+
+    def validate(self) -> bool:
+        """Validate provides information on the current session. Works also after logout."""
+        status = self.try_request(self.base_url + var.ROUTE_VALIDATE, 'GET')
+        if status.session:
+            status.response = json.loads(status.response.read().decode('utf8'))
+            return status.response['RESULT']
+        return False
+
+    def tickle(self, max_attempts=1) -> Status:
+        return self.try_request(self.base_url + var.ROUTE_TICKLE, 'POST', max_attempts=max_attempts)
+
+    def logout(self):
+        """Logout will log the user out, but maintain the session, allowing us to reauthenticate directly."""
+        return self.url_request(self.base_url + var.ROUTE_LOGOUT, 'POST')
+
+    def reauthenticate(self):
+        """Reauthenticate will work only if there is an existing session."""
+        return self.url_request(self.base_url + var.ROUTE_REAUTHENTICATE, 'POST')
+
 
     def __getstate__(self):
         state = self.__dict__.copy()

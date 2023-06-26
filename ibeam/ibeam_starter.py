@@ -54,8 +54,10 @@ if __name__ == '__main__':
     if driver_path is None:
         driver_path = input('Chrome Driver executable path: ')
 
+    base_url = var.GATEWAY_BASE_URL
+
     inputs_handler = InputsHandler(inputs_dir=inputs_dir, gateway_dir=gateway_dir)
-    http_handler = HttpHandler(inputs_handler=inputs_handler)
+    http_handler = HttpHandler(inputs_handler=inputs_handler, base_url=base_url)
     two_fa_handler = two_fa_selector.select(driver_path, inputs_handler)
 
     secrets_source = var.SECRETS_SOURCE
@@ -67,28 +69,29 @@ if __name__ == '__main__':
                            two_fa_handler=two_fa_handler,
                            secrets_handler=secrets_handler,
                            gateway_dir=gateway_dir,
-                           driver_path=driver_path)
+                           driver_path=driver_path,
+                           base_url=base_url,
+                           )
 
     _LOGGER.info(f'Environment variable configuration:\n{var.all_variables}')
 
     if args.start:
-        pid = client.try_starting()
-        success = pid is not None
-        if success:
-            _LOGGER.info(f'Gateway running with pid: {pid}')
+        pids = client.try_starting()
+        if pids is not None:
+            _LOGGER.info(f'Gateway running with pids: {pids}')
         else:
             _LOGGER.info(f'Gateway not running.')
     elif args.authenticate:
         success, _ = client.try_authenticating()
         _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
     elif args.check:
-        status = client.get_status()
+        status = client.http_handler.get_status()
         if status.session:
             _LOGGER.info(f'Gateway session {"" if status.authenticated else "not "}authenticated.')
         else:
             _LOGGER.info(f'No active Gateway session.')
     elif args.tickle:
-        success = client.tickle().running
+        success = client.http_handler.tickle().running
         _LOGGER.info(f'Gateway {"" if success else "not "}running.')
     elif args.user:
         client.user()
