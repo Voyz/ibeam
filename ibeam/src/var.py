@@ -53,6 +53,9 @@ REAUTHENTICATE_WAIT = int(os.environ.get('IBEAM_REAUTHENTICATE_WAIT', 15))
 HEALTH_SERVER_PORT = int(os.environ.get("IBEAM_HEALTH_SERVER_PORT", 5001))
 """Port to start health server on."""
 
+SECRETS_SOURCE = os.environ.get("IBEAM_SECRETS_SOURCE", 'env')
+"""Source of secrets."""
+
 ########### GATEWAY ROUTES ###########
 
 GATEWAY_BASE_URL = os.environ.get('IBEAM_GATEWAY_BASE_URL', "https://localhost:5000")

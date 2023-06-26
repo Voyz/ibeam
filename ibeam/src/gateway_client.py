@@ -17,6 +17,7 @@ from ibeam.src.authenticate import log_in
 from ibeam.src.http_handler import HttpHandler, Status
 from ibeam.src.inputs_handler import InputsHandler
 from ibeam.src.process_utils import find_procs_by_name, start_gateway
+from ibeam.src.secrets_handler import SecretsHandler
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -27,8 +28,6 @@ config.initialize()
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
-SECRETS_SOURCE_ENV = 'env'
-SECRETS_SOURCE_FS = 'fs'
 
 def condition_authenticated_true(status:Status) -> bool:
     # unhappy cases, we don't need to keep on retrying
@@ -57,6 +56,7 @@ class GatewayClient():
                  http_handler: HttpHandler,
                  inputs_handler: InputsHandler,
                  two_fa_handler: TwoFaHandler,
+                 secrets_handler: SecretsHandler,
                  account: str = None,
                  password: str = None,
                  key: str = None,
@@ -66,18 +66,14 @@ class GatewayClient():
 
         self._should_shutdown = False
 
-        self.secrets_source = os.environ.get(
-            'IBEAM_SECRETS_SOURCE', default=SECRETS_SOURCE_ENV)
-        """If IBEAM_SECRETS_SOURCE is set to
-        SECRETS_SOURCE_ENV, or if it is not set, then
-        environment values will be assumed to hold the
-        secret values directly.
+        self.gateway_dir = gateway_dir
+        self.driver_path = driver_path
 
-        If IBEAM_SECRETS_SOURCE is set to SECRETS_SOURCE_FS
-        then the environment values are assumed to be file
-        paths to read for the secret value."""
+        self.http_handler = http_handler
+        self.inputs_handler = inputs_handler
+        self.two_fa_handler = two_fa_handler
+        self.secrets_handler = secrets_handler
 
-        _LOGGER.info(f'Secrets source: {self.secrets_source}')
 
         self.encoding = os.environ.get(
             'IBEAM_ENCODING', default='UTF-8')
@@ -85,13 +81,13 @@ class GatewayClient():
 
         self.base_url = base_url if base_url is not None else var.GATEWAY_BASE_URL
 
-        self.account = account if account is not None else self.secret_value('IBEAM_ACCOUNT')
+        self.account = account if account is not None else self.secrets_handler.secret_value(self.encoding, 'IBEAM_ACCOUNT')
         """IBKR account name."""
 
-        self.password = password if password is not None else self.secret_value('IBEAM_PASSWORD')
+        self.password = password if password is not None else self.secrets_handler.secret_value(self.encoding, 'IBEAM_PASSWORD')
         """IBKR password."""
 
-        self.key = key if key is not None else self.secret_value('IBEAM_KEY')
+        self.key = key if key is not None else self.secrets_handler.secret_value(self.encoding, 'IBEAM_KEY')
         """Key to the IBKR password."""
 
         if self.account is None:
@@ -102,108 +98,10 @@ class GatewayClient():
             if self.key is None:
                 self.key = getpass('Key: ') or None
 
-        self.gateway_dir = gateway_dir
-        self.driver_path = driver_path
 
-        self.http_handler = http_handler
-        self.inputs_handler = inputs_handler
-        self.two_fa_handler = two_fa_handler
 
         self._concurrent_maintenance_attempts = 1
         self._health_server = new_health_server(var.HEALTH_SERVER_PORT, self.get_status, self.get_shutdown_status)
-
-    def secret_value(self, name: str,
-                     lstrip=None, rstrip='\r\n') -> Optional[str]:
-        """
-        secret_value reads secrets from os.environ or from
-        the filesystem.
-
-        Given a name, such as 'IBEAM_ACCOUNT', it will
-        examine os.environ for a value associated with that
-        name.
-
-        If no value has been set, None is returned.
-        Otherwise the self.secrets_source will be evaluated
-        to determine how to handle the value.
-
-        If self.secrets_source has been set to
-        SECRETS_SOURCE_ENV the os.environ value will be
-        returned as the secret value.
-
-        If self.secrets_source has been set to
-        SECRETS_SOURCE_FS then the os.environ value is
-        treated as a filesystem path.  The file will be read
-        as text and its contents returned as the secret
-        value.
-
-        Parameters:
-          name:
-            The identifier for the value, e.g.,
-            'IBEAM_ACCOUNT', 'IBEAM_PASSWORD', or
-            'IBEAM_KEY'.
-          lstrip:
-            If not None, strip these characters from the
-            left of the returned value (default: None).
-          rstrip:
-            If not None, strip these characters from the
-            right of the returned value (default: '\r\n')
-        Returns:
-          If the name is not defined in os.environ then None
-          is returned.
-
-          If self.secrets_source is SECRETS_SOURCE_ENV then
-          the os.environ value is returned as the secret
-          value.
-
-          If self.secrets_source is SECRETS_SOURCE_FS then
-          the os.environ value is treated as file path.  The
-          file is read as a text file and its contents
-          returned as the secret value.
-
-          If an error is encountered reading the file then
-          an error is logged and None is returned.
-        """
-        # read the environment value for name
-        value = os.environ.get(name)
-        if value is None:
-            # no key for this name, nothing to do
-            return None
-
-        if self.secrets_source == SECRETS_SOURCE_ENV:
-            # treat environment values as the secrets themselves
-            if lstrip is not None:
-                value = value.lstrip(lstrip)
-
-            if rstrip is not None:
-                value = value.rstrip(rstrip)
-
-            return value
-        elif self.secrets_source == SECRETS_SOURCE_FS:
-            # treat environment values as filesystem paths to the secrets
-            if not os.path.isfile(value):
-                _LOGGER.error(
-                    f'Unable to read env value for {name}: value is not a file')
-                return None
-
-            try:
-                with open(value, mode='rt', encoding=self.encoding) as fh:
-                    secret = fh.read()
-
-                    if lstrip is not None:
-                        secret = secret.lstrip(lstrip)
-
-                    if rstrip is not None:
-                        secret = secret.rstrip(rstrip)
-
-                    return secret
-            except IOError:
-                _LOGGER.error(
-                    f'Unable to read env value for {name} as a file.')
-                return None
-        else:
-            _LOGGER.error(
-                f'Unknown Secrets Source: {self.secrets_source}')
-            return None
 
     def try_starting(self) -> Optional[int]:
         processes = find_procs_by_name(var.GATEWAY_PROCESS_MATCH)

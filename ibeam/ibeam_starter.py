@@ -4,6 +4,8 @@ import os
 import sys
 from pathlib import Path
 
+from ibeam.src.secrets_handler import SECRETS_SOURCE_ENV, SecretsHandler
+
 _this_filedir = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, str(Path(_this_filedir).parent))
 
@@ -56,9 +58,14 @@ if __name__ == '__main__':
     http_handler = HttpHandler(inputs_handler=inputs_handler)
     two_fa_handler = two_fa_selector.select(driver_path, inputs_handler)
 
+    secrets_source = var.SECRETS_SOURCE
+    _LOGGER.info(f'Secrets source: {secrets_source}')
+    secrets_handler = SecretsHandler(secrets_source=secrets_source)
+
     client = GatewayClient(http_handler=http_handler,
                            inputs_handler=inputs_handler,
                            two_fa_handler=two_fa_handler,
+                           secrets_handler=secrets_handler,
                            gateway_dir=gateway_dir,
                            driver_path=driver_path)
 
