@@ -92,7 +92,7 @@ class GatewayClient():
         self._health_server = new_health_server(var.IBEAM_HEALTH_SERVER_PORT, self.get_status, self.get_shutdown_status)
 
     def secret_value(self, name: str,
-                     lstrip=None, rstrip='\r\n') -> str:
+                     lstrip=None, rstrip='\r\n') -> Optional[str]:
         """
         secret_value reads secrets from os.environ or from
         the filesystem.
@@ -232,9 +232,6 @@ class GatewayClient():
                                     base_url=self.base_url,
                                     two_fa_handler=self.two_fa_handler)
 
-    # def _reauthenticate(self):
-    #     self._try_request(self.base_url + _ROUTE_REAUTHENTICATE, False)
-
     def try_authenticating(self, request_retries=1) -> (bool, bool):
         status = self.get_status(max_attempts=request_retries)
         if status.authenticated and not status.competing:  # running, authenticated and not competing
@@ -317,11 +314,6 @@ class GatewayClient():
         except Exception as e:
             _LOGGER.error(f'Exception during logout: {e}')
 
-        # try:
-        #     killed = self.kill()
-        #     _LOGGER.info(f'Gateway shutdown {"successful" if killed else "unsuccessful"}')
-        # except Exception as e:
-        #     _LOGGER.error(f'Exception during shutdown: {e}')
 
     def user(self):
         try:
