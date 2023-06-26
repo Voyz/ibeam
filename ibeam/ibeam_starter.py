@@ -98,9 +98,10 @@ if __name__ == '__main__':
         success = client.kill()
         _LOGGER.info(f'Gateway {"" if success else "not "}killed.')
     else:
-        success, shutdown = client.start_and_authenticate()
+        # we have to do this here first because APS waits before running it the first time
+        success, shutdown, status = client.start_and_authenticate()
         if success:
-            _LOGGER.info('Gateway running and authenticated.')
+            _LOGGER.info(f'Gateway running and authenticated, session id: {status.session_id}, server name: {status.server_name}')
 
         if shutdown:
             _LOGGER.warning('Shutting IBeam down due to critical error.')

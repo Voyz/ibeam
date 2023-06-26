@@ -5,6 +5,8 @@ import shutil
 import socket
 import ssl
 from pathlib import Path
+from urllib import request
+
 from ibeam.src import var
 from urllib.error import HTTPError, URLError
 import urllib.request
@@ -93,11 +95,12 @@ class HttpHandler():
             self.ssl_context.check_hostname = True
             self.ssl_context.load_verify_locations(self.inputs_handler.cecert_pem_path)
 
-    def url_request(self, url):
-        _LOGGER.debug(f'HTTPS{"" if self.inputs_handler.valid_certificates else " (unverified)"} request to: {url}')
-        return urllib.request.urlopen(url, context=self.ssl_context, timeout=self.request_timeout)
+    def url_request(self, url, method='GET'):
+        _LOGGER.debug(f'{method} {url}{"" if self.inputs_handler.valid_certificates else " (unverified)"}')
+        req = request.Request(url, method=method)
+        return urllib.request.urlopen(req, context=self.ssl_context, timeout=self.request_timeout)
 
-    def try_request(self, url, max_attempts=1) -> Status:
+    def try_request(self, url, method='GET', max_attempts=1) -> Status:
         """Attempts a HTTP request and returns Status object indicating whether the gateway can be reached, whether there is an active session and whether it is authenticated. Attempts to repeat the request up to max_attempts times.
 
         status.running -> gateway running
@@ -110,7 +113,7 @@ class HttpHandler():
             status = Status()
             try:
                 # if this doesn't throw an exception, the gateway is running and there is an active session
-                response = self.url_request(url)
+                response = self.url_request(url, method=method)
                 status.running = True
                 status.session = True
                 status.response = response
