@@ -58,7 +58,9 @@ if __name__ == '__main__':
 
     inputs_handler = InputsHandler(inputs_dir=inputs_dir, gateway_dir=gateway_dir)
     http_handler = HttpHandler(inputs_handler=inputs_handler, base_url=base_url)
-    two_fa_handler = two_fa_selector.select(driver_path, inputs_handler)
+
+    handler_name = var.TWO_FA_HANDLER
+    two_fa_handler = two_fa_selector.select(handler_name, driver_path, inputs_handler)
 
     secrets_source = var.SECRETS_SOURCE
     _LOGGER.info(f'Secrets source: {secrets_source}')

@@ -15,8 +15,7 @@ _CUSTOM_TWO_FA_HANDLER = os.environ.get('IBEAM_CUSTOM_TWO_FA_HANDLER', 'custom_t
 """Fully qualified path of the custom 2FA handler in the inputs directory."""
 
 
-def select(driver_path, inputs_handler: InputsHandler) -> Union[TwoFaHandler, None]:
-    handler_name = var.TWO_FA_HANDLER
+def select(handler_name, driver_path, inputs_handler: InputsHandler) -> Union[TwoFaHandler, None]:
 
     if handler_name == 'GOOGLE_MSG':
         handler = GoogleMessagesTwoFaHandler(driver_path)
