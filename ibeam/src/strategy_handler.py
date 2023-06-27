@@ -182,10 +182,7 @@ class StrategyHandler():
         # if we only just logged in and succeeded, this will not reauthenticate but only check status
         status = self._repeatedly_reauthenticate(self.max_reauthenticate_retries, condition_authenticated_true)
 
-        if not status.running or not status.session:
-            return False, False, status
-
-        if not status.connected or status.competing or not status.authenticated:
+        if not status.running or not status.session or not status.connected or status.competing or not status.authenticated:
             _LOGGER.error(f'Repeatedly reauthenticating failed {self.max_reauthenticate_retries} times. Killing the Gateway and restarting the authentication process.')
 
             try:
