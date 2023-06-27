@@ -35,7 +35,7 @@ LOG_TO_FILE = bool(os.environ.get('IBEAM_LOG_TO_FILE', True))
 LOG_FORMAT = os.environ.get('IBEAM_LOG_FORMAT', '%(asctime)s|%(levelname)-.1s| %(message)s')
 """Log format that is used by IBeam. """
 
-REQUEST_RETRIES = int(os.environ.get('IBEAM_REQUEST_RETRIES', 1))
+REQUEST_RETRIES = int(os.environ.get('IBEAM_REQUEST_RETRIES', 2))
 """How many times to reattempt a request to the gateway."""
 
 REQUEST_TIMEOUT = int(os.environ.get('IBEAM_REQUEST_TIMEOUT', 15))
@@ -129,7 +129,7 @@ AUTHENTICATION_STRATEGY = os.environ.get('IBEAM_AUTHENTICATION_STRATEGY', 'A')
 MAX_STATUS_CHECK_RETRIES = int(os.environ.get('IBEAM_MAX_STATUS_CHECK_RETRIES', 15))
 """How many times to reattempt the status check."""
 
-MAX_REAUTHENTICATE_RETRIES = int(os.environ.get('IBEAM_MAX_REAUTHENTICATE_RETRIES', 5))
+MAX_REAUTHENTICATE_RETRIES = int(os.environ.get('IBEAM_MAX_REAUTHENTICATE_RETRIES', 3))
 """How many times to reattempt the reauthentication before restarting the Gateway."""
 
 ########### TWO-FACTOR AUTHENTICATION ###########
