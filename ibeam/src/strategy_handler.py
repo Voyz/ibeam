@@ -64,7 +64,6 @@ class StrategyHandler():
         self.gateway_process_match = gateway_process_match
         self.log_in_function = log_in_function
 
-
     def try_authenticating(self, request_retries=1) -> (bool, bool, Status):
 
         status = self.http_handler.get_status(max_attempts=request_retries)
@@ -86,8 +85,6 @@ class StrategyHandler():
             else:
                 _LOGGER.error(f'Unknown authentication strategy: "{self.authentication_strategy}". Defaulting to strategy A.')
                 return self._authentication_strategy_A(status, request_retries)
-
-
 
     def _authentication_strategy_A(self, status:Status, request_retries=1) -> (bool, bool, Status):
         if status.session:
@@ -136,23 +133,51 @@ class StrategyHandler():
 
         return True, False, status
 
-
-    def _authentication_strategy_B(self, original_status:Status, request_retries=1) -> (bool, bool, Status):
-        if not original_status.session:
+    def _authentication_strategy_B(self, status:Status, request_retries=1) -> (bool, bool, Status):
+        if not status.session:
             _LOGGER.info('No active sessions, logging in...')
+            return self._log_in(status)
 
-            success, shutdown = self.log_in_function()
-            _LOGGER.info(f'Logging in {"succeeded" if success else "failed"}')
-            if not success or shutdown:
-                return False, shutdown, original_status
-
-        elif not original_status.connected or original_status.competing:
+        elif not status.connected or status.competing:
             _LOGGER.info('Competing or disconnected Gateway session found, logging out and reauthenticating...')
-            self._logout()
-            self.http_handler.reauthenticate()
+            return self._reauthenticate(status, first_logout=True)
         else:
             _LOGGER.info('Active session found but not authenticated, reauthenticating...')
+            return self._reauthenticate(status)
+
+    def _log_in(self, status):
+        try:
+            success, shutdown = self.log_in_function()
+            _LOGGER.info(f'Logging in {"succeeded" if success else "failed"}')
+
+            if not success or shutdown:
+                return False, shutdown, status
+        except Exception as e:
+            _LOGGER.exception(f'Error logging in: {e}')
+            return False, False, status
+
+        return self._post_authentication()
+
+    def _reauthenticate(self, status, first_logout=False):
+        try:
+            if first_logout:
+                self._logout()
             self.http_handler.reauthenticate()
+        except Exception as e:
+            _LOGGER.exception(f'Error reauthenticating: {e}')
+            return False, False, status
+
+        return self._post_authentication()
+    def _logout(self):
+        try:
+            logout_response = self.http_handler.logout()
+            logout_success = logout_response.read().decode('utf8') == '{"status":true}'
+            _LOGGER.info(f'Gateway logout {"successful" if logout_success else "unsuccessful"}')
+        except Exception as e:
+            _LOGGER.exception(f'Exception logging out: {e}')
+
+    def _post_authentication(self):
+        """This method double-checks that the authentication was successful, and if not, reauthenticates"""
 
         # if we only just logged in and succeeded, this will not reauthenticate but only check status
         status = self._repeatedly_reauthenticate(self.max_reauthenticate_retries, condition_authenticated_true)
@@ -163,7 +188,12 @@ class StrategyHandler():
         if not status.connected or status.competing or not status.authenticated:
             _LOGGER.error(f'Repeatedly reauthenticating failed {self.max_reauthenticate_retries} times. Killing the Gateway and restarting the authentication process.')
 
-            success = kill_gateway(self.gateway_process_match)
+            try:
+                success = kill_gateway(self.gateway_process_match)
+            except Exception as e:
+                _LOGGER.exception(f'Error killing the Gateway: {e}')
+                success = False
+
             if not success:
                 _LOGGER.error(f'Killing the Gateway process failed')
 
@@ -171,64 +201,43 @@ class StrategyHandler():
 
         return True, False, status
 
-    def _repeatedly_check_status(self, max_attempts=1, condition:callable=condition_authenticated_true):
-        if max_attempts <= 1:
-            # no need to do recursion in this case
-            return self.http_handler.get_status()
 
+    def _repeatedly_check_status(self, max_attempts=1, condition:callable=condition_authenticated_true):
         if not callable(condition):
             raise ValueError(f'Condition must be a callable, found: "{type(condition)}": {condition}')
 
-        def _check(attempt=0):
+        status = None
+
+        for attempt in range(max_attempts):
             status = self.http_handler.get_status()
 
             if condition(status):
                 return status
 
-            if attempt >= max_attempts - 1:
-                _LOGGER.info(
-                    f'Max status check retries reached after {max_attempts} attempts. Consider increasing the retries by setting IBEAM_MAX_STATUS_CHECK_ATTEMPTS environment variable')
-                return status
-            else:
+            if attempt < max_attempts - 1:
                 time.sleep(1)
                 if attempt == 0:
                     _LOGGER.info(f'Repeating status check attempts another {max_attempts - attempt - 1} times')
-                return _check(attempt + 1)
 
-        return _check(0)
+        _LOGGER.info(f'Max status check retries reached after {max_attempts} attempts. Consider increasing the retries by setting IBEAM_MAX_STATUS_CHECK_ATTEMPTS environment variable')
+        return status
 
     def _repeatedly_reauthenticate(self, max_attempts=1, condition:callable=condition_authenticated_true):
-
-        if max_attempts <= 1:
-            # no need to do recursion in this case
-            self.http_handler.reauthenticate()
-            return self._repeatedly_check_status(self.max_status_check_retries, condition)
-
         if not callable(condition):
             raise ValueError(f'Condition must be a callable, found: "{type(condition)}": {condition}')
 
-        def _reauthenticate(attempt=0):
+        status = None
+
+        for attempt in range(max_attempts):
             status = self._repeatedly_check_status(self.max_status_check_retries, condition)
             _LOGGER.info(str(status))
-
-            if attempt >= max_attempts - 1:
-                _LOGGER.info(
-                    f'Max reauthenticate retries reached after {max_attempts} attempts. Consider increasing the retries by setting IBEAM_MAX_REAUTHENTICATE_RETRIES environment variable')
-                return status
 
             if condition(status):
                 return status
 
-            self.http_handler.reauthenticate()
-            _LOGGER.info(f'Repeated reauthentication attempt number {attempt + 2}')
-            return _reauthenticate(attempt + 1)
+            if attempt < max_attempts - 1:
+                self.http_handler.reauthenticate()
+                _LOGGER.info(f'Repeated reauthentication attempt number {attempt + 2}')
 
-        return _reauthenticate(0)
-
-    def _logout(self):
-        try:
-            logout_response = self.http_handler.logout()
-            logout_success = logout_response.read().decode('utf8') == '{"status":true}'
-            _LOGGER.info(f'Gateway logout {"successful" if logout_success else "unsuccessful"}')
-        except Exception as e:
-            _LOGGER.error(f'Exception during logout: {e}')
+        _LOGGER.info(f'Max reauthenticate retries reached after {max_attempts} attempts. Consider increasing the retries by setting IBEAM_MAX_REAUTHENTICATE_RETRIES environment variable')
+        return status
