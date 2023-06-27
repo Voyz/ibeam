@@ -82,7 +82,7 @@ if __name__ == '__main__':
         else:
             _LOGGER.info(f'Gateway not running.')
     elif args.authenticate:
-        success, _ = client.try_authenticating()
+        success, _ = client.strategy_handler.try_authenticating()
         _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
     elif args.check:
         status = client.http_handler.get_status()
