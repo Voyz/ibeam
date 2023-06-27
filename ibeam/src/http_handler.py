@@ -19,6 +19,23 @@ _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
 
 class Status():
+    """
+    A class to represent the status of the Gateway and our connection to IBKR servers.
+
+    Attributes:
+        running (bool): Whether the Gateway is running.
+        session (bool): Whether there is an active session.
+        response (dict): The server response to the request.
+        connected (bool): Whether the server reports 'connected' to the Gateway.
+        authenticated (bool): Whether the session is authenticated.
+        competing (bool): Whether there are competing sessions on the server.
+        collision (bool): Currently no idea what this flag means.
+        session_id (str): The ID of the current session, if one exists.
+        server_name (str): The name of the server.
+        server_version (str): The version of the server.
+        expires (int): The expiration time of the current session, represented as milliseconds.
+
+    """
     def __init__(self,
                  running: bool = False,
                  session: bool = False,
