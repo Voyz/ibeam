@@ -4,3 +4,4 @@ pyvirtualdisplay==3.0.*
 apscheduler==3.10.*
 psutil==5.9.*
 requests==2.30.*
+pillow==9.5.*
