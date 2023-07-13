@@ -151,6 +151,11 @@ class HttpHandler():
                     _LOGGER.error(f'IBKR server error: "{e}". One of reasons for this error is IBKR server restart.')
                     status.session = False  # ensure we reauthenticate
 
+
+                elif e.code == 503 and 'Service Unavailable' in str(e):
+                    _LOGGER.error(f'IBKR service unavailable: "{e}". It seems IBKR servers are not ready to handle requests. We may need to wait until the servers are ready.')
+                    status.session = False  # ensure we reauthenticate
+
                 else:  # todo: possibly other codes could appear when not authenticated, fix when necessary
                     try:
                         raise RuntimeError('Unrecognised HTTPError') from e
