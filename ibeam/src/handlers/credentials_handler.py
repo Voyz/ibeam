@@ -14,14 +14,17 @@ class CredentialsHandler():
             'IBEAM_ENCODING', default='UTF-8')
 
 
+    @property
     def account(self):
         """IBKR account name."""
-        self.account = self.secrets_handler.secret_value(self.encoding, 'IBEAM_ACCOUNT')
+        return self.secrets_handler.secret_value(self.encoding, 'IBEAM_ACCOUNT')
 
+    @property
     def password(self):
         """IBKR account password."""
-        self.password = self.secrets_handler.secret_value(self.encoding, 'IBEAM_PASSWORD')
+        return self.secrets_handler.secret_value(self.encoding, 'IBEAM_PASSWORD')
 
+    @property
     def key(self):
         """Key to the IBKR password."""
-        self.key = self.secrets_handler.secret_value(self.encoding, 'IBEAM_KEY')
+        return self.secrets_handler.secret_value(self.encoding, 'IBEAM_KEY')

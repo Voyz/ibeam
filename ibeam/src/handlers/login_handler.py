@@ -19,8 +19,8 @@ class LoginHandler():
 
 
     def login(self):
-        log_in(
-            driver_path=self.cnf.GATEWAY_DRIVER_PATH,
+        return log_in(
+            driver_path=self.cnf.CHROME_DRIVER_PATH,
             account=self.credentials_handler.account,
             password=self.credentials_handler.password,
             key=self.credentials_handler.key,
