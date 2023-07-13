@@ -1,6 +1,7 @@
 import datetime
 import logging
 import os
+import sys
 
 from ibeam.src import var
 
@@ -15,7 +16,7 @@ def initialize():
     logger = logging.getLogger('ibeam')
     formatter = logging.Formatter(var.LOG_FORMAT)
 
-    stream_handler = logging.StreamHandler()
+    stream_handler = logging.StreamHandler(stream=sys.stdout)
 
     stream_handler.setFormatter(formatter)
     stream_handler.setLevel(getattr(logging, var.LOG_LEVEL))
