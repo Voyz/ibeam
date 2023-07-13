@@ -7,6 +7,7 @@ from typing import Union, Optional
 from cryptography.fernet import Fernet
 from pyvirtualdisplay import Display
 from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
@@ -258,7 +259,7 @@ def log_in(driver_path,
                         f'######## ATTENTION! ######## No 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more: https://github.com/Voyz/ibeam/wiki/Two-Factor-Authentication')
                     return False, True
 
-                two_fa_code = handle_two_fa(two_fa_handler, driver)
+                two_fa_code = handle_two_fa(two_fa_handler, driver, var.STRICT_TWO_FA_CODE)
 
                 if two_fa_code is None:
                     _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
@@ -359,7 +360,7 @@ def log_in(driver_path,
     return success, False
 
 
-def handle_two_fa(two_fa_handler, driver) -> Union[str, None]:
+def handle_two_fa(two_fa_handler:TwoFaHandler, driver:WebDriver, strict_two_fa_code:bool) -> Optional[str]:
     _LOGGER.info(f'Attempting to acquire 2FA code from: {two_fa_handler}')
 
     try:
@@ -372,7 +373,7 @@ def handle_two_fa(two_fa_handler, driver) -> Union[str, None]:
 
     _LOGGER.debug(f'2FA code returned: {two_fa_code}')
 
-    if var.STRICT_TWO_FA_CODE and two_fa_code is not None and \
+    if strict_two_fa_code and two_fa_code is not None and \
             (not two_fa_code.isdigit() or len(two_fa_code) != 6):
         _LOGGER.error(f'Illegal 2FA code returned: {two_fa_code}. Ensure the 2FA code contains 6 digits or disable this check by setting IBEAM_STRICT_TWO_FA_CODE to False.')
         return None
