@@ -46,7 +46,9 @@ class ExternalRequestTwoFaHandler(TwoFaHandler):
                  timeout: int = None,
                  params=None,
                  data=None,
-                 headers=None):
+                 headers=None,
+                 *args, **kwargs
+                 ):
 
         self.method = method if method is not None else _EXTERNAL_REQUEST_METHOD
         self.url = url if url is not None else _EXTERNAL_REQUEST_URL
@@ -54,6 +56,7 @@ class ExternalRequestTwoFaHandler(TwoFaHandler):
         self.params = params if params is not None else parse_json(_EXTERNAL_REQUEST_PARAMS)
         self.data = data if data is not None else parse_json(_EXTERNAL_REQUEST_DATA)
         self.headers = headers if headers is not None else parse_json(_EXTERNAL_REQUEST_HEADERS)
+        super().__init__(*args, **kwargs)
 
     def get_two_fa_code(self, _) -> Union[str, None]:
         try:

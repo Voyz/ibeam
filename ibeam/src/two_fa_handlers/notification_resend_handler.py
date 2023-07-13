@@ -60,7 +60,7 @@ class NotificationResendTwoFaHandler(TwoFaHandler):
             return self.check_and_resend(driver)
         except Exception as e:
             _LOGGER.exception(f'Exception while handling notification resend 2FA: {e}')
-            save_screenshot(driver, postfix='__notification_2fa')
+            save_screenshot(driver, self.outputs_dir, postfix='__notification_2fa')
 
     def __str__(self):
         return "NotificationResendTwoFaHandler()"

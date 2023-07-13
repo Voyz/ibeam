@@ -35,4 +35,5 @@ class LoginHandler():
             min_presubmit_buffer=self.cnf.MIN_PRESUBMIT_BUFFER,
             max_failed_auth=self.cnf.MAX_FAILED_AUTH,
             page_load_timeout=self.cnf.PAGE_LOAD_TIMEOUT,
+            outputs_dir=self.cnf.OUTPUTS_DIR,
         )

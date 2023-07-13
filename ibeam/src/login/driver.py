@@ -3,7 +3,7 @@ import os
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Union
+from typing import Union, Optional
 
 from selenium import webdriver
 from selenium.common import WebDriverException
@@ -52,10 +52,10 @@ def release_chrome_driver(driver):
     driver.quit()
 
 
-def start_driver(base_url, driver_path) -> Union[webdriver.Chrome, None]:
+def start_driver(base_url, driver_path, page_load_timeout) -> Optional[webdriver.Chrome]:
     try:
         driver = new_chrome_driver(driver_path)
-        driver.set_page_load_timeout(var.PAGE_LOAD_TIMEOUT)
+        driver.set_page_load_timeout(page_load_timeout)
     except WebDriverException as e:
         if 'net::ERR_CONNECTION_REFUSED' in e.msg:
             _LOGGER.error(
@@ -71,12 +71,12 @@ def start_driver(base_url, driver_path) -> Union[webdriver.Chrome, None]:
     return driver
 
 
-def save_screenshot(driver, postfix=''):
+def save_screenshot(driver, outputs_dir, postfix=''):
     if not var.ERROR_SCREENSHOTS or driver is None:
         return
 
     now = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    outputs_path = Path(var.OUTPUTS_DIR)
+    outputs_path = Path(outputs_dir)
     screenshot_name = f'ibeam__{ibeam.__version__}__{now}{postfix}.png'
 
     try:
@@ -85,11 +85,11 @@ def save_screenshot(driver, postfix=''):
         driver.set_window_size(required_width, required_height)
 
         outputs_path.mkdir(exist_ok=True)
-        screenshot_filepath = os.path.join(var.OUTPUTS_DIR, screenshot_name)
+        screenshot_filepath = os.path.join(outputs_dir, screenshot_name)
 
         # a little hack to prevent overwriting screenshots saved in the same second
         if os.path.exists(screenshot_filepath):
-            save_screenshot(driver, postfix + '_')
+            save_screenshot(driver, outputs_dir, postfix + '_')
             return
 
         _LOGGER.info(

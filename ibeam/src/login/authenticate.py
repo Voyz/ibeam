@@ -131,7 +131,9 @@ def log_in(driver_path,
            max_presubmit_buffer: int = None,
            min_presubmit_buffer: int = None,
            max_failed_auth: int = None,
-           page_load_timeout: int = None) -> (bool, bool):
+           page_load_timeout: int = None,
+           outputs_dir: str = None,
+           ) -> (bool, bool):
     """
     Logs into the currently running gateway.
 
@@ -158,7 +160,7 @@ def log_in(driver_path,
             display = Display(visible=False, size=(800, 600))
             display.start()
 
-        driver = start_driver(base_url, driver_path)
+        driver = start_driver(base_url, driver_path, page_load_timeout)
         if driver is None:
             return False, False
 
@@ -300,7 +302,7 @@ def log_in(driver_path,
 
             if trigger_identifier == elements['ERROR_EL']:
                 _LOGGER.error(f'Error displayed by the login webpage: {trigger.text}')
-                save_screenshot(driver, '__failed_attempt')
+                save_screenshot(driver, outputs_dir, '__failed_attempt')
 
                 if trigger.text == 'Invalid username password combination' and presubmit_buffer < max_presubmit_buffer:
                     _PRESUBMIT_BUFFER += 5
@@ -349,11 +351,11 @@ def log_in(driver_path,
         else:
             _LOGGER.error(f'Timeout reached searching for website elements, but the website seems to be loaded correctly. It is possible the setup is incorrect. \nWebsite version: {website_version} \nDOM elements searched for: {elements}. \nException:\n{exception_to_string(e)}')
 
-        save_screenshot(driver, '__timeout-exception')
+        save_screenshot(driver, outputs_dir, '__timeout-exception')
         success = False
     except Exception as e:
         _LOGGER.error(f'Error encountered during authentication \nException:\n{exception_to_string(e)}')
-        save_screenshot(driver, '__generic-exception')
+        save_screenshot(driver, outputs_dir, '__generic-exception')
         success = False
     finally:
         # if sys.platform == 'linux' and display is not None:

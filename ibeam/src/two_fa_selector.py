@@ -16,17 +16,18 @@ from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 def select(handler_name,
            driver_path,
+           outputs_dir,
            custom_two_fa_handler,
            inputs_handler: InputsHandler) -> Union[TwoFaHandler, None]:
 
     if handler_name == 'GOOGLE_MSG':
-        handler = GoogleMessagesTwoFaHandler(driver_path)
+        handler = GoogleMessagesTwoFaHandler(driver_path, outputs_dir)
     elif handler_name == 'EXTERNAL_REQUEST':
-        handler = ExternalRequestTwoFaHandler()
+        handler = ExternalRequestTwoFaHandler(outputs_dir)
     elif handler_name == 'NOTIFICATION_RESEND':
-        handler = NotificationResendTwoFaHandler()
+        handler = NotificationResendTwoFaHandler(outputs_dir)
     elif handler_name == 'CUSTOM_HANDLER':
-        handler = load_custom_two_fa_handler(custom_two_fa_handler, inputs_handler)()
+        handler = load_custom_two_fa_handler(custom_two_fa_handler, inputs_handler)(outputs_dir)
     else:
         handler = None
 

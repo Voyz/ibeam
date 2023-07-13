@@ -40,8 +40,9 @@ _GOOG_MESSAGE_CLICK_RETRIES = int(os.environ.get('IBEAM_GOOG_MESSAGE_CLICK_RETRI
 
 class GoogleMessagesTwoFaHandler(TwoFaHandler):
 
-    def __init__(self, driver_path):
+    def __init__(self, driver_path, *args, **kwargs):
         self.driver_path = driver_path
+        super().__init__(*args, **kwargs)
 
     def get_two_fa_code(self, _) -> Union[str, None]:
         code_two_fa = None
@@ -77,7 +78,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
 
             if not sms_list_el:
                 _LOGGER.error('Timeout or authentication error while loading sms messages.')
-                save_screenshot(driver_2fa, postfix='__google_2fa')
+                save_screenshot(driver_2fa, self.outputs_dir, postfix='__google_2fa')
             else:
                 _LOGGER.info(f'First SMS found: "{sms_list_el[0].text}"')
 
@@ -100,7 +101,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
                         else:
                             _LOGGER.exception(f'Exception while marking SMS message as read: {e}')
 
-                        save_screenshot(driver_2fa, postfix='__google_2fa')
+                        save_screenshot(driver_2fa, self.outputs_dir, postfix='__google_2fa')
 
                         _LOGGER.info(f'Retrying clicking SMS message {_GOOG_MESSAGE_CLICK_RETRIES - i - 1} more times.')
                         time.sleep(2)
@@ -111,7 +112,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
                 time.sleep(2)  # wait for click to mark message as read
 
         except:
-            save_screenshot(driver_2fa, '__google-msg')
+            save_screenshot(driver_2fa, self.outputs_dir, '__google-msg')
             raise
         finally:
             _LOGGER.info(f'Cleaning up the resources. Google MSG Driver: {driver_2fa}')

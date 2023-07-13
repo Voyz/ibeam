@@ -54,7 +54,13 @@ if __name__ == '__main__':
     inputs_handler = InputsHandler(inputs_dir=cnf.INPUTS_DIR, gateway_dir=cnf.GATEWAY_DIR)
     http_handler = HttpHandler(inputs_handler=inputs_handler, base_url=cnf.GATEWAY_BASE_URL)
 
-    two_fa_handler = two_fa_selector.select(cnf.TWO_FA_HANDLER, cnf.CHROME_DRIVER_PATH, cnf.CUSTOM_TWO_FA_HANDLER, inputs_handler)
+    two_fa_handler = two_fa_selector.select(
+        handler_name=cnf.TWO_FA_HANDLER,
+        driver_path=cnf.CHROME_DRIVER_PATH,
+        outputs_dir=cnf.OUTPUTS_DIR,
+        custom_two_fa_handler=cnf.CUSTOM_TWO_FA_HANDLER,
+        inputs_handler=inputs_handler
+    )
 
     _LOGGER.info(f'Secrets source: {cnf.SECRETS_SOURCE}')
     secrets_handler = SecretsHandler(secrets_source=cnf.SECRETS_SOURCE)
