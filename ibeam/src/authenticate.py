@@ -373,10 +373,11 @@ def log_in(driver_path,
                     two_fa_el[0].send_keys(two_fa_code)
 
                     _LOGGER.info('Submitting the 2FA form')
-                    submit_form_el = driver.find_element(By.CSS_SELECTOR, elements['SUBMIT_EL'])
-                    WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
-                        EC.element_to_be_clickable((By.CSS_SELECTOR, elements['SUBMIT_EL'])))
-                    submit_form_el.click()
+                    two_fa_el[0].send_keys(Keys.RETURN)
+                    # submit_form_el = driver.find_element(By.CSS_SELECTOR, elements['SUBMIT_EL'])
+                    # WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                    #     EC.element_to_be_clickable((By.CSS_SELECTOR, elements['SUBMIT_EL'])))
+                    # submit_form_el.click()
 
                     trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
                         any_of(success_present, ibkey_promo_skip_clickable, error_displayed))
