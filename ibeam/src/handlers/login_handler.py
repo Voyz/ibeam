@@ -25,5 +25,14 @@ class LoginHandler():
             password=self.credentials_handler.password,
             key=self.credentials_handler.key,
             base_url=self.cnf.GATEWAY_BASE_URL,
-            two_fa_handler=self.two_fa_handler
+            two_fa_handler=self.two_fa_handler,
+            route_auth=self.cnf.ROUTE_AUTH,
+            two_fa_select_target=self.cnf.TWO_FA_SELECT_TARGET,
+            strict_two_fa_code=self.cnf.STRICT_TWO_FA_CODE,
+            max_immediate_attempts=self.cnf.MAX_IMMEDIATE_ATTEMPTS,
+            oauth_timeout=self.cnf.OAUTH_TIMEOUT,
+            max_presubmit_buffer=self.cnf.MAX_PRESUBMIT_BUFFER,
+            min_presubmit_buffer=self.cnf.MIN_PRESUBMIT_BUFFER,
+            max_failed_auth=self.cnf.MAX_FAILED_AUTH,
+            page_load_timeout=self.cnf.PAGE_LOAD_TIMEOUT,
         )

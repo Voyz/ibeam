@@ -122,7 +122,16 @@ def log_in(driver_path,
            password,
            key: str = None,
            base_url: str = None,
-           two_fa_handler: TwoFaHandler = None) -> (bool, bool):
+           two_fa_handler: TwoFaHandler = None,
+           route_auth: str = None,
+           two_fa_select_target: str = None,
+           strict_two_fa_code: bool = None,
+           max_immediate_attempts: int = None,
+           oauth_timeout: int = None,
+           max_presubmit_buffer: int = None,
+           min_presubmit_buffer: int = None,
+           max_failed_auth: int = None,
+           page_load_timeout: int = None) -> (bool, bool):
     """
     Logs into the currently running gateway.
 
@@ -144,7 +153,7 @@ def log_in(driver_path,
     presubmit_buffer = _PRESUBMIT_BUFFER
 
     try:
-        _LOGGER.info(f'Loading auth webpage at {base_url + var.ROUTE_AUTH}')
+        _LOGGER.info(f'Loading auth webpage at {base_url + route_auth}')
         if sys.platform == 'linux':
             display = Display(visible=False, size=(800, 600))
             display.start()
@@ -153,7 +162,7 @@ def log_in(driver_path,
         if driver is None:
             return False, False
 
-        driver.get(base_url + var.ROUTE_AUTH)
+        driver.get(base_url + route_auth)
 
         website_version = check_version(driver)
 
@@ -167,7 +176,7 @@ def log_in(driver_path,
 
         immediate_attempts = 0
 
-        while immediate_attempts < max(var.MAX_IMMEDIATE_ATTEMPTS, 1):
+        while immediate_attempts < max(max_immediate_attempts, 1):
             immediate_attempts += 1
             _LOGGER.info(f'Login attempt number {immediate_attempts}')
 
@@ -208,7 +217,7 @@ def log_in(driver_path,
             error_displayed = EC.visibility_of_element_located((By.CSS_SELECTOR, '.' + elements['ERROR_EL'].replace(' ', '.')))
             ibkey_promo_skip_clickable = EC.element_to_be_clickable((By.CLASS_NAME, elements['IBKEY_PROMO_EL_CLASS']))
 
-            trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+            trigger = WebDriverWait(driver, oauth_timeout).until(
                 any_of(success_present,
                        two_factor_input_present,
                        two_factor_select_present,
@@ -223,16 +232,16 @@ def log_in(driver_path,
                 _LOGGER.info(f'Required to select a 2FA method.')
                 select_el = driver.find_element(By.ID, elements['TWO_FA_SELECT_EL_ID'])
                 select = Select(select_el)
-                select.select_by_visible_text(var.TWO_FA_SELECT_TARGET)
+                select.select_by_visible_text(two_fa_select_target)
 
-                trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                trigger = WebDriverWait(driver, oauth_timeout).until(
                     any_of(success_present,
                            two_factor_input_present,
                            two_factor_notification,
                            error_displayed,
                            ibkey_promo_skip_clickable))
 
-                _LOGGER.info(f'2FA method "{var.TWO_FA_SELECT_TARGET}" selected successfully.')
+                _LOGGER.info(f'2FA method "{two_fa_select_target}" selected successfully.')
 
                 trigger_identifier = identify_trigger(trigger, elements)
                 _LOGGER.debug(f'trigger: {trigger_identifier}')
@@ -246,7 +255,7 @@ def log_in(driver_path,
                         driver.refresh()
                         continue  # attempt a direct retry
 
-                trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                trigger = WebDriverWait(driver, oauth_timeout).until(
                     any_of(success_present, ibkey_promo_skip_clickable, error_displayed))
                 trigger_identifier = identify_trigger(trigger, elements)
 
@@ -258,13 +267,13 @@ def log_in(driver_path,
                         f'######## ATTENTION! ######## No 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more: https://github.com/Voyz/ibeam/wiki/Two-Factor-Authentication')
                     return False, True
 
-                two_fa_code = handle_two_fa(two_fa_handler, driver, var.STRICT_TWO_FA_CODE)
+                two_fa_code = handle_two_fa(two_fa_handler, driver, strict_two_fa_code)
 
                 if two_fa_code is None:
                     _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
                 else:
                     two_fa_el = driver.find_elements(By.ID, elements['TWO_FA_INPUT_EL_ID'])
-                    WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                    WebDriverWait(driver, oauth_timeout).until(
                         EC.element_to_be_clickable((By.ID, elements['TWO_FA_INPUT_EL_ID'])))
 
                     two_fa_el[0].clear()
@@ -273,11 +282,11 @@ def log_in(driver_path,
                     _LOGGER.info('Submitting the 2FA form')
                     two_fa_el[0].send_keys(Keys.RETURN)
                     # submit_form_el = driver.find_element(By.CSS_SELECTOR, elements['SUBMIT_EL'])
-                    # WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                    # WebDriverWait(driver, oauth_timeout).until(
                     #     EC.element_to_be_clickable((By.CSS_SELECTOR, elements['SUBMIT_EL'])))
                     # submit_form_el.click()
 
-                    trigger = WebDriverWait(driver, var.OAUTH_TIMEOUT).until(
+                    trigger = WebDriverWait(driver, oauth_timeout).until(
                         any_of(success_present, ibkey_promo_skip_clickable, error_displayed))
                     trigger_identifier = identify_trigger(trigger, elements)
 
@@ -293,21 +302,21 @@ def log_in(driver_path,
                 _LOGGER.error(f'Error displayed by the login webpage: {trigger.text}')
                 save_screenshot(driver, '__failed_attempt')
 
-                if trigger.text == 'Invalid username password combination' and presubmit_buffer < var.MAX_PRESUBMIT_BUFFER:
+                if trigger.text == 'Invalid username password combination' and presubmit_buffer < max_presubmit_buffer:
                     _PRESUBMIT_BUFFER += 5
-                    if _PRESUBMIT_BUFFER >= var.MAX_PRESUBMIT_BUFFER:
-                        _PRESUBMIT_BUFFER = var.MAX_PRESUBMIT_BUFFER
-                        _LOGGER.warning(f'The presubmit buffer set to maximum: {var.MAX_PRESUBMIT_BUFFER}')
+                    if _PRESUBMIT_BUFFER >= max_presubmit_buffer:
+                        _PRESUBMIT_BUFFER = max_presubmit_buffer
+                        _LOGGER.warning(f'The presubmit buffer set to maximum: {max_presubmit_buffer}')
                     else:
                         _LOGGER.warning(f'Increased presubmit buffer to {_PRESUBMIT_BUFFER}')
 
                 # try to prevent having the account locked-out
-                if trigger.text == 'failed' or trigger.text == 'Invalid username password combination' and var.MAX_FAILED_AUTH > 0:
+                if trigger.text == 'failed' or trigger.text == 'Invalid username password combination' and max_failed_auth > 0:
                     global _FAILED_ATTEMPTS
                     _FAILED_ATTEMPTS += 1
-                    if _FAILED_ATTEMPTS >= var.MAX_FAILED_AUTH:
+                    if _FAILED_ATTEMPTS >= max_failed_auth:
                         _LOGGER.critical(
-                            f'######## ATTENTION! ######## Maximum number of failed authentication attempts (IBEAM_MAX_FAILED_AUTH={var.MAX_FAILED_AUTH}) reached. IBeam will shut down to prevent an account lock-out. It is recommended you attempt to authenticate manually in order to reset the counter. Read the execution logs and report issues at https://github.com/Voyz/ibeam/issues')
+                            f'######## ATTENTION! ######## Maximum number of failed authentication attempts (IBEAM_MAX_FAILED_AUTH={max_failed_auth}) reached. IBeam will shut down to prevent an account lock-out. It is recommended you attempt to authenticate manually in order to reset the counter. Read the execution logs and report issues at https://github.com/Voyz/ibeam/issues')
                         return False, True
 
                 time.sleep(1)
@@ -322,7 +331,7 @@ def log_in(driver_path,
             elif trigger_identifier == elements['SUCCESS_EL_TEXT']:
                 _LOGGER.info('Webpage displayed "Client login succeeds"')
                 _FAILED_ATTEMPTS = 0
-                _PRESUBMIT_BUFFER = var.MIN_PRESUBMIT_BUFFER
+                _PRESUBMIT_BUFFER = min_presubmit_buffer
                 success = True
                 break
 
@@ -336,7 +345,7 @@ def log_in(driver_path,
             page_loaded_correctly = False
 
         if not page_loaded_correctly or website_version == -1:
-            _LOGGER.error(f'Timeout reached when waiting for authentication. The website seems to not be loaded correctly. Consider increasing IBEAM_PAGE_LOAD_TIMEOUT. \nWebsite URL: {base_url + var.ROUTE_AUTH} \nIBEAM_PAGE_LOAD_TIMEOUT: {var.PAGE_LOAD_TIMEOUT} \nException:\n{exception_to_string(e)}')
+            _LOGGER.error(f'Timeout reached when waiting for authentication. The website seems to not be loaded correctly. Consider increasing IBEAM_PAGE_LOAD_TIMEOUT. \nWebsite URL: {base_url + route_auth} \nIBEAM_PAGE_LOAD_TIMEOUT: {page_load_timeout} \nException:\n{exception_to_string(e)}')
         else:
             _LOGGER.error(f'Timeout reached searching for website elements, but the website seems to be loaded correctly. It is possible the setup is incorrect. \nWebsite version: {website_version} \nDOM elements searched for: {elements}. \nException:\n{exception_to_string(e)}')
 
@@ -357,6 +366,7 @@ def log_in(driver_path,
             release_chrome_driver(driver)
 
     return success, False
+
 
 
 def handle_two_fa(two_fa_handler:TwoFaHandler, driver:WebDriver, strict_two_fa_code:bool) -> Optional[str]:
