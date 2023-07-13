@@ -1,4 +1,8 @@
 import os
+from distutils.util import strtobool
+
+def to_bool(value):
+    return bool(strtobool(str(value)))
 
 INPUTS_DIR = os.environ.get('IBEAM_INPUTS_DIR', '/srv/inputs/')
 """Directory path of Inputs Directory."""
@@ -23,13 +27,13 @@ GATEWAY_PROCESS_MATCH = os.environ.get('IBEAM_GATEWAY_PROCESS_MATCH', 'ibgroup.w
 MAINTENANCE_INTERVAL = int(os.environ.get('IBEAM_MAINTENANCE_INTERVAL', 60))
 """How many seconds between each maintenance."""
 
-SPAWN_NEW_PROCESSES = bool(os.environ.get('IBEAM_SPAWN_NEW_PROCESSES', False))
+SPAWN_NEW_PROCESSES = to_bool(os.environ.get('IBEAM_SPAWN_NEW_PROCESSES', False))
 """Whether new processes should be spawned for each maintenance."""
 
 LOG_LEVEL = os.environ.get('IBEAM_LOG_LEVEL', 'INFO')
 """Verbosity level of the logger used."""
 
-LOG_TO_FILE = bool(os.environ.get('IBEAM_LOG_TO_FILE', True))
+LOG_TO_FILE = to_bool(os.environ.get('IBEAM_LOG_TO_FILE', True))
 """Whether logs should also be saved to a file."""
 
 LOG_FORMAT = os.environ.get('IBEAM_LOG_FORMAT', '%(asctime)s|%(levelname)-.1s| %(message)s')
@@ -41,7 +45,7 @@ REQUEST_RETRIES = int(os.environ.get('IBEAM_REQUEST_RETRIES', 2))
 REQUEST_TIMEOUT = int(os.environ.get('IBEAM_REQUEST_TIMEOUT', 15))
 """How many seconds to wait for a request to complete."""
 
-RESTART_FAILED_SESSIONS = bool(os.environ.get('IBEAM_RESTART_FAILED_SESSIONS', True))
+RESTART_FAILED_SESSIONS = to_bool(os.environ.get('IBEAM_RESTART_FAILED_SESSIONS', True))
 """Whether Gateway should be restarted on failed sessions."""
 
 RESTART_WAIT = int(os.environ.get('IBEAM_RESTART_WAIT', 15))
@@ -105,7 +109,7 @@ OAUTH_TIMEOUT = int(os.environ.get('IBEAM_OAUTH_TIMEOUT', 15))
 PAGE_LOAD_TIMEOUT = int(os.environ.get('IBEAM_PAGE_LOAD_TIMEOUT', 15))
 """How many seconds to wait for the login page to load."""
 
-ERROR_SCREENSHOTS = bool(os.environ.get('IBEAM_ERROR_SCREENSHOTS', False))
+ERROR_SCREENSHOTS = to_bool(os.environ.get('IBEAM_ERROR_SCREENSHOTS', False))
 """Whether to save login page screenshots on error."""
 
 MAX_FAILED_AUTH = int(os.environ.get('IBEAM_MAX_FAILED_AUTH', 5))
@@ -146,7 +150,7 @@ TWO_FA_INPUT_EL_ID = os.environ.get('IBEAM_TWO_FA_INPUT_EL_ID', 'chlginput')
 TWO_FA_HANDLER = os.environ.get('IBEAM_TWO_FA_HANDLER', None)
 """Which 2FA handler should be used to acquire the code."""
 
-STRICT_TWO_FA_CODE = bool(os.environ.get('IBEAM_STRICT_TWO_FA_CODE', True))
+STRICT_TWO_FA_CODE = to_bool(os.environ.get('IBEAM_STRICT_TWO_FA_CODE', True))
 """Whether to ensure only 2FA code made of 6 digits can be used."""
 
 TWO_FA_SELECT_EL_ID = os.environ.get('IBEAM_TWO_FA_SELECT_EL_ID', 'sf_select')
