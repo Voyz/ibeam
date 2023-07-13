@@ -1,6 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Union
-
+from typing import Optional
 
 class TwoFaHandler(ABC):
 
@@ -8,7 +7,7 @@ class TwoFaHandler(ABC):
         self.outputs_dir = outputs_dir
 
     @abstractmethod
-    def get_two_fa_code(self, driver) -> Union[str, None]:
+    def get_two_fa_code(self, driver) -> Optional[str]:
         raise NotImplementedError()
 
     def __str__(self):

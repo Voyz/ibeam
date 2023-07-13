@@ -3,7 +3,7 @@ import os
 import tempfile
 from datetime import datetime
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional
 
 from selenium import webdriver
 from selenium.common import WebDriverException

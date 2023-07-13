@@ -2,7 +2,7 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Union
+from typing import Optional
 
 import requests
 
@@ -58,7 +58,7 @@ class ExternalRequestTwoFaHandler(TwoFaHandler):
         self.headers = headers if headers is not None else parse_json(_EXTERNAL_REQUEST_HEADERS)
         super().__init__(*args, **kwargs)
 
-    def get_two_fa_code(self, _) -> Union[str, None]:
+    def get_two_fa_code(self, _) -> Optional[str]:
         try:
             response = requests.request(method=self.method,
                                         url=self.url,

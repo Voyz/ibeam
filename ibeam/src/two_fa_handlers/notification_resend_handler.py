@@ -2,7 +2,7 @@ import logging
 import os
 import time
 from pathlib import Path
-from typing import Union
+from typing import Optional
 
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -54,7 +54,7 @@ class NotificationResendTwoFaHandler(TwoFaHandler):
         else:
             return True
 
-    def get_two_fa_code(self, driver) -> Union[bool, None]:
+    def get_two_fa_code(self, driver) -> Optional[bool]:
         time.sleep(2)  # give the first notification a short while to arrive first
         try:
             return self.check_and_resend(driver)

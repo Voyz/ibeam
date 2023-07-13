@@ -45,7 +45,6 @@ class GatewayClient():
     def get_shutdown_status(self) -> bool:
         return self._should_shutdown
 
-
     def start_and_authenticate(self, request_retries=1) -> (bool, bool, Status):
         """Starts the gateway and authenticates using the credentials stored."""
 

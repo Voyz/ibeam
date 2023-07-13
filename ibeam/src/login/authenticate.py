@@ -2,7 +2,7 @@ import logging
 import sys
 import time
 from pathlib import Path
-from typing import Union, Optional
+from typing import Optional
 
 from cryptography.fernet import Fernet
 from pyvirtualdisplay import Display

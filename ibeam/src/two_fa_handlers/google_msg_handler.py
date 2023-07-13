@@ -4,7 +4,7 @@ import re
 import time
 import urllib.parse
 from pathlib import Path
-from typing import Union
+from typing import Optional
 
 from selenium.common.exceptions import ElementClickInterceptedException
 
@@ -44,7 +44,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
         self.driver_factory = driver_factory
         super().__init__(*args, **kwargs)
 
-    def get_two_fa_code(self, _) -> Union[str, None]:
+    def get_two_fa_code(self, _) -> Optional[str]:
         code_two_fa = None
 
         driver_2fa = self.driver_factory.new_driver(name='google_msg', incognito=False)
