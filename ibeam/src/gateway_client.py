@@ -12,7 +12,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 from ibeam.src import var
 from ibeam.src.health_server import new_health_server
 from ibeam.src.handlers.http_handler import HttpHandler, Status
-from ibeam.src.utils.process_utils import try_starting_gateway, kill_gateway
+from ibeam.src.handlers.process_handler import ProcessHandler
 from ibeam.src.handlers.strategy_handler import StrategyHandler
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -28,25 +28,19 @@ class GatewayClient():
     def __init__(self,
                  http_handler: HttpHandler,
                  strategy_handler: StrategyHandler,
-                 gateway_dir: os.PathLike = None):
+                 process_handler: ProcessHandler):
 
         self._should_shutdown = False
 
-        self.gateway_dir = gateway_dir
-
         self.http_handler = http_handler
         self.strategy_handler = strategy_handler
+        self.process_handler = process_handler
 
         self._concurrent_maintenance_attempts = 1
         self._health_server = new_health_server(var.HEALTH_SERVER_PORT, self.http_handler.get_status, self.get_shutdown_status)
 
     def try_starting(self) -> Optional[List[int]]:
-        return try_starting_gateway(
-            gateway_process_match=var.GATEWAY_PROCESS_MATCH,
-            gateway_dir=self.gateway_dir,
-            gateway_startup=var.GATEWAY_STARTUP,
-            verify_connection=self.http_handler.base_route,
-        )
+        return self.process_handler.start_gateway()
 
     def get_shutdown_status(self) -> bool:
         return self._should_shutdown
@@ -100,7 +94,7 @@ class GatewayClient():
             _LOGGER.info(f'Gateway running and authenticated, session id: {status.session_id}, server name: {status.server_name}')
 
     def kill(self) -> bool:
-        return kill_gateway(var.GATEWAY_PROCESS_MATCH)
+        return self.process_handler.kill_gateway()
 
     def __getstate__(self):
         state = self.__dict__.copy()

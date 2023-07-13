@@ -8,11 +8,13 @@ from typing import Optional, List
 
 import psutil
 
+from ibeam.src.handlers.http_handler import HttpHandler
+
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
 
 # from https://stackoverflow.com/questions/550653/cross-platform-way-to-get-pids-by-process-name-in-python/2241047
-def find_procs_by_name(name):
+def _find_procs_by_name(name):
     "Return a list of processes matching 'name'."
     assert name, name
     ls = []
@@ -31,7 +33,7 @@ def find_procs_by_name(name):
     return ls
 
 
-def start_gateway(gateway_dir):
+def _start_gateway(gateway_dir):
     creationflags = 0  # when not on Windows, we send 0 to avoid errors.
 
     if sys.platform == 'win32':
@@ -56,13 +58,13 @@ def start_gateway(gateway_dir):
         creationflags=creationflags
     )
 
-def try_starting_gateway(
+def _try_starting_gateway(
         gateway_process_match:str,
         gateway_dir:os.PathLike,
         gateway_startup:int,
         verify_connection:callable,
 )  -> Optional[List[int]]:
-    processes = find_procs_by_name(gateway_process_match)
+    processes = _find_procs_by_name(gateway_process_match)
     if processes:
         server_process_pids = [process.pid for process in processes]
     else:
@@ -70,7 +72,7 @@ def try_starting_gateway(
         _LOGGER.info(
             'Note that the Gateway log below may display "Open https://localhost:[PORT] to login" - ignore this command.')
 
-        start_gateway(gateway_dir)
+        _start_gateway(gateway_dir)
 
         server_process_pids = None
 
@@ -78,7 +80,7 @@ def try_starting_gateway(
         t_end = time.time() + gateway_startup
 
         while time.time() < t_end:
-            processes = find_procs_by_name(gateway_process_match)
+            processes = _find_procs_by_name(gateway_process_match)
             if len(processes) == 0:
                 continue
 
@@ -109,8 +111,8 @@ def try_starting_gateway(
 
     return server_process_pids
 
-def kill_gateway(gateway_process_match:str):
-    processes = find_procs_by_name(gateway_process_match)
+def _kill_gateway(gateway_process_match:str):
+    processes = _find_procs_by_name(gateway_process_match)
     if not processes:
         _LOGGER.warning(f'Attempting to kill but could not find process named "{gateway_process_match}"')
         return False
@@ -121,7 +123,32 @@ def kill_gateway(gateway_process_match:str):
     time.sleep(1)
 
     # double check we succeeded
-    processes = find_procs_by_name(gateway_process_match)
+    processes = _find_procs_by_name(gateway_process_match)
     if processes:
         return False
     return True
+
+
+class ProcessHandler():
+
+    def __init__(self,
+                 gateway_dir: os.PathLike,
+                 gateway_process_match:str,
+                 gateway_startup:int,
+                 verify_connection:callable,
+                 ):
+        self.gateway_dir = gateway_dir
+        self.gateway_process_match = gateway_process_match
+        self.gateway_startup = gateway_startup
+        self.verify_connection = verify_connection
+
+    def start_gateway(self) ->  Optional[List[int]]:
+        return _try_starting_gateway(
+            gateway_process_match=self.gateway_process_match,
+            gateway_dir=self.gateway_dir,
+            gateway_startup=self.gateway_startup,
+            verify_connection=self.verify_connection,
+        )
+
+    def kill_gateway(self) -> bool:
+        return _kill_gateway(gateway_process_match=self.gateway_process_match)

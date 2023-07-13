@@ -4,7 +4,7 @@ from pathlib import Path
 
 from ibeam.src.handlers.http_handler import Status, HttpHandler
 from ibeam.src.handlers.login_handler import LoginHandler
-from ibeam.src.utils.process_utils import kill_gateway
+from ibeam.src.handlers.process_handler import ProcessHandler
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
@@ -47,23 +47,23 @@ class StrategyHandler():
     def __init__(self,
                  http_handler:HttpHandler,
                  login_handler:LoginHandler,
+                 process_handler:ProcessHandler,
                  authentication_strategy:str,
                  reauthenticate_wait:int,
                  restart_failed_sessions:bool,
                  restart_wait:int,
                  max_reauthenticate_retries:int,
                  max_status_check_retries:int,
-                 gateway_process_match:str
                  ):
         self.http_handler = http_handler
         self.login_handler = login_handler
+        self.process_handler = process_handler
         self.authentication_strategy = authentication_strategy
         self.reauthenticate_wait = reauthenticate_wait
         self.restart_failed_sessions = restart_failed_sessions
         self.restart_wait = restart_wait
         self.max_reauthenticate_retries = max_reauthenticate_retries
         self.max_status_check_retries = max_status_check_retries
-        self.gateway_process_match = gateway_process_match
 
     def try_authenticating(self, request_retries=1) -> (bool, bool, Status):
 
@@ -187,7 +187,7 @@ class StrategyHandler():
             _LOGGER.error(f'Repeatedly reauthenticating failed {self.max_reauthenticate_retries} times. Killing the Gateway and restarting the authentication process.')
 
             try:
-                success = kill_gateway(self.gateway_process_match)
+                success = self.process_handler.kill_gateway()
             except Exception as e:
                 _LOGGER.exception(f'Error killing the Gateway: {e}')
                 success = False

@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ibeam.config import Config
 from ibeam.src.handlers.login_handler import LoginHandler
+from ibeam.src.handlers.process_handler import ProcessHandler
 from ibeam.src.handlers.secrets_handler import SecretsHandler
 from ibeam.src.handlers.strategy_handler import StrategyHandler
 from ibeam.src.login.driver import DriverFactory
@@ -79,22 +80,29 @@ if __name__ == '__main__':
         driver_factory=driver_factory
     )
 
+    process_handler = ProcessHandler(
+        gateway_process_match=cnf.GATEWAY_PROCESS_MATCH,
+        gateway_dir=cnf.GATEWAY_DIR,
+        gateway_startup=var.GATEWAY_STARTUP,
+        verify_connection=http_handler.base_route,
+    )
+
     strategy_handler = StrategyHandler(
         http_handler=http_handler,
         login_handler=login_handler,
+        process_handler=process_handler,
         authentication_strategy=cnf.AUTHENTICATION_STRATEGY,
         reauthenticate_wait=cnf.REAUTHENTICATE_WAIT,
         restart_failed_sessions=cnf.RESTART_FAILED_SESSIONS,
         restart_wait=cnf.RESTART_WAIT,
         max_reauthenticate_retries=cnf.MAX_REAUTHENTICATE_RETRIES,
         max_status_check_retries=cnf.MAX_STATUS_CHECK_RETRIES,
-        gateway_process_match=cnf.GATEWAY_PROCESS_MATCH,
     )
 
     client = GatewayClient(
         http_handler=http_handler,
         strategy_handler=strategy_handler,
-        gateway_dir=cnf.GATEWAY_DIR,
+        process_handler=process_handler,
     )
 
     _LOGGER.info(f'Configuration:\n{cnf.all_variables}')
