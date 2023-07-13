@@ -62,6 +62,7 @@ def new_chrome_driver(driver_path, name: str = 'default', headless: bool = True,
     options.add_argument('--disable-extensions')
     options.add_argument('--dns-prefetch-disable')
     options.add_argument('--disable-features=VizDisplayCompositor')
+    options.add_argument(f"--force-device-scale-factor={var.UI_SCALING}")
     options.add_argument(f'--user-data-dir={tempfile.gettempdir()}/ibeam-chrome-{name}')
     driver = webdriver.Chrome(driver_path, options=options)
     if driver is None:

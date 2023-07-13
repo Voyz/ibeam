@@ -136,6 +136,9 @@ MAX_STATUS_CHECK_RETRIES = int(os.environ.get('IBEAM_MAX_STATUS_CHECK_RETRIES', 
 MAX_REAUTHENTICATE_RETRIES = int(os.environ.get('IBEAM_MAX_REAUTHENTICATE_RETRIES', 3))
 """How many times to reattempt the reauthentication before restarting the Gateway."""
 
+UI_SCALING = float(os.environ.get('IBEAM_UI_SCALING', 1))
+"""The resolution UI scaling to be used by the browser."""
+
 ########### TWO-FACTOR AUTHENTICATION ###########
 
 TWO_FA_EL_ID = os.environ.get('IBEAM_TWO_FA_EL_ID', 'twofactbase')
