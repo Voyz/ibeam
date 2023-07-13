@@ -108,7 +108,7 @@ if __name__ == '__main__':
     _LOGGER.info(f'Configuration:\n{cnf.all_variables}')
 
     if args.start:
-        pids = client.try_starting()
+        pids = process_handler.start_gateway()
         if pids is not None:
             _LOGGER.info(f'Gateway running with pids: {pids}')
         else:
@@ -128,7 +128,7 @@ if __name__ == '__main__':
     elif args.maintain:
         client.maintain()
     elif args.kill:
-        success = client.kill()
+        success = process_handler.kill_gateway()
         _LOGGER.info(f'Gateway {"" if success else "not "}killed.')
     else:
         # we have to do this here first because APS waits before running it the first time

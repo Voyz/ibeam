@@ -93,9 +93,6 @@ class GatewayClient():
         elif success:
             _LOGGER.info(f'Gateway running and authenticated, session id: {status.session_id}, server name: {status.server_name}')
 
-    def kill(self) -> bool:
-        return self.process_handler.kill_gateway()
-
     def __getstate__(self):
         state = self.__dict__.copy()
 
