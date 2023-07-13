@@ -113,7 +113,7 @@ class HttpHandler():
         if self.inputs_handler.valid_certificates:
             self.ssl_context.verify_mode = ssl.CERT_REQUIRED
             self.ssl_context.check_hostname = True
-            self.ssl_context.load_verify_locations(self.inputs_handler.cecert_pem_path)
+            self.ssl_context.load_verify_locations(self.inputs_handler.cacert_pem_path)
 
     def url_request(self, url, method='GET'):
         _LOGGER.debug(f'{method} {url}{"" if self.inputs_handler.valid_certificates else " (unverified)"}')

@@ -2,7 +2,7 @@ import importlib
 import importlib.util
 import os
 from pathlib import Path
-from typing import Union
+from typing import Optional
 
 from ibeam.src.login.driver import DriverFactory
 from ibeam.src.two_fa_handlers.external_request_handler import ExternalRequestTwoFaHandler
@@ -17,7 +17,7 @@ def select(handler_name:str,
            driver_factory:DriverFactory,
            outputs_dir:str,
            custom_two_fa_handler:str,
-           inputs_handler: InputsHandler) -> Union[TwoFaHandler, None]:
+           inputs_dir: os.PathLike) -> Optional[TwoFaHandler]:
 
     if handler_name == 'GOOGLE_MSG':
         handler = GoogleMessagesTwoFaHandler(driver_factory, outputs_dir)
@@ -26,16 +26,16 @@ def select(handler_name:str,
     elif handler_name == 'NOTIFICATION_RESEND':
         handler = NotificationResendTwoFaHandler(outputs_dir)
     elif handler_name == 'CUSTOM_HANDLER':
-        handler = load_custom_two_fa_handler(custom_two_fa_handler, inputs_handler)(outputs_dir)
+        handler = load_custom_two_fa_handler(custom_two_fa_handler, inputs_dir)(outputs_dir)
     else:
         handler = None
 
     return handler
 
 
-def load_custom_two_fa_handler(two_fa_handler_fqp, inputs_handler: InputsHandler):
+def load_custom_two_fa_handler(two_fa_handler_fqp, inputs_dir: os.PathLike):
     module_name, class_name = two_fa_handler_fqp.rsplit('.', 1)
-    handler_filepath = Path(inputs_handler.inputs_dir, module_name + '.py')
+    handler_filepath = Path(inputs_dir, module_name + '.py')
     try:
         spec = importlib.util.spec_from_file_location(module_name, os.fspath(handler_filepath))
         module = importlib.util.module_from_spec(spec)

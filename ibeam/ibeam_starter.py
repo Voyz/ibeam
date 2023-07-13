@@ -66,7 +66,7 @@ if __name__ == '__main__':
         driver_factory=driver_factory,
         outputs_dir=cnf.OUTPUTS_DIR,
         custom_two_fa_handler=cnf.CUSTOM_TWO_FA_HANDLER,
-        inputs_handler=inputs_handler
+        inputs_dir=cnf.INPUTS_DIR,
     )
 
     _LOGGER.info(f'Secrets source: {cnf.SECRETS_SOURCE}')
