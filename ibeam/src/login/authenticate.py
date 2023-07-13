@@ -1,30 +1,26 @@
 import logging
-import os
 import sys
 import time
-from datetime import datetime
 from pathlib import Path
-import tempfile
 from typing import Union, Optional
 
 from cryptography.fernet import Fernet
 from pyvirtualdisplay import Display
-from selenium import webdriver
-from selenium.common.exceptions import WebDriverException, StaleElementReferenceException, TimeoutException
+from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support.ui import Select
 
-import ibeam
 from ibeam.src import var
-from ibeam.src.py_utils import exception_to_string
+from ibeam.src.login.driver import release_chrome_driver, start_driver, save_screenshot
+from ibeam.src.utils.py_utils import exception_to_string
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
+from ibeam.src.utils.selenium_utils import text_to_be_present_in_element, any_of
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
-_DRIVER_NAMES = {}
 _FAILED_ATTEMPTS = 0
 _PRESUBMIT_BUFFER = var.MIN_PRESUBMIT_BUFFER
 
@@ -38,110 +34,6 @@ _VERSIONS = {
         'ERROR_EL': 'xyz-errormessage'
     }
 }
-
-
-def new_chrome_driver(driver_path, name: str = 'default', headless: bool = True, incognito: bool = True):
-    """Creates a new chrome driver."""
-
-    global _DRIVER_NAMES
-
-    _DRIVER_NAMES[name] = True  # just to ensure the name is in the dict
-    driver_index = list(_DRIVER_NAMES.keys()).index(name)  # order of insertion dictates the driver_index
-
-    options = webdriver.ChromeOptions()
-    if headless:
-        options.add_argument('--headless')
-        options.add_argument('--disable-gpu')
-    options.add_argument('--no-sandbox')
-    if incognito:
-        options.add_argument("--incognito")  # this allows 2FA method to be selected every time
-    options.add_argument('--ignore-ssl-errors=yes')
-    options.add_argument('--ignore-certificate-errors')
-    options.add_argument(f'--remote-debugging-port={9222 + driver_index}')
-    options.add_argument('--useAutomationExtension=false')
-    options.add_argument('--disable-extensions')
-    options.add_argument('--dns-prefetch-disable')
-    options.add_argument('--disable-features=VizDisplayCompositor')
-    options.add_argument(f"--force-device-scale-factor={var.UI_SCALING}")
-    options.add_argument(f'--user-data-dir={tempfile.gettempdir()}/ibeam-chrome-{name}')
-    driver = webdriver.Chrome(driver_path, options=options)
-    if driver is None:
-        _LOGGER.error('Unable to create a new chrome driver.')
-
-    return driver
-
-
-def release_chrome_driver(driver):
-    driver.quit()
-
-
-class text_to_be_present_in_element(object):
-    """ An expectation for checking if the given text is present in the
-    specified element.
-    locator, text
-    """
-
-    def __init__(self, locators, text_):
-        if not isinstance(locators, list):
-            locators = locators
-        self.locators = locators
-        self.text = text_
-
-    def __call__(self, driver):
-        for locator in self.locators:
-            try:
-                element = driver.find_element(*locator)
-                if self.text in element.text:
-                    return element
-            except StaleElementReferenceException:
-                continue
-        return False
-
-
-def any_of(*expected_conditions):
-    """ An expectation that any of multiple expected conditions is true.
-    Equivalent to a logical 'OR'.
-    Returns results of the first matching condition, or False if none do. """
-
-    def any_of_condition(driver):
-        for expected_condition in expected_conditions:
-            try:
-                result = expected_condition(driver)
-                if result:
-                    return result
-            except WebDriverException:
-                pass
-        return False
-
-    return any_of_condition
-
-
-def save_screenshot(driver, postfix=''):
-    if not var.ERROR_SCREENSHOTS or driver is None:
-        return
-
-    now = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    outputs_path = Path(var.OUTPUTS_DIR)
-    screenshot_name = f'ibeam__{ibeam.__version__}__{now}{postfix}.png'
-
-    try:
-        required_width = driver.execute_script('return document.body.parentNode.scrollWidth')
-        required_height = driver.execute_script('return document.body.parentNode.scrollHeight')
-        driver.set_window_size(required_width, required_height)
-
-        outputs_path.mkdir(exist_ok=True)
-        screenshot_filepath = os.path.join(var.OUTPUTS_DIR, screenshot_name)
-
-        # a little hack to prevent overwriting screenshots saved in the same second
-        if os.path.exists(screenshot_filepath):
-            save_screenshot(driver, postfix + '_')
-            return
-
-        _LOGGER.info(
-            f'Saving screenshot to {screenshot_filepath}. Make sure to cover your credentials if you share it with others.')
-        driver.get_screenshot_as_file(screenshot_filepath)
-    except Exception as e:
-        _LOGGER.exception(f"Exception while saving screenshot: {str(e)} for screenshot: {screenshot_name}")
 
 
 def identify_trigger(trigger, elements) -> Optional[str]:
@@ -459,25 +351,6 @@ def log_in(driver_path,
             release_chrome_driver(driver)
 
     return success, False
-
-
-def start_driver(base_url, driver_path) -> Union[webdriver.Chrome, None]:
-    try:
-        driver = new_chrome_driver(driver_path)
-        driver.set_page_load_timeout(var.PAGE_LOAD_TIMEOUT)
-    except WebDriverException as e:
-        if 'net::ERR_CONNECTION_REFUSED' in e.msg:
-            _LOGGER.error(
-                'Connection to Gateway refused. This could indicate IB Gateway is not running. Consider increasing IBEAM_GATEWAY_STARTUP wait buffer')
-            return None
-        if 'net::ERR_CONNECTION_CLOSED' in e.msg:
-            _LOGGER.error(
-                f'Connection to Gateway failed. This could indicate IB Gateway is not running correctly or that its port {base_url.split(":")[2]} was already occupied')
-            return None
-        else:
-            raise e
-
-    return driver
 
 
 def handle_two_fa(two_fa_handler, driver) -> Union[str, None]:

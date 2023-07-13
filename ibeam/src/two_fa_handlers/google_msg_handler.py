@@ -9,7 +9,8 @@ from typing import Union
 from selenium.common.exceptions import ElementClickInterceptedException
 
 from ibeam.src import var
-from ibeam.src.authenticate import any_of, new_chrome_driver, release_chrome_driver, save_screenshot
+from ibeam.src.login.driver import new_chrome_driver, release_chrome_driver, save_screenshot
+from ibeam.src.utils.selenium_utils import any_of
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 from selenium.webdriver.common.by import By
