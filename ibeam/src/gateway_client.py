@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 import sys
@@ -16,7 +15,7 @@ from ibeam.src.health_server import new_health_server
 from ibeam.src.authenticate import log_in
 from ibeam.src.handlers.http_handler import HttpHandler, Status
 from ibeam.src.handlers.inputs_handler import InputsHandler
-from ibeam.src.process_utils import try_starting_gateway, kill_gateway
+from ibeam.src.utils.process_utils import try_starting_gateway, kill_gateway
 from ibeam.src.handlers.secrets_handler import SecretsHandler
 from ibeam.src.handlers.strategy_handler import StrategyHandler
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler

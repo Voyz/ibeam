@@ -3,7 +3,7 @@ import time
 from pathlib import Path
 
 from ibeam.src.handlers.http_handler import Status, HttpHandler
-from ibeam.src.process_utils import kill_gateway
+from ibeam.src.utils.process_utils import kill_gateway
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 

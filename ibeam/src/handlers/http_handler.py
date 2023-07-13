@@ -1,7 +1,5 @@
 import json
 import logging
-import os
-import shutil
 import socket
 import ssl
 from pathlib import Path
@@ -13,7 +11,7 @@ import urllib.request
 import urllib.parse
 
 from ibeam.src.handlers.inputs_handler import InputsHandler
-from ibeam.src.py_utils import exception_to_string
+from ibeam.src.utils.py_utils import exception_to_string
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
