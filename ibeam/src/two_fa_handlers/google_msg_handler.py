@@ -9,7 +9,7 @@ from typing import Union
 from selenium.common.exceptions import ElementClickInterceptedException
 
 from ibeam.src import var
-from ibeam.src.login.driver import new_chrome_driver, release_chrome_driver, save_screenshot
+from ibeam.src.login.driver import release_chrome_driver, save_screenshot, start_driver, DriverFactory
 from ibeam.src.utils.selenium_utils import any_of
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
@@ -40,14 +40,14 @@ _GOOG_MESSAGE_CLICK_RETRIES = int(os.environ.get('IBEAM_GOOG_MESSAGE_CLICK_RETRI
 
 class GoogleMessagesTwoFaHandler(TwoFaHandler):
 
-    def __init__(self, driver_path, *args, **kwargs):
-        self.driver_path = driver_path
+    def __init__(self, driver_factory:DriverFactory, *args, **kwargs):
+        self.driver_factory = driver_factory
         super().__init__(*args, **kwargs)
 
     def get_two_fa_code(self, _) -> Union[str, None]:
         code_two_fa = None
 
-        driver_2fa = new_chrome_driver(self.driver_path, name='google_msg', incognito=False)
+        driver_2fa = self.driver_factory.new_driver(name='google_msg', incognito=False)
         if driver_2fa is None:
             return None
 

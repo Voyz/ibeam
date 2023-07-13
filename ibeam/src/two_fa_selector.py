@@ -6,6 +6,7 @@ from typing import Union
 
 from ibeam.src import var
 from ibeam.src.handlers.inputs_handler import InputsHandler
+from ibeam.src.login.driver import DriverFactory
 from ibeam.src.two_fa_handlers.external_request_handler import ExternalRequestTwoFaHandler
 from ibeam.src.two_fa_handlers.google_msg_handler import GoogleMessagesTwoFaHandler
 from ibeam.src.two_fa_handlers.notification_resend_handler import NotificationResendTwoFaHandler
@@ -14,14 +15,14 @@ from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 
 
-def select(handler_name,
-           driver_path,
-           outputs_dir,
-           custom_two_fa_handler,
+def select(handler_name:str,
+           driver_factory:DriverFactory,
+           outputs_dir:str,
+           custom_two_fa_handler:str,
            inputs_handler: InputsHandler) -> Union[TwoFaHandler, None]:
 
     if handler_name == 'GOOGLE_MSG':
-        handler = GoogleMessagesTwoFaHandler(driver_path, outputs_dir)
+        handler = GoogleMessagesTwoFaHandler(driver_factory, outputs_dir)
     elif handler_name == 'EXTERNAL_REQUEST':
         handler = ExternalRequestTwoFaHandler(outputs_dir)
     elif handler_name == 'NOTIFICATION_RESEND':

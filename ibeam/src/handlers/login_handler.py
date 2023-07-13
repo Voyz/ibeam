@@ -1,6 +1,7 @@
 from ibeam.config import Config
 from ibeam.src.handlers.credentials_handler import CredentialsHandler
 from ibeam.src.login.authenticate import log_in
+from ibeam.src.login.driver import DriverFactory
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 
@@ -10,17 +11,18 @@ class LoginHandler():
                  cnf:Config,
                  credentials_handler:CredentialsHandler,
                  two_fa_handler:TwoFaHandler,
-
+                 driver_factory:DriverFactory,
                  ):
 
         self.cnf = cnf
         self.credentials_handler = credentials_handler
         self.two_fa_handler = two_fa_handler
+        self.driver_factory = driver_factory
 
 
     def login(self):
         return log_in(
-            driver_path=self.cnf.CHROME_DRIVER_PATH,
+            driver_factory=self.driver_factory,
             account=self.credentials_handler.account,
             password=self.credentials_handler.password,
             key=self.credentials_handler.key,
@@ -34,6 +36,5 @@ class LoginHandler():
             max_presubmit_buffer=self.cnf.MAX_PRESUBMIT_BUFFER,
             min_presubmit_buffer=self.cnf.MIN_PRESUBMIT_BUFFER,
             max_failed_auth=self.cnf.MAX_FAILED_AUTH,
-            page_load_timeout=self.cnf.PAGE_LOAD_TIMEOUT,
             outputs_dir=self.cnf.OUTPUTS_DIR,
         )

@@ -17,7 +17,7 @@ _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 _DRIVER_NAMES = {}
 
 
-def new_chrome_driver(driver_path, name: str = 'default', headless: bool = True, incognito: bool = True):
+def _new_chrome_driver(driver_path, name: str = 'default', headless: bool = True, incognito: bool = True, ui_scaling: float = 1) -> webdriver.Chrome:
     """Creates a new chrome driver."""
 
     global _DRIVER_NAMES
@@ -39,7 +39,7 @@ def new_chrome_driver(driver_path, name: str = 'default', headless: bool = True,
     options.add_argument('--disable-extensions')
     options.add_argument('--dns-prefetch-disable')
     options.add_argument('--disable-features=VizDisplayCompositor')
-    options.add_argument(f"--force-device-scale-factor={var.UI_SCALING}")
+    options.add_argument(f"--force-device-scale-factor={ui_scaling}")
     options.add_argument(f'--user-data-dir={tempfile.gettempdir()}/ibeam-chrome-{name}')
     driver = webdriver.Chrome(driver_path, options=options)
     if driver is None:
@@ -48,13 +48,19 @@ def new_chrome_driver(driver_path, name: str = 'default', headless: bool = True,
     return driver
 
 
-def release_chrome_driver(driver):
+def release_chrome_driver(driver: webdriver.Chrome):
     driver.quit()
 
 
-def start_driver(base_url, driver_path, page_load_timeout) -> Optional[webdriver.Chrome]:
+def start_driver(driver_path: str,
+                 name: str = 'default',
+                 headless: bool = True,
+                 incognito: bool = True,
+                 ui_scaling: float = 1,
+                 page_load_timeout: int = 15
+                 ) -> Optional[webdriver.Chrome]:
     try:
-        driver = new_chrome_driver(driver_path)
+        driver = _new_chrome_driver(driver_path=driver_path, name=name, headless=headless, incognito=incognito, ui_scaling=ui_scaling)
         driver.set_page_load_timeout(page_load_timeout)
     except WebDriverException as e:
         if 'net::ERR_CONNECTION_REFUSED' in e.msg:
@@ -63,7 +69,7 @@ def start_driver(base_url, driver_path, page_load_timeout) -> Optional[webdriver
             return None
         if 'net::ERR_CONNECTION_CLOSED' in e.msg:
             _LOGGER.error(
-                f'Connection to Gateway failed. This could indicate IB Gateway is not running correctly or that its port {base_url.split(":")[2]} was already occupied')
+                f'Connection to Gateway failed. This could indicate IB Gateway is not running correctly or that its port was already occupied')
             return None
         else:
             raise e
@@ -97,3 +103,38 @@ def save_screenshot(driver, outputs_dir, postfix=''):
         driver.get_screenshot_as_file(screenshot_filepath)
     except Exception as e:
         _LOGGER.exception(f"Exception while saving screenshot: {str(e)} for screenshot: {screenshot_name}")
+
+
+class DriverFactory():
+    def __init__(self,
+                 driver_path: str,
+                 name: str = 'default',
+                 headless: bool = True,
+                 incognito: bool = True,
+                 ui_scaling: float = 1,
+                 page_load_timeout: int = 15
+                 ):
+        self.driver_path = driver_path
+        self.name = name
+        self.headless = headless
+        self.incognito = incognito
+        self.ui_scaling = ui_scaling
+        self.page_load_timeout = page_load_timeout
+
+    def new_driver(self,
+                   driver_path: str = None,
+                   name: str = None,
+                   headless: bool = None,
+                   incognito: bool = None,
+                   ui_scaling: float = None,
+                   page_load_timeout: int = None
+                   ):
+
+        driver_path = driver_path if driver_path is not None else self.driver_path
+        name = name if name is not None else self.name
+        headless = headless if headless is not None else self.headless
+        incognito = incognito if incognito is not None else self.incognito
+        ui_scaling = ui_scaling if ui_scaling is not None else self.ui_scaling
+        page_load_timeout = page_load_timeout if page_load_timeout is not None else self.page_load_timeout
+
+        return start_driver(driver_path=driver_path, name=name, headless=headless, incognito=incognito, ui_scaling=ui_scaling, page_load_timeout=page_load_timeout)

@@ -15,7 +15,7 @@ from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support.ui import Select
 
 from ibeam.src import var
-from ibeam.src.login.driver import release_chrome_driver, start_driver, save_screenshot
+from ibeam.src.login.driver import release_chrome_driver, start_driver, save_screenshot, DriverFactory
 from ibeam.src.utils.py_utils import exception_to_string
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 from ibeam.src.utils.selenium_utils import text_to_be_present_in_element, any_of
@@ -117,7 +117,8 @@ def create_elements(versions: dict):
     return elements
 
 
-def log_in(driver_path,
+def log_in(
+           driver_factory:DriverFactory,
            account,
            password,
            key: str = None,
@@ -131,7 +132,6 @@ def log_in(driver_path,
            max_presubmit_buffer: int = None,
            min_presubmit_buffer: int = None,
            max_failed_auth: int = None,
-           page_load_timeout: int = None,
            outputs_dir: str = None,
            ) -> (bool, bool):
     """
@@ -160,7 +160,7 @@ def log_in(driver_path,
             display = Display(visible=False, size=(800, 600))
             display.start()
 
-        driver = start_driver(base_url, driver_path, page_load_timeout)
+        driver = driver_factory.new_driver()
         if driver is None:
             return False, False
 
@@ -347,7 +347,7 @@ def log_in(driver_path,
             page_loaded_correctly = False
 
         if not page_loaded_correctly or website_version == -1:
-            _LOGGER.error(f'Timeout reached when waiting for authentication. The website seems to not be loaded correctly. Consider increasing IBEAM_PAGE_LOAD_TIMEOUT. \nWebsite URL: {base_url + route_auth} \nIBEAM_PAGE_LOAD_TIMEOUT: {page_load_timeout} \nException:\n{exception_to_string(e)}')
+            _LOGGER.error(f'Timeout reached when waiting for authentication. The website seems to not be loaded correctly. Consider increasing IBEAM_PAGE_LOAD_TIMEOUT. \nWebsite URL: {base_url + route_auth} \n \nException:\n{exception_to_string(e)}')
         else:
             _LOGGER.error(f'Timeout reached searching for website elements, but the website seems to be loaded correctly. It is possible the setup is incorrect. \nWebsite version: {website_version} \nDOM elements searched for: {elements}. \nException:\n{exception_to_string(e)}')
 

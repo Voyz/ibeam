@@ -9,6 +9,7 @@ from ibeam.src.handlers.credentials_handler import CredentialsHandler
 from ibeam.src.handlers.login_handler import LoginHandler
 from ibeam.src.handlers.secrets_handler import SecretsHandler
 from ibeam.src.handlers.strategy_handler import StrategyHandler
+from ibeam.src.login.driver import DriverFactory
 
 _this_filedir = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, str(Path(_this_filedir).parent))
@@ -54,9 +55,15 @@ if __name__ == '__main__':
     inputs_handler = InputsHandler(inputs_dir=cnf.INPUTS_DIR, gateway_dir=cnf.GATEWAY_DIR)
     http_handler = HttpHandler(inputs_handler=inputs_handler, base_url=cnf.GATEWAY_BASE_URL)
 
+    driver_factory = DriverFactory(
+        driver_path=cnf.CHROME_DRIVER_PATH,
+        ui_scaling=cnf.UI_SCALING,
+        page_load_timeout=cnf.PAGE_LOAD_TIMEOUT,
+    )
+
     two_fa_handler = two_fa_selector.select(
         handler_name=cnf.TWO_FA_HANDLER,
-        driver_path=cnf.CHROME_DRIVER_PATH,
+        driver_factory=driver_factory,
         outputs_dir=cnf.OUTPUTS_DIR,
         custom_two_fa_handler=cnf.CUSTOM_TWO_FA_HANDLER,
         inputs_handler=inputs_handler
@@ -66,7 +73,13 @@ if __name__ == '__main__':
     secrets_handler = SecretsHandler(secrets_source=cnf.SECRETS_SOURCE)
 
     credentials_handler = CredentialsHandler(secrets_handler=secrets_handler)
-    login_handler = LoginHandler(cnf, credentials_handler=credentials_handler, two_fa_handler=two_fa_handler)
+
+    login_handler = LoginHandler(
+        cnf=cnf,
+        credentials_handler=credentials_handler,
+        two_fa_handler=two_fa_handler,
+        driver_factory=driver_factory
+    )
 
     strategy_handler = StrategyHandler(
         http_handler=http_handler,
