@@ -134,7 +134,6 @@ def log_in(driver_path,
     :return: Whether authentication was successful and whether IBeam should shut down
     :rtype: (bool, bool)
     """
-    base_url = base_url if base_url is not None else var.GATEWAY_BASE_URL
     display = None
     success = False
     driver = None
