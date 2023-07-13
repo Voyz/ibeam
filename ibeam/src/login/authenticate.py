@@ -43,6 +43,12 @@ def identify_trigger(trigger, elements) -> Optional[str]:
     if trigger.get_attribute('id') == elements['TWO_FA_SELECT_EL_ID']:
         return elements['TWO_FA_SELECT_EL_ID']
 
+    if elements['TWO_FA_EL_ID'].replace('.', '') in trigger.get_attribute('class'):
+        return elements['TWO_FA_EL_ID']
+
+    if elements['TWO_FA_SELECT_EL_ID'].replace('.', '') in trigger.get_attribute('class'):
+        return elements['TWO_FA_EL_ID']
+
     if elements['ERROR_EL'] in trigger.get_attribute('class'):
         return elements['ERROR_EL']
 
