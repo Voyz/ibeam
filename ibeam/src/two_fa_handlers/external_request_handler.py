@@ -55,7 +55,7 @@ class ExternalRequestTwoFaHandler(TwoFaHandler):
         self.data = data if data is not None else parse_json(_EXTERNAL_REQUEST_DATA)
         self.headers = headers if headers is not None else parse_json(_EXTERNAL_REQUEST_HEADERS)
 
-    def get_two_fa_code(self) -> Union[str, None]:
+    def get_two_fa_code(self, _) -> Union[str, None]:
         try:
             response = requests.request(method=self.method,
                                         url=self.url,

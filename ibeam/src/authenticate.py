@@ -360,7 +360,7 @@ def log_in(driver_path,
                         f'######## ATTENTION! ######## No 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more: https://github.com/Voyz/ibeam/wiki/Two-Factor-Authentication')
                     return False, True
 
-                two_fa_code = handle_two_fa(two_fa_handler)
+                two_fa_code = handle_two_fa(two_fa_handler, driver)
 
                 if two_fa_code is None:
                     _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
@@ -482,11 +482,11 @@ def start_driver(base_url, driver_path) -> Union[webdriver.Chrome, None]:
     return driver
 
 
-def handle_two_fa(two_fa_handler) -> Union[str, None]:
+def handle_two_fa(two_fa_handler, driver) -> Union[str, None]:
     _LOGGER.info(f'Attempting to acquire 2FA code from: {two_fa_handler}')
 
     try:
-        two_fa_code = two_fa_handler.get_two_fa_code()
+        two_fa_code = two_fa_handler.get_two_fa_code(driver)
         if two_fa_code is not None:
             two_fa_code = str(two_fa_code)  # in case someone returns an integer
     except Exception as two_fa_exception:
