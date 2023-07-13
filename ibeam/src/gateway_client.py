@@ -37,7 +37,6 @@ class GatewayClient():
         self.http_handler = http_handler
         self.strategy_handler = strategy_handler
 
-
         self._concurrent_maintenance_attempts = 1
         self._health_server = new_health_server(var.HEALTH_SERVER_PORT, self.http_handler.get_status, self.get_shutdown_status)
 

@@ -50,22 +50,10 @@ if __name__ == '__main__':
     if args.verbose:
         logs.set_level_for_all(_LOGGER, logging.DEBUG)
 
-    # inputs_dir = var.INPUTS_DIR
-    # gateway_dir = var.GATEWAY_DIR
-    # driver_path = var.CHROME_DRIVER_PATH
-    #
-    # if gateway_dir is None:
-    #     gateway_dir = input('Gateway root path: ')
-    #
-    # if driver_path is None:
-    #     driver_path = input('Chrome Driver executable path: ')
-
-    # base_url = var.GATEWAY_BASE_URL
 
     inputs_handler = InputsHandler(inputs_dir=cnf.INPUTS_DIR, gateway_dir=cnf.GATEWAY_DIR)
     http_handler = HttpHandler(inputs_handler=inputs_handler, base_url=cnf.GATEWAY_BASE_URL)
 
-    # handler_name = var.TWO_FA_HANDLER
     two_fa_handler = two_fa_selector.select(cnf.TWO_FA_HANDLER, cnf.CHROME_DRIVER_PATH, cnf.CUSTOM_TWO_FA_HANDLER, inputs_handler)
 
     _LOGGER.info(f'Secrets source: {cnf.SECRETS_SOURCE}')
@@ -101,16 +89,16 @@ if __name__ == '__main__':
         else:
             _LOGGER.info(f'Gateway not running.')
     elif args.authenticate:
-        success, _ = client.strategy_handler.try_authenticating()
+        success, _ = strategy_handler.try_authenticating()
         _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
     elif args.check:
-        status = client.http_handler.get_status()
+        status = http_handler.get_status()
         if not status.session:
             _LOGGER.info(f'No active Gateway session.')
         else:
             _LOGGER.info(f'Gateway session {"" if status.authenticated else "not "}authenticated.')
     elif args.tickle:
-        success = client.http_handler.tickle().running
+        success = http_handler.tickle().running
         _LOGGER.info(f'Gateway {"" if success else "not "}running.')
     elif args.maintain:
         client.maintain()
