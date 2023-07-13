@@ -68,9 +68,6 @@ GATEWAY_BASE_URL = os.environ.get('IBEAM_GATEWAY_BASE_URL', "https://localhost:5
 ROUTE_AUTH = os.environ.get('IBEAM_ROUTE_AUTH', '/sso/Login?forwardTo=22&RL=1&ip2loc=on')
 """Gateway route with authentication page."""
 
-ROUTE_USER = os.environ.get('IBEAM_ROUTE_USER', '/v1/api/one/user')
-"""Gateway route with user information."""
-
 ROUTE_VALIDATE = os.environ.get('IBEAM_ROUTE_VALIDATE', '/v1/portal/sso/validate')
 """Gateway route with validation call."""
 

@@ -116,12 +116,7 @@ class GatewayClient():
     def get_shutdown_status(self) -> bool:
         return self._should_shutdown
 
-    def user(self):
-        try:
-            response = self.http_handler.url_request(self.base_url + var.ROUTE_USER)
-            _LOGGER.info(response.read())
-        except Exception as e:
-            _LOGGER.exception(e)
+
 
     def start_and_authenticate(self, request_retries=1) -> (bool, bool, Status):
         """Starts the gateway and authenticates using the credentials stored."""

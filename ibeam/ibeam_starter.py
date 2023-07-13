@@ -104,8 +104,6 @@ if __name__ == '__main__':
     elif args.tickle:
         success = client.http_handler.tickle().running
         _LOGGER.info(f'Gateway {"" if success else "not "}running.')
-    elif args.user:
-        client.user()
     elif args.maintain:
         client.maintain()
     elif args.kill:
