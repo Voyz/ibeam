@@ -434,7 +434,7 @@ def log_in(driver_path,
         try:
             website_loaded = EC.presence_of_element_located((By.CLASS_NAME, 'login'))
             WebDriverWait(driver, 5).until(website_loaded)
-        except TimeoutException as ee:
+        except TimeoutException as _:
             page_loaded_correctly = False
 
         if not page_loaded_correctly or website_version == -1:
@@ -445,12 +445,9 @@ def log_in(driver_path,
         save_screenshot(driver, '__timeout-exception')
         success = False
     except Exception as e:
-        try:
-            raise RuntimeError('Error encountered during authentication') from e
-        except Exception as full_e:
-            _LOGGER.exception(full_e)
-            save_screenshot(driver, '__generic-exception')
-            success = False
+        _LOGGER.error(f'Error encountered during authentication \nException:\n{exception_to_string(e)}')
+        save_screenshot(driver, '__generic-exception')
+        success = False
     finally:
         # if sys.platform == 'linux' and display is not None:
         _LOGGER.info(f'Cleaning up the resources. Display: {display} | Driver: {driver}')
@@ -490,19 +487,15 @@ def handle_two_fa(two_fa_handler, driver) -> Union[str, None]:
         two_fa_code = two_fa_handler.get_two_fa_code(driver)
         if two_fa_code is not None:
             two_fa_code = str(two_fa_code)  # in case someone returns an integer
-    except Exception as two_fa_exception:
-        try:
-            raise RuntimeError('Error encountered while acquiring 2FA code.') from two_fa_exception
-        except Exception as full_e:
-            _LOGGER.exception(full_e)
-            return None
-    else:
-        _LOGGER.debug(f'2FA code returned: {two_fa_code}')
+    except Exception as e:
+        _LOGGER.error(f'Error encountered while acquiring 2FA code. \nException:\n{exception_to_string(e)}')
+        return None
 
-        if var.STRICT_TWO_FA_CODE and two_fa_code is not None and (
-                not two_fa_code.isdigit() or len(two_fa_code) != 6):
-            _LOGGER.error(
-                f'Illegal 2FA code returned: {two_fa_code}. Ensure the 2FA code contains 6 digits or disable this check by setting IBEAM_STRICT_TWO_FA_CODE to False.')
-            return None
+    _LOGGER.debug(f'2FA code returned: {two_fa_code}')
 
-        return two_fa_code
+    if var.STRICT_TWO_FA_CODE and two_fa_code is not None and \
+            (not two_fa_code.isdigit() or len(two_fa_code) != 6):
+        _LOGGER.error(f'Illegal 2FA code returned: {two_fa_code}. Ensure the 2FA code contains 6 digits or disable this check by setting IBEAM_STRICT_TWO_FA_CODE to False.')
+        return None
+
+    return two_fa_code
