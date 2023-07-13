@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ibeam.config import Config
 from ibeam.src.handlers.credentials_handler import CredentialsHandler
+from ibeam.src.handlers.login_handler import LoginHandler
 from ibeam.src.handlers.secrets_handler import SecretsHandler
 
 _this_filedir = os.path.abspath(os.path.dirname(__file__))
@@ -70,14 +71,16 @@ if __name__ == '__main__':
     secrets_handler = SecretsHandler(secrets_source=cnf.SECRETS_SOURCE)
 
     credentials_handler = CredentialsHandler(secrets_handler=secrets_handler)
+    login_handler = LoginHandler(cnf, credentials_handler=credentials_handler, two_fa_handler=two_fa_handler)
 
     client = GatewayClient(
         http_handler=http_handler,
         inputs_handler=inputs_handler,
         two_fa_handler=two_fa_handler,
         secrets_handler=secrets_handler,
+        login_handler=login_handler,
         gateway_dir=cnf.GATEWAY_DIR,
-        driver_path=cnf.CHROME_DRIVER_PATH,
+        # driver_path=cnf.CHROME_DRIVER_PATH,
         base_url=cnf.GATEWAY_BASE_URL,
     )
 

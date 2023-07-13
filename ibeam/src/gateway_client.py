@@ -11,6 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from ibeam.src import var
+from ibeam.src.handlers.login_handler import LoginHandler
 from ibeam.src.health_server import new_health_server
 from ibeam.src.login.authenticate import log_in
 from ibeam.src.handlers.http_handler import HttpHandler, Status
@@ -35,22 +36,24 @@ class GatewayClient():
                  inputs_handler: InputsHandler,
                  two_fa_handler: TwoFaHandler,
                  secrets_handler: SecretsHandler,
-                 account: str = None,
-                 password: str = None,
-                 key: str = None,
+                 login_handler: LoginHandler,
+                 # account: str = None,
+                 # password: str = None,
+                 # key: str = None,
                  gateway_dir: os.PathLike = None,
-                 driver_path: str = None,
+                 # driver_path: str = None,
                  base_url: str = None):
 
         self._should_shutdown = False
 
         self.gateway_dir = gateway_dir
-        self.driver_path = driver_path
+        # self.driver_path = driver_path
 
         self.http_handler = http_handler
         self.inputs_handler = inputs_handler
         self.two_fa_handler = two_fa_handler
         self.secrets_handler = secrets_handler
+        self.login_handler = login_handler
 
 
         self.encoding = os.environ.get(
@@ -59,22 +62,22 @@ class GatewayClient():
 
         self.base_url = base_url if base_url is not None else var.GATEWAY_BASE_URL
 
-        self.account = account if account is not None else self.secrets_handler.secret_value(self.encoding, 'IBEAM_ACCOUNT')
-        """IBKR account name."""
+        # self.account = account if account is not None else self.secrets_handler.secret_value(self.encoding, 'IBEAM_ACCOUNT')
+        # """IBKR account name."""
+        #
+        # self.password = password if password is not None else self.secrets_handler.secret_value(self.encoding, 'IBEAM_PASSWORD')
+        # """IBKR password."""
+        #
+        # self.key = key if key is not None else self.secrets_handler.secret_value(self.encoding, 'IBEAM_KEY')
+        # """Key to the IBKR password."""
 
-        self.password = password if password is not None else self.secrets_handler.secret_value(self.encoding, 'IBEAM_PASSWORD')
-        """IBKR password."""
-
-        self.key = key if key is not None else self.secrets_handler.secret_value(self.encoding, 'IBEAM_KEY')
-        """Key to the IBKR password."""
-
-        if self.account is None:
-            self.account = input('Account: ')
-
-        if self.password is None:
-            self.password = getpass('Password: ')
-            if self.key is None:
-                self.key = getpass('Key: ') or None
+        # if self.account is None:
+        #     self.account = input('Account: ')
+        #
+        # if self.password is None:
+        #     self.password = getpass('Password: ')
+        #     if self.key is None:
+        #         self.key = getpass('Key: ') or None
 
 
         self.strategy_handler = StrategyHandler(
@@ -102,12 +105,13 @@ class GatewayClient():
         )
 
     def _log_in(self) -> (bool, bool):
-        return log_in(driver_path=self.driver_path,
-                      account=self.account,
-                      password=self.password,
-                      key=self.key,
-                      base_url=self.base_url,
-                      two_fa_handler=self.two_fa_handler)
+        self.login_handler.login()
+        # return log_in(driver_path=self.driver_path,
+        #               account=self.account,
+        #               password=self.password,
+        #               key=self.key,
+        #               base_url=self.base_url,
+        #               two_fa_handler=self.two_fa_handler)
 
     def get_shutdown_status(self) -> bool:
         return self._should_shutdown
