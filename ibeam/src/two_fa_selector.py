@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Union
 
 from ibeam.src import var
-from ibeam.src.inputs_handler import InputsHandler
+from ibeam.src.handlers.inputs_handler import InputsHandler
 from ibeam.src.two_fa_handlers.external_request_handler import ExternalRequestTwoFaHandler
 from ibeam.src.two_fa_handlers.google_msg_handler import GoogleMessagesTwoFaHandler
 from ibeam.src.two_fa_handlers.notification_resend_handler import NotificationResendTwoFaHandler

@@ -12,7 +12,7 @@ from urllib.error import HTTPError, URLError
 import urllib.request
 import urllib.parse
 
-from ibeam.src.inputs_handler import InputsHandler
+from ibeam.src.handlers.inputs_handler import InputsHandler
 from ibeam.src.py_utils import exception_to_string
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
@@ -180,6 +180,7 @@ class HttpHandler():
 
                 elif "timed out" in reason \
                         or "The read operation timed out" in reason:
+                    #TODO: this will cause full relogin, we probably only need to repeat the request
                     _LOGGER.error(
                         f'Connection timeout after {self.request_timeout} seconds. Consider increasing timeout by setting IBEAM_REQUEST_TIMEOUT environment variable. Error: {reason}')
                     status.running = True

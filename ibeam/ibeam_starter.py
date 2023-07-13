@@ -4,7 +4,7 @@ import os
 import sys
 from pathlib import Path
 
-from ibeam.src.secrets_handler import SECRETS_SOURCE_ENV, SecretsHandler
+from ibeam.src.handlers.secrets_handler import SECRETS_SOURCE_ENV, SecretsHandler
 
 _this_filedir = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, str(Path(_this_filedir).parent))
@@ -15,9 +15,9 @@ from ibeam import config
 config.initialize()
 
 from ibeam.src.gateway_client import GatewayClient
-from ibeam.src.http_handler import HttpHandler
+from ibeam.src.handlers.http_handler import HttpHandler
 from ibeam.src import var, two_fa_selector, logs
-from ibeam.src.inputs_handler import InputsHandler
+from ibeam.src.handlers.inputs_handler import InputsHandler
 
 _LOGGER = logging.getLogger('ibeam')
 
