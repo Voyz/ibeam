@@ -9,7 +9,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
 from ibeam.src import var
-from ibeam.src.authenticate import new_chrome_driver, release_chrome_driver, text_to_be_present_in_element, save_screenshot
+from ibeam.src.login.authenticate import text_to_be_present_in_element
+from ibeam.src.login.driver import save_screenshot
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -35,7 +36,7 @@ class NotificationResendTwoFaHandler(TwoFaHandler):
 
         try:
             WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.CSS_SELECTOR, _NOTIFICATION_RESEND_EL)))
-        except TimeoutException as e:
+        except TimeoutException:
             _LOGGER.error(f'Notification resend element not found: {_NOTIFICATION_RESEND_EL}. Aborting.')
             return False
 
@@ -47,7 +48,7 @@ class NotificationResendTwoFaHandler(TwoFaHandler):
 
         try:
             WebDriverWait(driver, _NOTIFICATION_RESEND_INTERVAL).until(success_present)
-        except TimeoutException as e:
+        except TimeoutException:
             _LOGGER.info(f'Success condition was not found when resending 2FA notification. Reattempting {_NOTIFICATION_RESEND_RETRIES - depth - 1} more times.')
             return self.check_and_resend(driver, depth + 1)
         else:

@@ -12,7 +12,7 @@ from apscheduler.triggers.interval import IntervalTrigger
 
 from ibeam.src import var
 from ibeam.src.health_server import new_health_server
-from ibeam.src.authenticate import log_in
+from ibeam.src.login.authenticate import log_in
 from ibeam.src.handlers.http_handler import HttpHandler, Status
 from ibeam.src.handlers.inputs_handler import InputsHandler
 from ibeam.src.utils.process_utils import try_starting_gateway, kill_gateway
