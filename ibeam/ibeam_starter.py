@@ -4,15 +4,14 @@ import os
 import sys
 from pathlib import Path
 
-from ibeam.src.handlers.secrets_handler import SECRETS_SOURCE_ENV, SecretsHandler
+from ibeam.config import Config
+from ibeam.src.handlers.credentials_handler import CredentialsHandler
+from ibeam.src.handlers.secrets_handler import SecretsHandler
 
 _this_filedir = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, str(Path(_this_filedir).parent))
 
 import ibeam
-from ibeam import config
-
-config.initialize()
 
 from ibeam.src.gateway_client import GatewayClient
 from ibeam.src.handlers.http_handler import HttpHandler
@@ -38,44 +37,51 @@ def parse_args():
 
 
 if __name__ == '__main__':
+    from ibeam.src import logs
+    logs.initialize()
+
+    cnf = Config()
+
     _LOGGER.info(f'############ Starting IBeam version {ibeam.__version__} ############')
     args = parse_args()
 
     if args.verbose:
         logs.set_level_for_all(_LOGGER, logging.DEBUG)
 
-    inputs_dir = var.INPUTS_DIR
-    gateway_dir = var.GATEWAY_DIR
-    driver_path = var.CHROME_DRIVER_PATH
+    # inputs_dir = var.INPUTS_DIR
+    # gateway_dir = var.GATEWAY_DIR
+    # driver_path = var.CHROME_DRIVER_PATH
+    #
+    # if gateway_dir is None:
+    #     gateway_dir = input('Gateway root path: ')
+    #
+    # if driver_path is None:
+    #     driver_path = input('Chrome Driver executable path: ')
 
-    if gateway_dir is None:
-        gateway_dir = input('Gateway root path: ')
+    # base_url = var.GATEWAY_BASE_URL
 
-    if driver_path is None:
-        driver_path = input('Chrome Driver executable path: ')
+    inputs_handler = InputsHandler(inputs_dir=cnf.INPUTS_DIR, gateway_dir=cnf.GATEWAY_DIR)
+    http_handler = HttpHandler(inputs_handler=inputs_handler, base_url=cnf.GATEWAY_BASE_URL)
 
-    base_url = var.GATEWAY_BASE_URL
+    # handler_name = var.TWO_FA_HANDLER
+    two_fa_handler = two_fa_selector.select(cnf.TWO_FA_HANDLER, cnf.CHROME_DRIVER_PATH, cnf.CUSTOM_TWO_FA_HANDLER, inputs_handler)
 
-    inputs_handler = InputsHandler(inputs_dir=inputs_dir, gateway_dir=gateway_dir)
-    http_handler = HttpHandler(inputs_handler=inputs_handler, base_url=base_url)
+    _LOGGER.info(f'Secrets source: {cnf.SECRETS_SOURCE}')
+    secrets_handler = SecretsHandler(secrets_source=cnf.SECRETS_SOURCE)
 
-    handler_name = var.TWO_FA_HANDLER
-    two_fa_handler = two_fa_selector.select(handler_name, driver_path, inputs_handler)
+    credentials_handler = CredentialsHandler(secrets_handler=secrets_handler)
 
-    secrets_source = var.SECRETS_SOURCE
-    _LOGGER.info(f'Secrets source: {secrets_source}')
-    secrets_handler = SecretsHandler(secrets_source=secrets_source)
+    client = GatewayClient(
+        http_handler=http_handler,
+        inputs_handler=inputs_handler,
+        two_fa_handler=two_fa_handler,
+        secrets_handler=secrets_handler,
+        gateway_dir=cnf.GATEWAY_DIR,
+        driver_path=cnf.CHROME_DRIVER_PATH,
+        base_url=cnf.GATEWAY_BASE_URL,
+    )
 
-    client = GatewayClient(http_handler=http_handler,
-                           inputs_handler=inputs_handler,
-                           two_fa_handler=two_fa_handler,
-                           secrets_handler=secrets_handler,
-                           gateway_dir=gateway_dir,
-                           driver_path=driver_path,
-                           base_url=base_url,
-                           )
-
-    _LOGGER.info(f'Environment variable configuration:\n{var.all_variables}')
+    _LOGGER.info(f'Configuration:\n{cnf.all_variables}')
 
     if args.start:
         pids = client.try_starting()
@@ -88,10 +94,10 @@ if __name__ == '__main__':
         _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
     elif args.check:
         status = client.http_handler.get_status()
-        if status.session:
-            _LOGGER.info(f'Gateway session {"" if status.authenticated else "not "}authenticated.')
-        else:
+        if not status.session:
             _LOGGER.info(f'No active Gateway session.')
+        else:
+            _LOGGER.info(f'Gateway session {"" if status.authenticated else "not "}authenticated.')
     elif args.tickle:
         success = client.http_handler.tickle().running
         _LOGGER.info(f'Gateway {"" if success else "not "}running.')

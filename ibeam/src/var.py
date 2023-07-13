@@ -162,4 +162,7 @@ TWO_FA_SELECT_EL_ID = os.environ.get('IBEAM_TWO_FA_SELECT_EL_ID', 'sf_select')
 TWO_FA_SELECT_TARGET = os.environ.get('IBEAM_TWO_FA_SELECT_TARGET', 'IB Key')
 """Option that is to be chosen in the 2FA select dropdown"""
 
+CUSTOM_TWO_FA_HANDLER = os.environ.get('IBEAM_CUSTOM_TWO_FA_HANDLER', 'custom_two_fa_handler.CustomTwoFaHandler')
+"""Fully qualified path of the custom 2FA handler in the inputs directory."""
+
 all_variables = {item: value for item, value in vars().items() if (not item.startswith("__") and item.isupper())}

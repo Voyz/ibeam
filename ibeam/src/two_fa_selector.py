@@ -11,11 +11,13 @@ from ibeam.src.two_fa_handlers.google_msg_handler import GoogleMessagesTwoFaHand
 from ibeam.src.two_fa_handlers.notification_resend_handler import NotificationResendTwoFaHandler
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
-_CUSTOM_TWO_FA_HANDLER = os.environ.get('IBEAM_CUSTOM_TWO_FA_HANDLER', 'custom_two_fa_handler.CustomTwoFaHandler')
-"""Fully qualified path of the custom 2FA handler in the inputs directory."""
 
 
-def select(handler_name, driver_path, inputs_handler: InputsHandler) -> Union[TwoFaHandler, None]:
+
+def select(handler_name,
+           driver_path,
+           custom_two_fa_handler,
+           inputs_handler: InputsHandler) -> Union[TwoFaHandler, None]:
 
     if handler_name == 'GOOGLE_MSG':
         handler = GoogleMessagesTwoFaHandler(driver_path)
@@ -24,7 +26,7 @@ def select(handler_name, driver_path, inputs_handler: InputsHandler) -> Union[Tw
     elif handler_name == 'NOTIFICATION_RESEND':
         handler = NotificationResendTwoFaHandler()
     elif handler_name == 'CUSTOM_HANDLER':
-        handler = load_custom_two_fa_handler(_CUSTOM_TWO_FA_HANDLER, inputs_handler)()
+        handler = load_custom_two_fa_handler(custom_two_fa_handler, inputs_handler)()
     else:
         handler = None
 
