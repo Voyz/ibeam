@@ -36,61 +36,23 @@ class GatewayClient():
                  inputs_handler: InputsHandler,
                  two_fa_handler: TwoFaHandler,
                  secrets_handler: SecretsHandler,
-                 login_handler: LoginHandler,
-                 # account: str = None,
-                 # password: str = None,
-                 # key: str = None,
-                 gateway_dir: os.PathLike = None,
-                 # driver_path: str = None,
-                 base_url: str = None):
+                 strategy_handler: StrategyHandler,
+                 gateway_dir: os.PathLike = None):
 
         self._should_shutdown = False
 
         self.gateway_dir = gateway_dir
-        # self.driver_path = driver_path
 
         self.http_handler = http_handler
         self.inputs_handler = inputs_handler
         self.two_fa_handler = two_fa_handler
         self.secrets_handler = secrets_handler
-        self.login_handler = login_handler
+        self.strategy_handler = strategy_handler
 
 
         self.encoding = os.environ.get(
             'IBEAM_ENCODING', default='UTF-8')
         """Character encoding for secret files"""
-
-        self.base_url = base_url if base_url is not None else var.GATEWAY_BASE_URL
-
-        # self.account = account if account is not None else self.secrets_handler.secret_value(self.encoding, 'IBEAM_ACCOUNT')
-        # """IBKR account name."""
-        #
-        # self.password = password if password is not None else self.secrets_handler.secret_value(self.encoding, 'IBEAM_PASSWORD')
-        # """IBKR password."""
-        #
-        # self.key = key if key is not None else self.secrets_handler.secret_value(self.encoding, 'IBEAM_KEY')
-        # """Key to the IBKR password."""
-
-        # if self.account is None:
-        #     self.account = input('Account: ')
-        #
-        # if self.password is None:
-        #     self.password = getpass('Password: ')
-        #     if self.key is None:
-        #         self.key = getpass('Key: ') or None
-
-
-        self.strategy_handler = StrategyHandler(
-            http_handler=self.http_handler,
-            authentication_strategy=var.AUTHENTICATION_STRATEGY,
-            reauthenticate_wait=var.REAUTHENTICATE_WAIT,
-            restart_failed_sessions=var.RESTART_FAILED_SESSIONS,
-            restart_wait=var.RESTART_WAIT,
-            max_reauthenticate_retries=var.MAX_REAUTHENTICATE_RETRIES,
-            max_status_check_retries=var.MAX_STATUS_CHECK_RETRIES,
-            gateway_process_match=var.GATEWAY_PROCESS_MATCH,
-            log_in_function=self._log_in,
-        )
 
 
         self._concurrent_maintenance_attempts = 1
@@ -101,21 +63,11 @@ class GatewayClient():
             gateway_process_match=var.GATEWAY_PROCESS_MATCH,
             gateway_dir=self.gateway_dir,
             gateway_startup=var.GATEWAY_STARTUP,
-            verify_connection=lambda: self.http_handler.try_request(self.base_url),
+            verify_connection=self.http_handler.base_route,
         )
-
-    def _log_in(self) -> (bool, bool):
-        self.login_handler.login()
-        # return log_in(driver_path=self.driver_path,
-        #               account=self.account,
-        #               password=self.password,
-        #               key=self.key,
-        #               base_url=self.base_url,
-        #               two_fa_handler=self.two_fa_handler)
 
     def get_shutdown_status(self) -> bool:
         return self._should_shutdown
-
 
 
     def start_and_authenticate(self, request_retries=1) -> (bool, bool, Status):

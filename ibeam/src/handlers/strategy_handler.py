@@ -3,6 +3,7 @@ import time
 from pathlib import Path
 
 from ibeam.src.handlers.http_handler import Status, HttpHandler
+from ibeam.src.handlers.login_handler import LoginHandler
 from ibeam.src.utils.process_utils import kill_gateway
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
@@ -45,16 +46,17 @@ class StrategyHandler():
 
     def __init__(self,
                  http_handler:HttpHandler,
+                 login_handler:LoginHandler,
                  authentication_strategy:str,
                  reauthenticate_wait:int,
                  restart_failed_sessions:bool,
                  restart_wait:int,
                  max_reauthenticate_retries:int,
                  max_status_check_retries:int,
-                 gateway_process_match:str,
-                 log_in_function:callable
+                 gateway_process_match:str
                  ):
         self.http_handler = http_handler
+        self.login_handler = login_handler
         self.authentication_strategy = authentication_strategy
         self.reauthenticate_wait = reauthenticate_wait
         self.restart_failed_sessions = restart_failed_sessions
@@ -62,7 +64,6 @@ class StrategyHandler():
         self.max_reauthenticate_retries = max_reauthenticate_retries
         self.max_status_check_retries = max_status_check_retries
         self.gateway_process_match = gateway_process_match
-        self.log_in_function = log_in_function
 
     def try_authenticating(self, request_retries=1) -> (bool, bool, Status):
 
@@ -96,7 +97,7 @@ class StrategyHandler():
         else:
             _LOGGER.info('No active sessions, logging in...')
 
-        success, shutdown = self.log_in_function()
+        success, shutdown = self.login_handler.login()
         _LOGGER.info(f'Logging in {"succeeded" if success else "failed"}')
         if shutdown:
             return False, True, status
@@ -147,7 +148,7 @@ class StrategyHandler():
 
     def _log_in(self, status):
         try:
-            success, shutdown = self.log_in_function()
+            success, shutdown = self.login_handler.login()
             _LOGGER.info(f'Logging in {"succeeded" if success else "failed"}')
 
             if not success or shutdown:

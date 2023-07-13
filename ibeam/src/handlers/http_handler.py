@@ -272,6 +272,10 @@ class HttpHandler():
         """Reauthenticate will work only if there is an existing session."""
         return self.url_request(self.base_url + var.ROUTE_REAUTHENTICATE, 'POST')
 
+    def base_route(self):
+        """Call base base_url"""
+        return self.try_request(self.base_url)
+
 
     def __getstate__(self):
         state = self.__dict__.copy()

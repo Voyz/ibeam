@@ -8,6 +8,7 @@ from ibeam.config import Config
 from ibeam.src.handlers.credentials_handler import CredentialsHandler
 from ibeam.src.handlers.login_handler import LoginHandler
 from ibeam.src.handlers.secrets_handler import SecretsHandler
+from ibeam.src.handlers.strategy_handler import StrategyHandler
 
 _this_filedir = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, str(Path(_this_filedir).parent))
@@ -73,15 +74,25 @@ if __name__ == '__main__':
     credentials_handler = CredentialsHandler(secrets_handler=secrets_handler)
     login_handler = LoginHandler(cnf, credentials_handler=credentials_handler, two_fa_handler=two_fa_handler)
 
+    strategy_handler = StrategyHandler(
+        http_handler=http_handler,
+        login_handler=login_handler,
+        authentication_strategy=cnf.AUTHENTICATION_STRATEGY,
+        reauthenticate_wait=cnf.REAUTHENTICATE_WAIT,
+        restart_failed_sessions=cnf.RESTART_FAILED_SESSIONS,
+        restart_wait=cnf.RESTART_WAIT,
+        max_reauthenticate_retries=cnf.MAX_REAUTHENTICATE_RETRIES,
+        max_status_check_retries=cnf.MAX_STATUS_CHECK_RETRIES,
+        gateway_process_match=cnf.GATEWAY_PROCESS_MATCH,
+    )
+
     client = GatewayClient(
         http_handler=http_handler,
         inputs_handler=inputs_handler,
         two_fa_handler=two_fa_handler,
         secrets_handler=secrets_handler,
-        login_handler=login_handler,
+        strategy_handler=strategy_handler,
         gateway_dir=cnf.GATEWAY_DIR,
-        # driver_path=cnf.CHROME_DRIVER_PATH,
-        base_url=cnf.GATEWAY_BASE_URL,
     )
 
     _LOGGER.info(f'Configuration:\n{cnf.all_variables}')
