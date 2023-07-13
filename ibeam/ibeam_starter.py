@@ -88,9 +88,6 @@ if __name__ == '__main__':
 
     client = GatewayClient(
         http_handler=http_handler,
-        inputs_handler=inputs_handler,
-        two_fa_handler=two_fa_handler,
-        secrets_handler=secrets_handler,
         strategy_handler=strategy_handler,
         gateway_dir=cnf.GATEWAY_DIR,
     )

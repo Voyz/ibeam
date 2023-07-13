@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 import time
-from getpass import getpass
 
 from pathlib import Path
 from typing import Optional, List
@@ -11,15 +10,10 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
 from ibeam.src import var
-from ibeam.src.handlers.login_handler import LoginHandler
 from ibeam.src.health_server import new_health_server
-from ibeam.src.login.authenticate import log_in
 from ibeam.src.handlers.http_handler import HttpHandler, Status
-from ibeam.src.handlers.inputs_handler import InputsHandler
 from ibeam.src.utils.process_utils import try_starting_gateway, kill_gateway
-from ibeam.src.handlers.secrets_handler import SecretsHandler
 from ibeam.src.handlers.strategy_handler import StrategyHandler
-from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
@@ -33,9 +27,6 @@ class GatewayClient():
 
     def __init__(self,
                  http_handler: HttpHandler,
-                 inputs_handler: InputsHandler,
-                 two_fa_handler: TwoFaHandler,
-                 secrets_handler: SecretsHandler,
                  strategy_handler: StrategyHandler,
                  gateway_dir: os.PathLike = None):
 
@@ -44,15 +35,7 @@ class GatewayClient():
         self.gateway_dir = gateway_dir
 
         self.http_handler = http_handler
-        self.inputs_handler = inputs_handler
-        self.two_fa_handler = two_fa_handler
-        self.secrets_handler = secrets_handler
         self.strategy_handler = strategy_handler
-
-
-        self.encoding = os.environ.get(
-            'IBEAM_ENCODING', default='UTF-8')
-        """Character encoding for secret files"""
 
 
         self._concurrent_maintenance_attempts = 1
