@@ -5,7 +5,6 @@ import sys
 from pathlib import Path
 
 from ibeam.config import Config
-from ibeam.src.handlers.credentials_handler import CredentialsHandler
 from ibeam.src.handlers.login_handler import LoginHandler
 from ibeam.src.handlers.secrets_handler import SecretsHandler
 from ibeam.src.handlers.strategy_handler import StrategyHandler
@@ -72,11 +71,10 @@ if __name__ == '__main__':
     _LOGGER.info(f'Secrets source: {cnf.SECRETS_SOURCE}')
     secrets_handler = SecretsHandler(secrets_source=cnf.SECRETS_SOURCE)
 
-    credentials_handler = CredentialsHandler(secrets_handler=secrets_handler)
 
     login_handler = LoginHandler(
         cnf=cnf,
-        credentials_handler=credentials_handler,
+        secrets_handler=secrets_handler,
         two_fa_handler=two_fa_handler,
         driver_factory=driver_factory
     )

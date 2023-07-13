@@ -24,6 +24,10 @@ class SecretsHandler():
     def __init__(self, secrets_source):
         self.secrets_source = secrets_source
 
+        """Character encoding for secret files"""
+        self.encoding = os.environ.get(
+            'IBEAM_ENCODING', default='UTF-8')
+
     def secret_value(self, encoding, name: str,
                      lstrip=None, rstrip='\r\n') -> Optional[str]:
         """
@@ -118,3 +122,17 @@ class SecretsHandler():
             return None
 
 
+    @property
+    def account(self):
+        """IBKR account name."""
+        return self.secret_value(self.encoding, 'IBEAM_ACCOUNT')
+
+    @property
+    def password(self):
+        """IBKR account password."""
+        return self.secret_value(self.encoding, 'IBEAM_PASSWORD')
+
+    @property
+    def key(self):
+        """Key to the IBKR password."""
+        return self.secret_value(self.encoding, 'IBEAM_KEY')
