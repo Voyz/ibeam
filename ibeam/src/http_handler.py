@@ -86,6 +86,8 @@ class Status():
         if self.authenticated:
             return 'AUTHENTICATED'
 
+        return 'NOT AUTHENTICATED'
+
     def __repr__(self):
         d = self.__dict__
         if 'response' in d:
