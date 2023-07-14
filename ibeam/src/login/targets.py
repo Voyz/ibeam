@@ -67,12 +67,12 @@ def targets_from_versions(targets: Targets, versions: dict) -> Targets:
     version_target_user_name = Target(versions['USER_NAME_EL'])
     version_target_error = Target(versions['ERROR_EL'])
 
-    if 'USER_NAME' in targets and version_target_user_name != targets['USER_NAME'].variable:
+    if 'USER_NAME' in targets and version_target_user_name.variable != targets['USER_NAME'].variable:
         _LOGGER.warning(f'USER_NAME target is forced to "{targets["USER_NAME"].variable}", contrary to the element found on the website: "{version_target_user_name}"')
     else:
         targets['USER_NAME'] = version_target_user_name
 
-    if "ERROR" in targets and version_target_error != targets['ERROR'].variable:
+    if "ERROR" in targets and version_target_error.variable != targets['ERROR'].variable:
         _LOGGER.warning(f'ERROR target is forced to "{targets["ERROR"].variable}", contrary to the element found on the website: "{version_target_error}"')
     else:
         targets['ERROR'] = version_target_error
