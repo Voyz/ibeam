@@ -325,23 +325,25 @@ class AttemptException(Exception):
         self.cause = cause
         super().__init__(*args, **kwargs)
 
+
 def log_in(
-           driver_factory:DriverFactory,
-           account,
-           password,
-           key: str = None,
-           base_url: str = None,
-           two_fa_handler: TwoFaHandler = None,
-           route_auth: str = None,
-           two_fa_select_target: str = None,
-           strict_two_fa_code: bool = None,
-           max_immediate_attempts: int = None,
-           oauth_timeout: int = None,
-           max_presubmit_buffer: int = None,
-           min_presubmit_buffer: int = None,
-           max_failed_auth: int = None,
-           outputs_dir: str = None,
-           ) -> (bool, bool):
+        targets: Targets,
+        driver_factory: DriverFactory,
+        account,
+        password,
+        key: str = None,
+        base_url: str = None,
+        two_fa_handler: TwoFaHandler = None,
+        route_auth: str = None,
+        two_fa_select_target: str = None,
+        strict_two_fa_code: bool = None,
+        max_immediate_attempts: int = None,
+        oauth_timeout: int = None,
+        max_presubmit_buffer: int = None,
+        min_presubmit_buffer: int = None,
+        max_failed_auth: int = None,
+        outputs_dir: str = None,
+) -> (bool, bool):
     """
     Logs into the currently running gateway.
 
@@ -357,7 +359,6 @@ def log_in(
     success = False
     driver = None
     website_version = -1
-    targets = {}
 
     global _PRESUBMIT_BUFFER
     presubmit_buffer = _PRESUBMIT_BUFFER
@@ -368,11 +369,10 @@ def log_in(
 
         website_version = check_version(driver)
 
-        targets = create_targets(_VERSIONS[website_version])
+        targets = targets_from_versions(targets, _VERSIONS[website_version])
         _LOGGER.debug(f'Targets: {targets}')
 
         wait_and_identify_trigger = partial(_wait_and_identify_trigger, targets, driver, oauth_timeout)
-
 
         # wait for the page to load
         wait_and_identify_trigger(is_present(targets['USER_NAME']), skip_identify=True)

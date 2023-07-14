@@ -10,6 +10,7 @@ from ibeam.src.handlers.process_handler import ProcessHandler
 from ibeam.src.handlers.secrets_handler import SecretsHandler
 from ibeam.src.handlers.strategy_handler import StrategyHandler
 from ibeam.src.login.driver import DriverFactory
+from ibeam.src.login.targets import create_targets
 
 _this_filedir = os.path.abspath(os.path.dirname(__file__))
 sys.path.insert(0, str(Path(_this_filedir).parent))
@@ -43,7 +44,7 @@ if __name__ == '__main__':
     from ibeam.src import logs
     logs.initialize()
 
-    cnf = Config()
+    cnf = Config(var.all_variables)
 
     _LOGGER.info(f'############ Starting IBeam version {ibeam.__version__} ############')
     args = parse_args()
@@ -72,12 +73,14 @@ if __name__ == '__main__':
     _LOGGER.info(f'Secrets source: {cnf.SECRETS_SOURCE}')
     secrets_handler = SecretsHandler(secrets_source=cnf.SECRETS_SOURCE)
 
+    targets = create_targets(cnf)
 
     login_handler = LoginHandler(
         cnf=cnf,
         secrets_handler=secrets_handler,
         two_fa_handler=two_fa_handler,
-        driver_factory=driver_factory
+        driver_factory=driver_factory,
+        targets=targets,
     )
 
     process_handler = ProcessHandler(

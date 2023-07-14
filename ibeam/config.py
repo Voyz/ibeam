@@ -19,8 +19,8 @@ def initialize():
 
 
 class Config():
-    def __init__(self):
-        self._all_variables = var.all_variables
+    def __init__(self, env_variables):
+        self._all_variables = env_variables.copy()
         self.manual_input_variables = self._all_variables.get('IBEAM_MANUAL_INPUT_VARIABLES', [])
 
     def __getattr__(self, key):

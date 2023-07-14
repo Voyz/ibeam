@@ -2,6 +2,7 @@ from ibeam.config import Config
 from ibeam.src.handlers.secrets_handler import SecretsHandler
 from ibeam.src.login.authenticate import log_in
 from ibeam.src.login.driver import DriverFactory
+from ibeam.src.login.targets import Targets
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 
@@ -12,16 +13,19 @@ class LoginHandler():
                  secrets_handler:SecretsHandler,
                  two_fa_handler:TwoFaHandler,
                  driver_factory:DriverFactory,
+                 targets: Targets,
                  ):
 
         self.cnf = cnf
         self.secrets_handler = secrets_handler
         self.two_fa_handler = two_fa_handler
         self.driver_factory = driver_factory
+        self.targets = targets
 
 
     def login(self):
         return log_in(
+            targets=self.targets,
             driver_factory=self.driver_factory,
             account=self.secrets_handler.account,
             password=self.secrets_handler.password,
