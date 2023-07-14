@@ -271,14 +271,15 @@ class LoginHandler():
 
         if two_fa_code is None:
             _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
+            raise AttemptException(cause='break')
         else:
             two_fa_el, _ = wait_and_identify_trigger(is_clickable(targets['TWO_FA_INPUT']), skip_identify=True)
 
-            two_fa_el[0].clear()
-            two_fa_el[0].send_keys(two_fa_code)
+            two_fa_el.clear()
+            two_fa_el.send_keys(two_fa_code)
 
             _LOGGER.info('Submitting the 2FA form')
-            two_fa_el[0].send_keys(Keys.RETURN)
+            two_fa_el.send_keys(Keys.RETURN)
 
             trigger, target = wait_and_identify_trigger(
                 has_text(targets['SUCCESS']),
