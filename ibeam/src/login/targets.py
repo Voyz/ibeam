@@ -2,10 +2,13 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.remote.webelement import WebElement
+from selenium.webdriver.support import expected_conditions as EC
 
-from ibeam.src import var
+from ibeam.config import Config
+from ibeam.src.utils.selenium_utils import text_to_be_present_in_element
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
@@ -60,28 +63,33 @@ class Target():
 
 Targets = dict[str, Target]
 
+def targets_from_versions(targets: Targets, versions: dict) -> Targets:
+    version_target_user_name = Target(versions['USER_NAME_EL'])
+    version_target_error = Target(versions['ERROR_EL'])
 
-def create_targets(versions: dict) -> Targets:
+    if 'USER_NAME' in targets and version_target_user_name != targets['USER_NAME'].variable:
+        _LOGGER.warning(f'USER_NAME target is forced to "{targets["USER_NAME"].variable}", contrary to the element found on the website: "{version_target_user_name}"')
+    else:
+        targets['USER_NAME'] = version_target_user_name
+
+    if "ERROR" in targets and version_target_error != targets['ERROR'].variable:
+        _LOGGER.warning(f'ERROR target is forced to "{targets["ERROR"].variable}", contrary to the element found on the website: "{version_target_error}"')
+    else:
+        targets['ERROR'] = version_target_error
+
+    return targets
+
+def create_targets(cnf:Config) -> Targets:
     targets = {}
 
-    targets['USER_NAME'] = Target(versions['USER_NAME_EL'])
-    targets['PASSWORD'] = Target(var.PASSWORD_EL)
-    targets['SUBMIT'] = Target(var.SUBMIT_EL)
-    targets['ERROR'] = Target(versions['ERROR_EL'])
-    targets['SUCCESS'] = Target(var.SUCCESS_EL_TEXT)
-    targets['IBKEY_PROMO'] = Target(var.IBKEY_PROMO_EL_CLASS)
-    targets['TWO_FA'] = Target(var.TWO_FA_EL_ID)
-    targets['TWO_FA_NOTIFICATION'] = Target(var.TWO_FA_NOTIFICATION_EL)
-    targets['TWO_FA_INPUT'] = Target(var.TWO_FA_INPUT_EL_ID)
-    targets['TWO_FA_SELECT'] = Target(var.TWO_FA_SELECT_EL_ID)
-
-    if var.USER_NAME_EL is not None and var.USER_NAME_EL != targets['USER_NAME'].variable:
-        _LOGGER.warning(f'USER_NAME target is forced to "{var.USER_NAME_EL}", contrary to the element found on the website: "{targets["USER_NAME"]}"')
-        targets['USER_NAME'] = Target(var.USER_NAME_EL)
-
-    if var.ERROR_EL is not None and var.ERROR_EL != targets['ERROR'].variable:
-        _LOGGER.warning(f'ERROR target is forced to "{var.ERROR_EL}", contrary to the element found on the website: "{targets["ERROR"]}"')
-        targets['ERROR'] = Target(var.ERROR_EL)
+    targets['PASSWORD'] = Target(cnf.PASSWORD_EL)
+    targets['SUBMIT'] = Target(cnf.SUBMIT_EL)
+    targets['SUCCESS'] = Target(cnf.SUCCESS_EL_TEXT)
+    targets['IBKEY_PROMO'] = Target(cnf.IBKEY_PROMO_EL_CLASS)
+    targets['TWO_FA'] = Target(cnf.TWO_FA_EL_ID)
+    targets['TWO_FA_NOTIFICATION'] = Target(cnf.TWO_FA_NOTIFICATION_EL)
+    targets['TWO_FA_INPUT'] = Target(cnf.TWO_FA_INPUT_EL_ID)
+    targets['TWO_FA_SELECT'] = Target(cnf.TWO_FA_SELECT_EL_ID)
 
     return targets
 
@@ -98,3 +106,23 @@ def identify_target(trigger:WebElement, targets:Targets) -> Optional[Target]:
             raise
 
     raise RuntimeError(f'Trigger found but cannot be identified: {trigger} :: {trigger.get_attribute("outerHTML")}')
+
+
+def is_present(target: Target) -> callable:
+    return EC.presence_of_element_located((target.by, target.identifier))
+
+
+def is_visible(target: Target) -> callable:
+    return EC.visibility_of_element_located((target.by, target.identifier))
+
+
+def is_clickable(target: Target) -> callable:
+    return EC.element_to_be_clickable((target.by, target.identifier))
+
+
+def has_text(target: Target) -> callable:
+    return text_to_be_present_in_element(target.by, target.identifier)
+
+
+def find_element(target: Target, driver:webdriver.Chrome) -> WebElement:
+    return driver.find_element(target.by, target.identifier)

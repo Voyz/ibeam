@@ -12,7 +12,6 @@ from selenium.common import WebDriverException
 
 import ibeam
 from ibeam.src import var
-from ibeam.src.login.authenticate import _LOGGER
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 

@@ -17,10 +17,10 @@ from selenium import webdriver
 
 from ibeam.src import var
 from ibeam.src.login.driver import save_screenshot, DriverFactory, start_up_browser, shut_down_browser
-from ibeam.src.login.targets import Target, Targets, create_targets, identify_target
+from ibeam.src.login.targets import Target, Targets, identify_target, is_present, is_visible, is_clickable, has_text, find_element, targets_from_versions
 from ibeam.src.utils.py_utils import exception_to_string
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
-from ibeam.src.utils.selenium_utils import text_to_be_present_in_element, any_of
+from ibeam.src.utils.selenium_utils import any_of
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
@@ -38,22 +38,6 @@ _VERSIONS = {
         'ERROR_EL': 'CSS_SELECTOR@@.xyz-errormessage'
     }
 }
-
-
-def is_present(target: Target) -> callable:
-    return EC.presence_of_element_located((target.by, target.identifier))
-
-def is_visible(target: Target) -> callable:
-    return EC.visibility_of_element_located((target.by, target.identifier))
-
-def is_clickable(target: Target) -> callable:
-    return EC.element_to_be_clickable((target.by, target.identifier))
-
-def has_text(target: Target) -> callable:
-    return text_to_be_present_in_element(target.by, target.identifier)
-
-def find_element(target: Target, driver:webdriver.Chrome) -> WebElement:
-    return driver.find_element(target.by, target.identifier)
 
 
 def check_version(driver) -> int:

@@ -9,7 +9,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
 
 from ibeam.src import var
-from ibeam.src.login.authenticate import text_to_be_present_in_element
+from ibeam.src.utils.selenium_utils import text_to_be_present_in_element
 from ibeam.src.login.driver import save_screenshot
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 from selenium.webdriver.support import expected_conditions as EC
