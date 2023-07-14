@@ -1,4 +1,7 @@
+from typing import Union
+
 from selenium.common import StaleElementReferenceException, WebDriverException
+from selenium.webdriver.remote.webelement import WebElement
 
 
 class text_to_be_present_in_element(object):
@@ -29,7 +32,7 @@ def any_of(*expected_conditions):
     Equivalent to a logical 'OR'.
     Returns results of the first matching condition, or False if none do. """
 
-    def any_of_condition(driver):
+    def any_of_condition(driver) -> Union[WebElement, bool]:
         for expected_condition in expected_conditions:
             try:
                 result = expected_condition(driver)

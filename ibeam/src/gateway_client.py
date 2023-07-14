@@ -39,16 +39,13 @@ class GatewayClient():
         self._concurrent_maintenance_attempts = 1
         self._health_server = new_health_server(var.HEALTH_SERVER_PORT, self.http_handler.get_status, self.get_shutdown_status)
 
-    def try_starting(self) -> Optional[List[int]]:
-        return self.process_handler.start_gateway()
-
     def get_shutdown_status(self) -> bool:
         return self._should_shutdown
 
     def start_and_authenticate(self, request_retries=1) -> (bool, bool, Status):
         """Starts the gateway and authenticates using the credentials stored."""
 
-        self.try_starting()
+        self.process_handler.start_gateway()
 
         success, shutdown, status = self.strategy_handler.try_authenticating(request_retries=request_retries)
         self._should_shutdown = shutdown

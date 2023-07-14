@@ -128,7 +128,7 @@ class DriverFactory():
                    incognito: bool = None,
                    ui_scaling: float = None,
                    page_load_timeout: int = None
-                   ):
+                   ) -> webdriver.Chrome:
 
         driver_path = driver_path if driver_path is not None else self.driver_path
         name = name if name is not None else self.name
