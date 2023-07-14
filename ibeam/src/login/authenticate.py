@@ -127,9 +127,8 @@ def step_login(targets: Targets,
 
     # small buffer to prevent race-condition on client side
     time.sleep(presubmit_buffer)
-    # submit the form
-    _LOGGER.info('Submitting the form')
 
+    _LOGGER.info('Submitting the form')
     submit_form_el = find_element(targets['SUBMIT'], driver)
     submit_form_el.click()
 
@@ -177,7 +176,7 @@ def step_two_fa_notification(targets: Targets,
         two_fa_success = two_fa_handler.get_two_fa_code(driver)
         if not two_fa_success:
             driver.refresh()
-            raise ContinueException
+            raise AttemptException(cause='continue')
 
     trigger, target = wait_and_identify_trigger(
         has_text(targets['SUCCESS']),
@@ -196,7 +195,7 @@ def step_two_fa(targets: Targets,
     if two_fa_handler is None:
         _LOGGER.critical(
             f'######## ATTENTION! ######## No 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more: https://github.com/Voyz/ibeam/wiki/Two-Factor-Authentication')
-        raise ShutdownException
+        raise AttemptException(cause='shutdown')
 
     two_fa_code = handle_two_fa(two_fa_handler, driver, strict_two_fa_code)
 
@@ -257,10 +256,10 @@ def step_error(driver:webdriver.Chrome,
         if _FAILED_ATTEMPTS >= max_failed_auth:
             _LOGGER.critical(
                 f'######## ATTENTION! ######## Maximum number of failed authentication attempts (IBEAM_MAX_FAILED_AUTH={max_failed_auth}) reached. IBeam will shut down to prevent an account lock-out. It is recommended you attempt to authenticate manually in order to reset the counter. Read the execution logs and report issues at https://github.com/Voyz/ibeam/issues')
-            raise ShutdownException
+            raise AttemptException(cause='shutdown')
 
     time.sleep(1)
-    raise ContinueException
+    raise AttemptException(cause='continue')
 
 
 def handle_timeout_exception(e:Exception,
@@ -288,14 +287,14 @@ def step_failed_two_fa(driver:webdriver.Chrome):
     # this means no two_fa_code was returned and trigger remained the same - ie. don't authenticate
     time.sleep(1)
     driver.refresh()
-    raise ContinueException
+    raise AttemptException(cause='continue')
     # todo: retry authentication or resend code
 
 def step_success(min_presubmit_buffer:int):
     _LOGGER.info('Webpage displayed "Client login succeeds"')
     _FAILED_ATTEMPTS = 0
     _PRESUBMIT_BUFFER = min_presubmit_buffer
-    raise SuccessException
+    raise AttemptException(cause='success')
 
 def attempt(
         targets: Targets,
@@ -337,14 +336,11 @@ def attempt(
         step_success(min_presubmit_buffer)
 
 
-class BreakException(Exception):
-    pass
-class ContinueException(Exception):
-    pass
-class ShutdownException(Exception):
-    pass
-class SuccessException(Exception):
-    pass
+class AttemptException(Exception):
+    def __init__(self, *args, cause:str, **kwargs):
+        self.cause = cause
+        super().__init__(*args, **kwargs)
+
 def log_in(
            driver_factory:DriverFactory,
            account,
@@ -406,16 +402,21 @@ def log_in(
 
             try:
                 attempt(targets, wait_and_identify_trigger, driver, account, password, key, presubmit_buffer, min_presubmit_buffer, max_presubmit_buffer, max_failed_auth, two_fa_handler, two_fa_select_target, strict_two_fa_code, outputs_dir)
-            except BreakException:
-                """ Not very proud of using exceptions for flow of control, but doing so simplifies the logic of breaking this while loop into functions and being able to break, continue, shutdown, etc. from within these functions."""
-                break
-            except ContinueException:
-                continue
-            except SuccessException:
-                success = True
-                break
-            except ShutdownException:
-                return False, True
+            except AttemptException as e:
+                """ Not very proud of using exceptions for flow of control, but doing so simplifies the logic of splitting this while loop into functions and being able to break, continue, shutdown, etc. from within these functions."""
+
+                if e.cause == 'continue':
+                    continue
+                elif e.cause =='success':
+                    success = True
+                    break
+                elif e.cause =='shutdown':
+                    return False, True
+                elif e.cause == 'break':
+                    break
+                else:
+                    raise RuntimeError(f'Invalid AttemptException: {e}')
+
 
         time.sleep(1)
     except TimeoutException as e:
