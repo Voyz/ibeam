@@ -2,7 +2,7 @@ import logging
 import time
 from functools import partial
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 
 from cryptography.fernet import Fernet
 from selenium import webdriver
@@ -17,6 +17,7 @@ from selenium.webdriver.support.ui import Select
 from ibeam.src.handlers.secrets_handler import SecretsHandler
 from ibeam.src.login.driver import DriverFactory, start_up_browser, save_screenshot, shut_down_browser
 from ibeam.src.login.targets import Targets, targets_from_versions, is_present, Target, identify_target, find_element, has_text, is_visible, is_clickable
+from ibeam.src.two_fa_handlers.notification_resend_handler import NotificationResendTwoFaHandler
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 from ibeam.src.utils.py_utils import exception_to_string
 from ibeam.src.utils.selenium_utils import any_of
@@ -238,8 +239,10 @@ class LoginHandler():
                                  ):
         _LOGGER.info(f'Credentials correct, but Gateway requires notification two-factor authentication.')
 
+        two_fa_handler = cast(two_fa_handler, NotificationResendTwoFaHandler)
+
         if two_fa_handler is not None:
-            two_fa_success = two_fa_handler.get_two_fa_code(driver)
+            two_fa_success = two_fa_handler.interact_with_notification(driver, targets)
             if not two_fa_success:
                 driver.refresh()
                 raise AttemptException(cause='continue')

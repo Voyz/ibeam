@@ -19,7 +19,7 @@ import ibeam
 
 from ibeam.src.gateway_client import GatewayClient
 from ibeam.src.handlers.http_handler import HttpHandler
-from ibeam.src import var, two_fa_selector, logs
+from ibeam.src import var, two_fa_selector
 from ibeam.src.handlers.inputs_handler import InputsHandler
 
 _LOGGER = logging.getLogger('ibeam')
@@ -41,10 +41,16 @@ def parse_args():
 
 
 if __name__ == '__main__':
-    from ibeam.src import logs
-    logs.initialize()
-
     cnf = Config(var.all_variables)
+
+    from ibeam.src import logs
+    logs.initialize(
+        log_format=cnf.LOG_FORMAT,
+        log_level=cnf.LOG_LEVEL,
+        log_to_file=cnf.LOG_TO_FILE,
+        outputs_dir=cnf.OUTPUTS_DIR,
+    )
+
 
     _LOGGER.info(f'############ Starting IBeam version {ibeam.__version__} ############')
     args = parse_args()
@@ -54,7 +60,16 @@ if __name__ == '__main__':
 
 
     inputs_handler = InputsHandler(inputs_dir=cnf.INPUTS_DIR, gateway_dir=cnf.GATEWAY_DIR)
-    http_handler = HttpHandler(inputs_handler=inputs_handler, base_url=cnf.GATEWAY_BASE_URL)
+
+    http_handler = HttpHandler(
+        inputs_handler=inputs_handler,
+        base_url=cnf.GATEWAY_BASE_URL,
+        route_validate=cnf.ROUTE_VALIDATE,
+        route_tickle=cnf.ROUTE_TICKLE,
+        route_logout=cnf.ROUTE_LOGOUT,
+        route_reauthenticate=cnf.ROUTE_REAUTHENTICATE,
+        request_timeout=cnf.REQUEST_TIMEOUT,
+    )
 
     driver_factory = DriverFactory(
         driver_path=cnf.CHROME_DRIVER_PATH,
@@ -95,7 +110,7 @@ if __name__ == '__main__':
     process_handler = ProcessHandler(
         gateway_process_match=cnf.GATEWAY_PROCESS_MATCH,
         gateway_dir=cnf.GATEWAY_DIR,
-        gateway_startup=var.GATEWAY_STARTUP,
+        gateway_startup=cnf.GATEWAY_STARTUP,
         verify_connection=http_handler.base_route,
     )
 
@@ -115,6 +130,10 @@ if __name__ == '__main__':
         http_handler=http_handler,
         strategy_handler=strategy_handler,
         process_handler=process_handler,
+        health_server_port=cnf.HEALTH_SERVER_PORT,
+        spawn_new_processes=cnf.SPAWN_NEW_PROCESSES,
+        maintenance_interval=cnf.MAINTENANCE_INTERVAL,
+        request_retries=cnf.REQUEST_RETRIES,
     )
 
     _LOGGER.info(f'Configuration:\n{cnf.all_variables}')

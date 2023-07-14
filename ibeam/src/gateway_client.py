@@ -1,15 +1,12 @@
 import logging
-import os
 import sys
 import time
 
 from pathlib import Path
-from typing import Optional, List
 from apscheduler.executors.pool import ThreadPoolExecutor, ProcessPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 
-from ibeam.src import var
 from ibeam.src.health_server import new_health_server
 from ibeam.src.handlers.http_handler import HttpHandler, Status
 from ibeam.src.handlers.process_handler import ProcessHandler
@@ -17,9 +14,9 @@ from ibeam.src.handlers.strategy_handler import StrategyHandler
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from ibeam import config
+# from ibeam import config
 
-config.initialize()
+# config.initialize()
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
@@ -28,7 +25,12 @@ class GatewayClient():
     def __init__(self,
                  http_handler: HttpHandler,
                  strategy_handler: StrategyHandler,
-                 process_handler: ProcessHandler):
+                 process_handler: ProcessHandler,
+                 health_server_port: int,
+                 spawn_new_processes: bool,
+                 maintenance_interval: int,
+                 request_retries: int,
+                 ):
 
         self._should_shutdown = False
 
@@ -36,8 +38,13 @@ class GatewayClient():
         self.strategy_handler = strategy_handler
         self.process_handler = process_handler
 
+        self.health_server_port = health_server_port
+        self.spawn_new_processes = spawn_new_processes
+        self.maintenance_interval = maintenance_interval
+        self.request_retries = request_retries
+
         self._concurrent_maintenance_attempts = 1
-        self._health_server = new_health_server(var.HEALTH_SERVER_PORT, self.http_handler.get_status, self.get_shutdown_status)
+        self._health_server = new_health_server(self.health_server_port, self.http_handler.get_status, self.get_shutdown_status)
 
     def get_shutdown_status(self) -> bool:
         return self._should_shutdown
@@ -52,17 +59,17 @@ class GatewayClient():
         return success, shutdown, status
 
     def build_scheduler(self):
-        if var.SPAWN_NEW_PROCESSES:
+        if self.spawn_new_processes:
             executors = {'default': ProcessPoolExecutor(self._concurrent_maintenance_attempts)}
         else:
             executors = {'default': ThreadPoolExecutor(self._concurrent_maintenance_attempts)}
         job_defaults = {'coalesce': False, 'max_instances': self._concurrent_maintenance_attempts}
         self._scheduler = BackgroundScheduler(executors=executors, job_defaults=job_defaults, timezone='UTC')
-        self._scheduler.add_job(self._maintenance, trigger=IntervalTrigger(seconds=var.MAINTENANCE_INTERVAL))
+        self._scheduler.add_job(self._maintenance, trigger=IntervalTrigger(seconds=self.maintenance_interval))
 
     def maintain(self):
         self.build_scheduler()
-        _LOGGER.info(f'Starting maintenance with interval {var.MAINTENANCE_INTERVAL} seconds')
+        _LOGGER.info(f'Starting maintenance with interval {self.maintenance_interval} seconds')
         self._scheduler.start()
         try:
             while True:
@@ -78,7 +85,7 @@ class GatewayClient():
     def _maintenance(self):
         _LOGGER.info('Maintenance')
 
-        success, shutdown, status = self.start_and_authenticate(request_retries=var.REQUEST_RETRIES)
+        success, shutdown, status = self.start_and_authenticate(request_retries=self.request_retries)
 
         if shutdown:
             _LOGGER.warning('Shutting IBeam down due to critical error.')

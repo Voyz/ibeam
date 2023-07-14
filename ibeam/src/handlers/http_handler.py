@@ -5,7 +5,6 @@ import ssl
 from pathlib import Path
 from urllib import request
 
-from ibeam.src import var
 from urllib.error import HTTPError, URLError
 import urllib.request
 import urllib.parse
@@ -99,13 +98,21 @@ class HttpHandler():
     def __init__(self,
                  inputs_handler: InputsHandler,
                  base_url:str,
-                 request_timeout: int = None
+                 route_validate: str,
+                 route_tickle: str,
+                 route_logout: str,
+                 route_reauthenticate: str,
+                 request_timeout: int,
                  ):
 
         self.inputs_handler = inputs_handler
         self.base_url = base_url
 
-        self.request_timeout = request_timeout if request_timeout is not None else var.REQUEST_TIMEOUT
+        self.route_validate = route_validate
+        self.route_tickle = route_tickle
+        self.route_logout = route_logout
+        self.route_reauthenticate = route_reauthenticate
+        self.request_timeout = request_timeout
         self.build_ssh_context()
 
     def build_ssh_context(self):
@@ -255,22 +262,22 @@ class HttpHandler():
 
     def validate(self) -> bool:
         """Validate provides information on the current session. Works also after logout."""
-        status = self.try_request(self.base_url + var.ROUTE_VALIDATE, 'GET')
+        status = self.try_request(self.base_url + self.route_validate, 'GET')
         if status.session:
             status.response = json.loads(status.response.read().decode('utf8'))
             return status.response['RESULT']
         return False
 
     def tickle(self, max_attempts=1) -> Status:
-        return self.try_request(self.base_url + var.ROUTE_TICKLE, 'POST', max_attempts=max_attempts)
+        return self.try_request(self.base_url + self.route_tickle, 'POST', max_attempts=max_attempts)
 
     def logout(self):
         """Logout will log the user out, but maintain the session, allowing us to reauthenticate directly."""
-        return self.url_request(self.base_url + var.ROUTE_LOGOUT, 'POST')
+        return self.url_request(self.base_url + self.route_logout, 'POST')
 
     def reauthenticate(self):
         """Reauthenticate will work only if there is an existing session."""
-        return self.url_request(self.base_url + var.ROUTE_REAUTHENTICATE, 'POST')
+        return self.url_request(self.base_url + self.route_reauthenticate, 'POST')
 
     def base_route(self):
         """Call base base_url"""
