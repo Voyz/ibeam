@@ -76,11 +76,20 @@ if __name__ == '__main__':
     targets = create_targets(cnf)
 
     login_handler = LoginHandler(
-        cnf=cnf,
         secrets_handler=secrets_handler,
         two_fa_handler=two_fa_handler,
         driver_factory=driver_factory,
         targets=targets,
+        base_url=cnf.GATEWAY_BASE_URL,
+        route_auth=cnf.ROUTE_AUTH,
+        two_fa_select_target=cnf.TWO_FA_SELECT_TARGET,
+        strict_two_fa_code=cnf.STRICT_TWO_FA_CODE,
+        max_immediate_attempts=cnf.MAX_IMMEDIATE_ATTEMPTS,
+        oauth_timeout=cnf.OAUTH_TIMEOUT,
+        max_presubmit_buffer=cnf.MAX_PRESUBMIT_BUFFER,
+        min_presubmit_buffer=cnf.MIN_PRESUBMIT_BUFFER,
+        max_failed_auth=cnf.MAX_FAILED_AUTH,
+        outputs_dir=cnf.OUTPUTS_DIR,
     )
 
     process_handler = ProcessHandler(
