@@ -1,6 +1,7 @@
 import logging
 import sys
 import time
+from functools import partial
 from pathlib import Path
 from typing import Optional
 
@@ -10,9 +11,11 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.remote.webelement import WebElement
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.webdriver.support.ui import Select
+from selenium import webdriver
 
 from ibeam.src import var
 from ibeam.src.login.driver import release_chrome_driver, start_driver, save_screenshot, DriverFactory
@@ -25,42 +28,158 @@ _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 _FAILED_ATTEMPTS = 0
 _PRESUBMIT_BUFFER = var.MIN_PRESUBMIT_BUFFER
 
+# _VERSIONS = {
+#     1: {
+#         'USER_NAME_EL': 'user_name',
+#         'ERROR_EL': 'alert alert-danger margin-top-10'
+#     },
+#     2: {
+#         'USER_NAME_EL': 'username',
+#         'ERROR_EL': 'xyz-errormessage'
+#     }
+# }
 _VERSIONS = {
     1: {
-        'USER_NAME_EL': 'user_name',
-        'ERROR_EL': 'alert alert-danger margin-top-10'
+        'USER_NAME_EL': 'NAME@@user_name',
+        'ERROR_EL': 'CSS_SELECTOR@@.alert.alert-danger.margin-top-10'
     },
     2: {
-        'USER_NAME_EL': 'username',
-        'ERROR_EL': 'xyz-errormessage'
+        'USER_NAME_EL': 'NAME@@username',
+        'ERROR_EL': 'CSS_SELECTOR@@.xyz-errormessage'
     }
 }
 
 
-def identify_trigger(trigger, elements) -> Optional[str]:
-    if trigger.get_attribute('id') == elements['TWO_FA_EL_ID']:
-        return elements['TWO_FA_EL_ID']
 
-    if trigger.get_attribute('id') == elements['TWO_FA_SELECT_EL_ID']:
-        return elements['TWO_FA_SELECT_EL_ID']
+class Target():
+    def __init__(self,
+                 variable:str,
+                 ):
+        type, identifier = variable.split("@@")
+        self.type = type
+        self.identifier = identifier
+        self.variable = variable
 
-    if elements['TWO_FA_EL_ID'].replace('.', '') in trigger.get_attribute('class'):
-        return elements['TWO_FA_EL_ID']
+        if type == 'ID':
+            self.by = By.ID
+            self._identify = self.identify_by_id
+        elif type == 'CSS_SELECTOR':
+            self.by = By.CSS_SELECTOR
+            self._identify = self.identify_by_css_selector
+        elif type == 'CLASS_NAME':
+            self.by = By.CLASS_NAME
+            self._identify = self.identify_by_class
+        elif type == 'NAME':
+            self.by = By.NAME
+            self._identify = self.identify_by_name
+        elif type == 'TAG_NAME':
+            self.by = [(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')]
+            self._identify = self.identify_by_text
+        else:
+            raise RuntimeError(f'Unknown target type: {type}@@{identifier}')
 
-    if elements['TWO_FA_SELECT_EL_ID'].replace('.', '') in trigger.get_attribute('class'):
-        return elements['TWO_FA_EL_ID']
+    def identify(self, trigger: WebElement) -> bool:
+        return self._identify(trigger)
 
-    if elements['ERROR_EL'] in trigger.get_attribute('class'):
-        return elements['ERROR_EL']
+    def identify_by_id (self, trigger: WebElement) -> bool:
+        return self.identifier in trigger.get_attribute('id')
 
-    if elements['TWO_FA_NOTIFICATION_EL'] in trigger.get_attribute('class'):
-        return elements['TWO_FA_NOTIFICATION_EL']
+    def identify_by_css_selector(self, trigger: WebElement) -> bool:
+        return self.identifier.replace('.', ' ').strip() in trigger.get_attribute('class')
+    def identify_by_class(self, trigger: WebElement) -> bool:
+        return self.identifier in trigger.get_attribute('class')
 
-    if elements['IBKEY_PROMO_EL_CLASS'] in trigger.get_attribute('class'):
-        return elements['IBKEY_PROMO_EL_CLASS']
+    def identify_by_name(self, trigger: WebElement) -> bool:
+        return self.identifier in trigger.get_attribute('name')
 
-    if trigger.text == elements['SUCCESS_EL_TEXT']:
-        return elements['SUCCESS_EL_TEXT']
+    def identify_by_text(self, trigger: WebElement) -> bool:
+        return self.identifier in trigger.text
+
+    def __repr__(self):
+        return f'Target({self.variable})'
+
+Targets = dict[str, Target]
+
+# def create_target(variable) -> Target:
+#     return Target(variable)
+
+def create_targets(versions: dict) -> Targets:
+    targets = {}
+
+    targets['USER_NAME'] = Target(versions['USER_NAME_EL'])
+    targets['PASSWORD'] = Target(var.PASSWORD_EL)
+    targets['SUBMIT'] = Target(var.SUBMIT_EL)
+    targets['ERROR'] = Target(versions['ERROR_EL'])
+    targets['SUCCESS'] = Target(var.SUCCESS_EL_TEXT)
+    targets['IBKEY_PROMO'] = Target(var.IBKEY_PROMO_EL_CLASS)
+    targets['TWO_FA'] = Target(var.TWO_FA_EL_ID)
+    targets['TWO_FA_NOTIFICATION'] = Target(var.TWO_FA_NOTIFICATION_EL)
+    targets['TWO_FA_INPUT'] = Target(var.TWO_FA_INPUT_EL_ID)
+    targets['TWO_FA_SELECT'] = Target(var.TWO_FA_SELECT_EL_ID)
+
+    if var.USER_NAME_EL is not None and var.USER_NAME_EL != targets['USER_NAME'].variable:
+        _LOGGER.warning(f'USER_NAME target is forced to "{var.USER_NAME_EL}", contrary to the element found on the website: "{targets["USER_NAME"]}"')
+        targets['USER_NAME'] = Target(var.USER_NAME_EL)
+
+    if var.ERROR_EL is not None and var.ERROR_EL != targets['ERROR'].variable:
+        _LOGGER.warning(f'ERROR target is forced to "{var.ERROR_EL}", contrary to the element found on the website: "{targets["ERROR"]}"')
+        targets['ERROR'] = Target(var.ERROR_EL)
+
+    return targets
+
+def is_present(target:Target) -> callable:
+    return EC.presence_of_element_located((target.by, target.identifier))
+
+def is_visible(target:Target) -> callable:
+    return EC.visibility_of_element_located((target.by, target.identifier))
+
+def is_clickable(target:Target) -> callable:
+    return EC.element_to_be_clickable((target.by, target.identifier))
+
+def has_text(target:Target) -> callable:
+    return text_to_be_present_in_element(target.by, target.identifier)
+
+def find_element(target:Target, driver:webdriver.Chrome) -> WebElement:
+    return driver.find_element(target.by, target.identifier)
+
+# def identify_trigger(trigger, elements) -> Optional[str]:
+#     if trigger.get_attribute('id') == elements['TWO_FA_EL_ID']:
+#         return elements['TWO_FA_EL_ID']
+#
+#     if trigger.get_attribute('id') == elements['TWO_FA_SELECT_EL_ID']:
+#         return elements['TWO_FA_SELECT_EL_ID']
+#
+#     if elements['TWO_FA_EL_ID'].replace('.', '') in trigger.get_attribute('class'):
+#         return elements['TWO_FA_EL_ID']
+#
+#     if elements['TWO_FA_SELECT_EL_ID'].replace('.', '') in trigger.get_attribute('class'):
+#         return elements['TWO_FA_EL_ID']
+#
+#     if elements['ERROR_EL'].replace('.', '') in trigger.get_attribute('class'):
+#         return elements['ERROR_EL']
+#
+#     if elements['TWO_FA_NOTIFICATION_EL'] in trigger.get_attribute('class'):
+#         return elements['TWO_FA_NOTIFICATION_EL']
+#
+#     if elements['IBKEY_PROMO_EL_CLASS'] in trigger.get_attribute('class'):
+#         return elements['IBKEY_PROMO_EL_CLASS']
+#
+#     if trigger.text == elements['SUCCESS_EL_TEXT']:
+#         return elements['SUCCESS_EL_TEXT']
+#
+#     raise RuntimeError(f'Trigger found but cannot be identified: {trigger} :: {trigger.get_attribute("outerHTML")}')
+
+
+def identify_target(trigger:WebElement, targets:Targets) -> Optional[Target]:
+    for target in targets.values():
+        try:
+            if target.identify(trigger):
+                return target
+        except TypeError as e:
+            # this is raised if trigger doesn't have Target's attribute, we can ignore it
+            if "argument of type 'NoneType' is not iterable" in str(e):
+                continue
+            raise
 
     raise RuntimeError(f'Trigger found but cannot be identified: {trigger} :: {trigger.get_attribute("outerHTML")}')
 
@@ -92,31 +211,360 @@ def check_version(driver) -> int:
     return 1
 
 
-def create_elements(versions: dict):
-    elements = {}
-    elements['USER_NAME_EL'] = versions['USER_NAME_EL']
-    elements['PASSWORD_EL'] = var.PASSWORD_EL
-    elements['SUBMIT_EL'] = var.SUBMIT_EL
-    elements['ERROR_EL'] = versions['ERROR_EL']
-    elements['SUCCESS_EL_TEXT'] = var.SUCCESS_EL_TEXT
-    elements['IBKEY_PROMO_EL_CLASS'] = var.IBKEY_PROMO_EL_CLASS
-    elements['TWO_FA_EL_ID'] = var.TWO_FA_EL_ID
-    elements['TWO_FA_NOTIFICATION_EL'] = var.TWO_FA_NOTIFICATION_EL
-    elements['TWO_FA_INPUT_EL_ID'] = var.TWO_FA_INPUT_EL_ID
-    elements['TWO_FA_SELECT_EL_ID'] = var.TWO_FA_SELECT_EL_ID
+# def create_elements(versions: dict):
+#     elements = {}
+#     elements['USER_NAME_EL'] = versions['USER_NAME_EL']
+#     elements['PASSWORD_EL'] = var.PASSWORD_EL
+#     elements['SUBMIT_EL'] = var.SUBMIT_EL
+#     elements['ERROR_EL'] = versions['ERROR_EL']
+#     elements['SUCCESS_EL_TEXT'] = var.SUCCESS_EL_TEXT
+#     elements['IBKEY_PROMO_EL_CLASS'] = var.IBKEY_PROMO_EL_CLASS
+#     elements['TWO_FA_EL_ID'] = var.TWO_FA_EL_ID
+#     elements['TWO_FA_NOTIFICATION_EL'] = var.TWO_FA_NOTIFICATION_EL
+#     elements['TWO_FA_INPUT_EL_ID'] = var.TWO_FA_INPUT_EL_ID
+#     elements['TWO_FA_SELECT_EL_ID'] = var.TWO_FA_SELECT_EL_ID
+#
+#
+#     if var.USER_NAME_EL is not None and var.USER_NAME_EL != elements['USER_NAME_EL']:
+#         _LOGGER.warning(f'USER_NAME_EL is forced to "{var.USER_NAME_EL}", contrary to the element found on the website: "{elements["USER_NAME_EL"]}"')
+#         elements['USER_NAME_EL'] = var.USER_NAME_EL
+#
+#     if var.ERROR_EL is not None and var.ERROR_EL != elements['ERROR_EL']:
+#         _LOGGER.warning(f'ERROR_EL is forced to "{var.ERROR_EL}", contrary to the element found on the website: "{elements["ERROR_EL"]}"')
+#         elements['ERROR_EL'] = var.ERROR_EL
+#
+#     return elements
 
 
-    if var.USER_NAME_EL is not None and var.USER_NAME_EL != elements['USER_NAME_EL']:
-        _LOGGER.warning(f'USER_NAME_EL is forced to "{var.USER_NAME_EL}", contrary to the element found on the website: "{elements["USER_NAME_EL"]}"')
-        elements['USER_NAME_EL'] = var.USER_NAME_EL
+def start_up_browser(driver_factory:DriverFactory, base_url: str, route_auth: str) -> (webdriver.Chrome, Optional[Display]):
+    display = None
+    if sys.platform == 'linux':
+        display = Display(visible=False, size=(800, 600))
+        display.start()
 
-    if var.ERROR_EL is not None and var.ERROR_EL != elements['ERROR_EL']:
-        _LOGGER.warning(f'ERROR_EL is forced to "{var.ERROR_EL}", contrary to the element found on the website: "{elements["ERROR_EL"]}"')
-        elements['ERROR_EL'] = var.ERROR_EL
+    driver = driver_factory.new_driver()
+    if driver is None:
+        return False, False
 
-    return elements
+    driver.get(base_url + route_auth)
+    return driver, display
+
+def shut_down_browser(driver:webdriver.Chrome, display:Optional[Display]):
+    _LOGGER.info(f'Cleaning up the resources. Display: {display} | Driver: {driver}')
+
+    if display is not None:
+        display.stop()
+
+    if driver is not None:
+        release_chrome_driver(driver)
 
 
+def _wait_and_identify_trigger(targets: Targets,
+                               driver: webdriver.Chrome,
+                               timeout: int,
+                               *expected_conditions,
+                               skip_identify: bool = False,
+                               ) -> (WebElement, Target):
+    trigger = WebDriverWait(driver, timeout).until(any_of(*expected_conditions))
+
+    if skip_identify:
+        return trigger, None
+
+    target = identify_target(trigger, targets)
+    _LOGGER.debug(f'target: {target}')
+
+    return trigger, target
+
+
+def step_login(targets: Targets,
+               wait_and_identify_trigger: callable,
+               driver:webdriver.Chrome,
+               account: str,
+               password: str,
+               key: str,
+               presubmit_buffer: int,
+               ):
+
+    user_name_el = find_element(targets['USER_NAME'], driver)
+    password_el = find_element(targets['PASSWORD'], driver)
+    # input credentials
+    # user_name_el = driver.find_element(By.NAME, elements['USER_NAME_EL'])
+    # password_el = driver.find_element(By.NAME, elements['PASSWORD_EL'])
+
+    user_name_el.clear()
+    password_el.clear()
+
+    user_name_el.send_keys(account)
+
+    if key is None:
+        password_el.send_keys(password)
+    else:
+        password_el.send_keys(Fernet(key).decrypt(password.encode('utf-8')).decode("utf-8"))
+
+    password_el.send_keys(Keys.TAB)
+
+    # small buffer to prevent race-condition on client side
+    time.sleep(presubmit_buffer)
+    # submit the form
+    _LOGGER.info('Submitting the form')
+
+    submit_form_el = find_element(targets['SUBMIT'], driver)
+    # submit_form_el = driver.find_element(By.CSS_SELECTOR, elements['SUBMIT_EL'])
+    submit_form_el.click()
+
+    # observe results - either success or 2FA request
+    # success_present = text_to_be_present_in_element([(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')],
+    #                                                 elements['SUCCESS_EL_TEXT'])
+    # two_factor_input_present = EC.visibility_of_element_located((By.ID, elements['TWO_FA_EL_ID']))
+    #
+    # two_factor_select_present = EC.visibility_of_element_located((By.ID, elements['TWO_FA_SELECT_EL_ID']))
+    #
+    # two_factor_notification = EC.visibility_of_element_located((By.CLASS_NAME, elements['TWO_FA_NOTIFICATION_EL']))
+    #
+    # error_displayed = EC.visibility_of_element_located((By.CSS_SELECTOR, '.' + elements['ERROR_EL'].replace(' ', '.')))
+    # ibkey_promo_skip_clickable = EC.element_to_be_clickable((By.CLASS_NAME, elements['IBKEY_PROMO_EL_CLASS']))
+
+    # trigger = WebDriverWait(driver, oauth_timeout).until(any_of(
+    #     has_text(targets['SUCCESS']),  # success_present
+    #     visible(targets['TWO_FA']),  # two_factor_input_present,
+    #     visible(targets['TWO_FA_SELECT']),  # two_factor_select_present,
+    #     visible(targets['TWO_FA_NOTIFICATION_EL']),  # two_factor_notification,
+    #     visible(targets['ERROR']),  # error_displayed,
+    #     clickable(targets['IBKEY_PROMO']),  # ibkey_promo_skip_clickable
+    # ))
+    #
+    # target = identify_trigger(trigger, elements)
+    # _LOGGER.debug(f'trigger: {target}')
+
+    trigger, target = wait_and_identify_trigger(
+        has_text(targets['SUCCESS']),  # success_present
+        is_visible(targets['TWO_FA']),  # two_factor_input_present,
+        is_visible(targets['TWO_FA_SELECT']),  # two_factor_select_present,
+        is_visible(targets['TWO_FA_NOTIFICATION']),  # two_factor_notification,
+        is_visible(targets['ERROR']),  # error_displayed,
+        is_clickable(targets['IBKEY_PROMO']),  # ibkey_promo_skip_clickable
+    )
+
+    return trigger, target
+
+def step_select_two_fa(targets: Targets,
+                       wait_and_identify_trigger: callable,
+                       driver:webdriver.Chrome,
+                       two_fa_select_target: str,
+                       ):
+    _LOGGER.info(f'Required to select a 2FA method.')
+    select_el = find_element(targets['TWO_FA_SELECT'], driver)
+    # select_el = driver.find_element(By.ID, elements['TWO_FA_SELECT_EL_ID'])
+    select = Select(select_el)
+    select.select_by_visible_text(two_fa_select_target)
+
+    trigger, target = wait_and_identify_trigger(
+        has_text(targets['SUCCESS']),
+        is_visible(targets['TWO_FA']),
+        is_visible(targets['TWO_FA_NOTIFICATION']),
+        is_visible(targets['ERROR']),
+        is_clickable(targets['IBKEY_PROMO'])
+    )
+
+    _LOGGER.info(f'2FA method "{two_fa_select_target}" selected successfully.')
+    # target = identify_trigger(trigger, elements)
+    # _LOGGER.debug(f'trigger: {target}')
+    return trigger, target
+
+
+def step_two_fa_notification(targets: Targets,
+                             wait_and_identify_trigger: callable,
+                             driver: webdriver.Chrome,
+                             two_fa_handler: TwoFaHandler,
+                             ):
+    _LOGGER.info(f'Credentials correct, but Gateway requires notification two-factor authentication.')
+
+    if two_fa_handler is not None:
+        two_fa_success = two_fa_handler.get_two_fa_code(driver)
+        if not two_fa_success:
+            driver.refresh()
+            raise ContinueException
+            # continue  # attempt a direct retry
+
+    trigger, target = wait_and_identify_trigger(
+        has_text(targets['SUCCESS']),
+        is_clickable(targets['IBKEY_PROMO']),
+        is_visible(targets['ERROR'])
+    )
+    # target = identify_trigger(trigger, elements)
+    return trigger, target
+
+def step_two_fa(targets: Targets,
+                wait_and_identify_trigger: callable,
+                driver: webdriver.Chrome,
+                two_fa_handler: TwoFaHandler,
+                strict_two_fa_code: bool,
+                ):
+    _LOGGER.info(f'Credentials correct, but Gateway requires two-factor authentication.')
+    if two_fa_handler is None:
+        _LOGGER.critical(
+            f'######## ATTENTION! ######## No 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more: https://github.com/Voyz/ibeam/wiki/Two-Factor-Authentication')
+        # return False, True
+        raise ShutdownException
+
+    two_fa_code = handle_two_fa(two_fa_handler, driver, strict_two_fa_code)
+
+    if two_fa_code is None:
+        _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
+    else:
+        two_fa_el, _ = wait_and_identify_trigger(is_clickable(targets['TWO_FA_INPUT']), skip_identify=True)
+        # two_fa_el = driver.find_elements(By.ID, elements['TWO_FA_INPUT_EL_ID'])
+        # WebDriverWait(driver, oauth_timeout).until(
+        #     EC.element_to_be_clickable((By.ID, elements['TWO_FA_INPUT_EL_ID'])))
+
+        two_fa_el[0].clear()
+        two_fa_el[0].send_keys(two_fa_code)
+
+        _LOGGER.info('Submitting the 2FA form')
+        two_fa_el[0].send_keys(Keys.RETURN)
+        # submit_form_el = driver.find_element(By.CSS_SELECTOR, elements['SUBMIT_EL'])
+        # WebDriverWait(driver, oauth_timeout).until(
+        #     EC.element_to_be_clickable((By.CSS_SELECTOR, elements['SUBMIT_EL'])))
+        # submit_form_el.click()
+
+        trigger, target = wait_and_identify_trigger(
+            has_text(targets['SUCCESS']),
+            is_clickable(targets['IBKEY_PROMO']),
+            is_visible(targets['ERROR'])
+        )
+        # target = identify_trigger(trigger, elements)
+
+        return trigger, target
+
+def step_handle_ib_key_promo(targets: Targets,
+                             wait_and_identify_trigger: callable,
+                             ib_promo_key_trigger: WebElement,
+                             ):
+    _LOGGER.info('Handling IB-Key promo display...')
+    ib_promo_key_trigger.click()
+    trigger, target = wait_and_identify_trigger(
+        has_text(targets['SUCCESS']),
+        is_visible(targets['ERROR'])
+    )
+    # target = identify_trigger(trigger, elements)
+
+    return trigger, target
+
+def step_error(driver:webdriver.Chrome,
+               error_trigger: WebElement,
+               presubmit_buffer: int,
+               max_presubmit_buffer: int,
+               max_failed_auth: int,
+               outputs_dir: str
+               ):
+    _LOGGER.error(f'Error displayed by the login webpage: {error_trigger.text}')
+    save_screenshot(driver, outputs_dir, '__failed_attempt')
+    if error_trigger.text == 'Invalid username password combination' and presubmit_buffer < max_presubmit_buffer:
+        global _PRESUBMIT_BUFFER
+        _PRESUBMIT_BUFFER += 5
+        if _PRESUBMIT_BUFFER >= max_presubmit_buffer:
+            _PRESUBMIT_BUFFER = max_presubmit_buffer
+            _LOGGER.warning(f'The presubmit buffer set to maximum: {max_presubmit_buffer}')
+        else:
+            _LOGGER.warning(f'Increased presubmit buffer to {_PRESUBMIT_BUFFER}')
+
+    # try to prevent having the account locked-out
+    if error_trigger.text == 'failed' or error_trigger.text == 'Invalid username password combination' and max_failed_auth > 0:
+        global _FAILED_ATTEMPTS
+        _FAILED_ATTEMPTS += 1
+        if _FAILED_ATTEMPTS >= max_failed_auth:
+            _LOGGER.critical(
+                f'######## ATTENTION! ######## Maximum number of failed authentication attempts (IBEAM_MAX_FAILED_AUTH={max_failed_auth}) reached. IBeam will shut down to prevent an account lock-out. It is recommended you attempt to authenticate manually in order to reset the counter. Read the execution logs and report issues at https://github.com/Voyz/ibeam/issues')
+            # return False, True
+            raise ShutdownException
+
+    time.sleep(1)
+    raise ContinueException
+    # continue  # attempt a direct retry
+
+
+def handle_timeout_exception(e:Exception,
+                             targets: Targets,
+                             driver:webdriver.Chrome,
+                             website_version: int,
+                             route_auth: str,
+                             base_url: str,
+                             outputs_dir: str):
+    page_loaded_correctly = True
+    try:
+        website_loaded = EC.presence_of_element_located((By.CLASS_NAME, 'login'))
+        WebDriverWait(driver, 5).until(website_loaded)
+    except TimeoutException as _:
+        page_loaded_correctly = False
+
+    if not page_loaded_correctly or website_version == -1:
+        _LOGGER.error(f'Timeout reached when waiting for authentication. The website seems to not be loaded correctly. Consider increasing IBEAM_PAGE_LOAD_TIMEOUT. \nWebsite URL: {base_url + route_auth} \n \nException:\n{exception_to_string(e)}')
+    else:
+        _LOGGER.error(f'Timeout reached searching for website elements, but the website seems to be loaded correctly. It is possible the setup is incorrect. \nWebsite version: {website_version} \nDOM elements searched for: {targets}. \nException:\n{exception_to_string(e)}')
+
+    save_screenshot(driver, outputs_dir, '__timeout-exception')
+
+def step_failed_two_fa(driver:webdriver.Chrome):
+    # this means no two_fa_code was returned and trigger remained the same - ie. don't authenticate
+    time.sleep(1)
+    driver.refresh()
+    raise ContinueException
+    # todo: retry authentication or resend code
+
+def step_success(min_presubmit_buffer:int):
+    _LOGGER.info('Webpage displayed "Client login succeeds"')
+    _FAILED_ATTEMPTS = 0
+    _PRESUBMIT_BUFFER = min_presubmit_buffer
+    raise SuccessException
+
+def attempt(
+        targets: Targets,
+        wait_and_identify_trigger: callable,
+        driver: webdriver.Chrome,
+        account: str,
+        password: str,
+        key: str,
+        presubmit_buffer: int,
+        min_presubmit_buffer: int,
+        max_presubmit_buffer: int,
+        max_failed_auth: int,
+        two_fa_handler: TwoFaHandler,
+        two_fa_select_target: str,
+        strict_two_fa_code: bool,
+        outputs_dir: str,
+):
+    trigger, target = step_login(targets, wait_and_identify_trigger, driver, account, password, key, presubmit_buffer)
+
+    if target == targets['TWO_FA_SELECT']:
+        trigger, target = step_select_two_fa(targets, wait_and_identify_trigger, driver, two_fa_select_target)
+
+    if target == targets['TWO_FA_NOTIFICATION']:
+        trigger, target = step_two_fa_notification(targets, wait_and_identify_trigger, driver, two_fa_handler)
+
+    if target == targets['TWO_FA']:
+        trigger, target = step_two_fa(targets, wait_and_identify_trigger, driver, two_fa_handler, strict_two_fa_code)
+
+    if target == targets['IBKEY_PROMO']:
+        trigger, target = step_handle_ib_key_promo(targets, wait_and_identify_trigger, trigger)
+
+    if target == targets['ERROR']:
+        step_error(driver, trigger, presubmit_buffer, max_presubmit_buffer, max_failed_auth, outputs_dir)
+
+    elif target == targets['TWO_FA']:
+        step_failed_two_fa(driver)
+
+    elif target == targets['SUCCESS']:
+        step_success(min_presubmit_buffer)
+
+
+class BreakException(Exception):
+    pass
+class ContinueException(Exception):
+    pass
+class ShutdownException(Exception):
+    pass
+class SuccessException(Exception):
+    pass
 def log_in(
            driver_factory:DriverFactory,
            account,
@@ -149,31 +597,30 @@ def log_in(
     success = False
     driver = None
     website_version = -1
-    elements = {}
+    # elements = {}
+    targets = {}
 
     global _PRESUBMIT_BUFFER
     presubmit_buffer = _PRESUBMIT_BUFFER
 
     try:
         _LOGGER.info(f'Loading auth webpage at {base_url + route_auth}')
-        if sys.platform == 'linux':
-            display = Display(visible=False, size=(800, 600))
-            display.start()
-
-        driver = driver_factory.new_driver()
-        if driver is None:
-            return False, False
-
-        driver.get(base_url + route_auth)
+        driver, display = start_up_browser(driver_factory, base_url, route_auth)
 
         website_version = check_version(driver)
 
-        elements = create_elements(_VERSIONS[website_version])
-        _LOGGER.debug(f'Elements: {elements}')
+        # elements = create_elements(_VERSIONS[website_version])
+        targets = create_targets(_VERSIONS[website_version])
+        # _LOGGER.debug(f'Elements: {elements}')
+        _LOGGER.debug(f'Targets: {targets}')
+
+        wait_and_identify_trigger = partial(_wait_and_identify_trigger, targets, driver, oauth_timeout)
+
 
         # wait for the page to load
-        user_name_present = EC.presence_of_element_located((By.NAME, elements['USER_NAME_EL']))
-        WebDriverWait(driver, 15).until(user_name_present)
+        wait_and_identify_trigger(is_present(targets['USER_NAME']), skip_identify=True)
+        # user_name_present = EC.presence_of_element_located((By.NAME, elements['USER_NAME_EL']))
+        # WebDriverWait(driver, 15).until(user_name_present)
         _LOGGER.info('Gateway auth webpage loaded')
 
         immediate_attempts = 0
@@ -182,194 +629,31 @@ def log_in(
             immediate_attempts += 1
             _LOGGER.info(f'Login attempt number {immediate_attempts}')
 
-            # time.sleep(300)
-
-            # input credentials
-            user_name_el = driver.find_element(By.NAME, elements['USER_NAME_EL'])
-            password_el = driver.find_element(By.NAME, elements['PASSWORD_EL'])
-
-            user_name_el.clear()
-            password_el.clear()
-
-            user_name_el.send_keys(account)
-
-            if key is None:
-                password_el.send_keys(password)
-            else:
-                password_el.send_keys(Fernet(key).decrypt(password.encode('utf-8')).decode("utf-8"))
-
-            password_el.send_keys(Keys.TAB)
-
-            # small buffer to prevent race-condition on client side
-            time.sleep(presubmit_buffer)
-            # submit the form
-            _LOGGER.info('Submitting the form')
-            submit_form_el = driver.find_element(By.CSS_SELECTOR, elements['SUBMIT_EL'])
-            submit_form_el.click()
-
-            # observe results - either success or 2FA request
-            success_present = text_to_be_present_in_element([(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')],
-                                                            elements['SUCCESS_EL_TEXT'])
-            two_factor_input_present = EC.visibility_of_element_located((By.ID, elements['TWO_FA_EL_ID']))
-
-            two_factor_select_present = EC.visibility_of_element_located((By.ID, elements['TWO_FA_SELECT_EL_ID']))
-
-            two_factor_notification = EC.visibility_of_element_located((By.CLASS_NAME, elements['TWO_FA_NOTIFICATION_EL']))
-
-            error_displayed = EC.visibility_of_element_located((By.CSS_SELECTOR, '.' + elements['ERROR_EL'].replace(' ', '.')))
-            ibkey_promo_skip_clickable = EC.element_to_be_clickable((By.CLASS_NAME, elements['IBKEY_PROMO_EL_CLASS']))
-
-            trigger = WebDriverWait(driver, oauth_timeout).until(
-                any_of(success_present,
-                       two_factor_input_present,
-                       two_factor_select_present,
-                       two_factor_notification,
-                       error_displayed,
-                       ibkey_promo_skip_clickable))
-
-            trigger_identifier = identify_trigger(trigger, elements)
-            _LOGGER.debug(f'trigger: {trigger_identifier}')
-
-            if trigger_identifier == elements['TWO_FA_SELECT_EL_ID']:
-                _LOGGER.info(f'Required to select a 2FA method.')
-                select_el = driver.find_element(By.ID, elements['TWO_FA_SELECT_EL_ID'])
-                select = Select(select_el)
-                select.select_by_visible_text(two_fa_select_target)
-
-                trigger = WebDriverWait(driver, oauth_timeout).until(
-                    any_of(success_present,
-                           two_factor_input_present,
-                           two_factor_notification,
-                           error_displayed,
-                           ibkey_promo_skip_clickable))
-
-                _LOGGER.info(f'2FA method "{two_fa_select_target}" selected successfully.')
-
-                trigger_identifier = identify_trigger(trigger, elements)
-                _LOGGER.debug(f'trigger: {trigger_identifier}')
-
-            if trigger_identifier == elements['TWO_FA_NOTIFICATION_EL']:
-                _LOGGER.info(f'Credentials correct, but Gateway requires notification two-factor authentication.')
-
-                if two_fa_handler is not None:
-                    two_fa_success = two_fa_handler.get_two_fa_code(driver)
-                    if not two_fa_success:
-                        driver.refresh()
-                        continue  # attempt a direct retry
-
-                trigger = WebDriverWait(driver, oauth_timeout).until(
-                    any_of(success_present, ibkey_promo_skip_clickable, error_displayed))
-                trigger_identifier = identify_trigger(trigger, elements)
-
-            # handle 2FA
-            if trigger_identifier == elements['TWO_FA_EL_ID']:
-                _LOGGER.info(f'Credentials correct, but Gateway requires two-factor authentication.')
-                if two_fa_handler is None:
-                    _LOGGER.critical(
-                        f'######## ATTENTION! ######## No 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more: https://github.com/Voyz/ibeam/wiki/Two-Factor-Authentication')
-                    return False, True
-
-                two_fa_code = handle_two_fa(two_fa_handler, driver, strict_two_fa_code)
-
-                if two_fa_code is None:
-                    _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
-                else:
-                    two_fa_el = driver.find_elements(By.ID, elements['TWO_FA_INPUT_EL_ID'])
-                    WebDriverWait(driver, oauth_timeout).until(
-                        EC.element_to_be_clickable((By.ID, elements['TWO_FA_INPUT_EL_ID'])))
-
-                    two_fa_el[0].clear()
-                    two_fa_el[0].send_keys(two_fa_code)
-
-                    _LOGGER.info('Submitting the 2FA form')
-                    two_fa_el[0].send_keys(Keys.RETURN)
-                    # submit_form_el = driver.find_element(By.CSS_SELECTOR, elements['SUBMIT_EL'])
-                    # WebDriverWait(driver, oauth_timeout).until(
-                    #     EC.element_to_be_clickable((By.CSS_SELECTOR, elements['SUBMIT_EL'])))
-                    # submit_form_el.click()
-
-                    trigger = WebDriverWait(driver, oauth_timeout).until(
-                        any_of(success_present, ibkey_promo_skip_clickable, error_displayed))
-                    trigger_identifier = identify_trigger(trigger, elements)
-
-            trigger_class = trigger.get_attribute('class')
-
-            if elements['IBKEY_PROMO_EL_CLASS'] in trigger_class:
-                _LOGGER.info('Handling IB-Key promo display...')
-                trigger.click()
-                trigger = WebDriverWait(driver, 10).until(any_of(success_present, error_displayed))
-                trigger_identifier = identify_trigger(trigger, elements)
-
-            if trigger_identifier == elements['ERROR_EL']:
-                _LOGGER.error(f'Error displayed by the login webpage: {trigger.text}')
-                save_screenshot(driver, outputs_dir, '__failed_attempt')
-
-                if trigger.text == 'Invalid username password combination' and presubmit_buffer < max_presubmit_buffer:
-                    _PRESUBMIT_BUFFER += 5
-                    if _PRESUBMIT_BUFFER >= max_presubmit_buffer:
-                        _PRESUBMIT_BUFFER = max_presubmit_buffer
-                        _LOGGER.warning(f'The presubmit buffer set to maximum: {max_presubmit_buffer}')
-                    else:
-                        _LOGGER.warning(f'Increased presubmit buffer to {_PRESUBMIT_BUFFER}')
-
-                # try to prevent having the account locked-out
-                if trigger.text == 'failed' or trigger.text == 'Invalid username password combination' and max_failed_auth > 0:
-                    global _FAILED_ATTEMPTS
-                    _FAILED_ATTEMPTS += 1
-                    if _FAILED_ATTEMPTS >= max_failed_auth:
-                        _LOGGER.critical(
-                            f'######## ATTENTION! ######## Maximum number of failed authentication attempts (IBEAM_MAX_FAILED_AUTH={max_failed_auth}) reached. IBeam will shut down to prevent an account lock-out. It is recommended you attempt to authenticate manually in order to reset the counter. Read the execution logs and report issues at https://github.com/Voyz/ibeam/issues')
-                        return False, True
-
-                time.sleep(1)
-                continue  # attempt a direct retry
-
-            elif trigger_identifier == elements['TWO_FA_EL_ID']:
-                time.sleep(1)
-                driver.refresh()
-                continue  # attempt a direct retry
-                pass  # this means no two_fa_code was returned and trigger remained the same - ie. don't authenticate
-                # todo: retry authentication or resend code
-            elif trigger_identifier == elements['SUCCESS_EL_TEXT']:
-                _LOGGER.info('Webpage displayed "Client login succeeds"')
-                _FAILED_ATTEMPTS = 0
-                _PRESUBMIT_BUFFER = min_presubmit_buffer
+            try:
+                attempt(targets, wait_and_identify_trigger, driver, account, password, key, presubmit_buffer, min_presubmit_buffer, max_presubmit_buffer, max_failed_auth, two_fa_handler, two_fa_select_target, strict_two_fa_code, outputs_dir)
+            except BreakException:
+                """ Not very proud of using exceptions for flow of control, but doing so simplifies the logic of breaking this while loop into functions and being able to break, continue, shutdown, etc. from within these functions."""
+                break
+            except ContinueException:
+                continue
+            except SuccessException:
                 success = True
                 break
+            except ShutdownException:
+                return False, True
 
-        time.sleep(2)
+        time.sleep(1)
     except TimeoutException as e:
-        page_loaded_correctly = True
-        try:
-            website_loaded = EC.presence_of_element_located((By.CLASS_NAME, 'login'))
-            WebDriverWait(driver, 5).until(website_loaded)
-        except TimeoutException as _:
-            page_loaded_correctly = False
-
-        if not page_loaded_correctly or website_version == -1:
-            _LOGGER.error(f'Timeout reached when waiting for authentication. The website seems to not be loaded correctly. Consider increasing IBEAM_PAGE_LOAD_TIMEOUT. \nWebsite URL: {base_url + route_auth} \n \nException:\n{exception_to_string(e)}')
-        else:
-            _LOGGER.error(f'Timeout reached searching for website elements, but the website seems to be loaded correctly. It is possible the setup is incorrect. \nWebsite version: {website_version} \nDOM elements searched for: {elements}. \nException:\n{exception_to_string(e)}')
-
-        save_screenshot(driver, outputs_dir, '__timeout-exception')
+        handle_timeout_exception(e, targets, driver, website_version, route_auth, base_url, outputs_dir)
         success = False
     except Exception as e:
         _LOGGER.error(f'Error encountered during authentication \nException:\n{exception_to_string(e)}')
         save_screenshot(driver, outputs_dir, '__generic-exception')
         success = False
     finally:
-        # if sys.platform == 'linux' and display is not None:
-        _LOGGER.info(f'Cleaning up the resources. Display: {display} | Driver: {driver}')
-
-        if display is not None:
-            display.stop()
-
-        if driver is not None:
-            release_chrome_driver(driver)
+        shut_down_browser(driver, display)
 
     return success, False
-
-
 
 def handle_two_fa(two_fa_handler:TwoFaHandler, driver:WebDriver, strict_two_fa_code:bool) -> Optional[str]:
     _LOGGER.info(f'Attempting to acquire 2FA code from: {two_fa_handler}')

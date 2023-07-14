@@ -88,16 +88,16 @@ ROUTE_LOGOUT = os.environ.get('IBEAM_ROUTE_LOGOUT', '/v1/api/logout')
 USER_NAME_EL = os.environ.get('IBEAM_USER_NAME_EL', None)
 """HTML element name attribute containing the username input field."""
 
-PASSWORD_EL = os.environ.get('IBEAM_PASSWORD_EL', 'password')
+PASSWORD_EL = os.environ.get('IBEAM_PASSWORD_EL', 'NAME@@password')
 """HTML element name attribute containing the password input field."""
 
-SUBMIT_EL = os.environ.get('IBEAM_SUBMIT_EL', 'button.btn.btn-lg.btn-primary')
+SUBMIT_EL = os.environ.get('IBEAM_SUBMIT_EL', 'CSS_SELECTOR@@.btn.btn-lg.btn-primary')
 """HTML element name attribute containing the submit button."""
 
 ERROR_EL = os.environ.get('IBEAM_ERROR_EL', None)
 """HTML element class name attribute containing the submit button."""
 
-SUCCESS_EL_TEXT = os.environ.get('IBEAM_SUCCESS_EL_TEXT', 'Client login succeeds')
+SUCCESS_EL_TEXT = os.environ.get('IBEAM_SUCCESS_EL_TEXT', 'TAG_NAME@@Client login succeeds')
 """HTML element text indicating successful authentication."""
 
 OAUTH_TIMEOUT = int(os.environ.get('IBEAM_OAUTH_TIMEOUT', 15))
@@ -121,7 +121,7 @@ MAX_PRESUBMIT_BUFFER = int(os.environ.get('IBEAM_MAX_PRESUBMIT_BUFFER', 30))
 MAX_IMMEDIATE_ATTEMPTS = int(os.environ.get('IBEAM_MAX_IMMEDIATE_ATTEMPTS', 10))
 """Maximum number of immediate retries upon detecting an error message."""
 
-IBKEY_PROMO_EL_CLASS = os.environ.get('IBEAM_IBKEY_PROMO_EL_CLASS', 'ibkey-promo-skip')
+IBKEY_PROMO_EL_CLASS = os.environ.get('IBEAM_IBKEY_PROMO_EL_CLASS', 'CLASS_NAME@@ibkey-promo-skip')
 """HTML element class containing the ibkey promo skip button."""
 
 AUTHENTICATION_STRATEGY = os.environ.get('IBEAM_AUTHENTICATION_STRATEGY', 'A')
@@ -138,13 +138,13 @@ UI_SCALING = float(os.environ.get('IBEAM_UI_SCALING', 1))
 
 ########### TWO-FACTOR AUTHENTICATION ###########
 
-TWO_FA_EL_ID = os.environ.get('IBEAM_TWO_FA_EL_ID', 'twofactbase')
+TWO_FA_EL_ID = os.environ.get('IBEAM_TWO_FA_EL_ID', 'ID@@twofactbase')
 """HTML element check for if Gateway will require 2FA code authentication."""
 
-TWO_FA_NOTIFICATION_EL = os.environ.get('IBEAM_TWO_FA_NOTIFICATION_EL', 'login-step-notification')
+TWO_FA_NOTIFICATION_EL = os.environ.get('IBEAM_TWO_FA_NOTIFICATION_EL', 'CLASS_NAME@@login-step-notification')
 """HTML element check for if Gateway will require 2FA notification authentication."""
 
-TWO_FA_INPUT_EL_ID = os.environ.get('IBEAM_TWO_FA_INPUT_EL_ID', 'chlginput')
+TWO_FA_INPUT_EL_ID = os.environ.get('IBEAM_TWO_FA_INPUT_EL_ID', 'ID@@chlginput')
 """HTML element to input 2FA code into"""
 
 TWO_FA_HANDLER = os.environ.get('IBEAM_TWO_FA_HANDLER', None)
@@ -153,7 +153,7 @@ TWO_FA_HANDLER = os.environ.get('IBEAM_TWO_FA_HANDLER', None)
 STRICT_TWO_FA_CODE = to_bool(os.environ.get('IBEAM_STRICT_TWO_FA_CODE', True))
 """Whether to ensure only 2FA code made of 6 digits can be used."""
 
-TWO_FA_SELECT_EL_ID = os.environ.get('IBEAM_TWO_FA_SELECT_EL_ID', 'sf_select')
+TWO_FA_SELECT_EL_ID = os.environ.get('IBEAM_TWO_FA_SELECT_EL_ID', 'ID@@sf_select')
 """HTML element check for if Gateway requires to select the 2FA method."""
 
 TWO_FA_SELECT_TARGET = os.environ.get('IBEAM_TWO_FA_SELECT_TARGET', 'IB Key')
