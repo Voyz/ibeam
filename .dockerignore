@@ -1,0 +1,10 @@
+.git
+.github
+.idea
+.pytest_cache
+dist
+ibeam.egg-info
+media
+support
+outputs
+tests
