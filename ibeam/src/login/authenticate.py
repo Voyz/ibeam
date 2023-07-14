@@ -1,12 +1,10 @@
 import logging
-import sys
 import time
 from functools import partial
 from pathlib import Path
 from typing import Optional
 
 from cryptography.fernet import Fernet
-from pyvirtualdisplay import Display
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.chrome.webdriver import WebDriver
 from selenium.webdriver.common.by import By
@@ -18,7 +16,8 @@ from selenium.webdriver.support.ui import Select
 from selenium import webdriver
 
 from ibeam.src import var
-from ibeam.src.login.driver import release_chrome_driver, start_driver, save_screenshot, DriverFactory
+from ibeam.src.login.driver import save_screenshot, DriverFactory, start_up_browser, shut_down_browser
+from ibeam.src.login.targets import Target, Targets, create_targets, identify_target
 from ibeam.src.utils.py_utils import exception_to_string
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 from ibeam.src.utils.selenium_utils import text_to_be_present_in_element, any_of
@@ -41,107 +40,20 @@ _VERSIONS = {
 }
 
 
-
-class Target():
-    def __init__(self,
-                 variable:str,
-                 ):
-        type, identifier = variable.split("@@")
-        self.type = type
-        self.identifier = identifier
-        self.variable = variable
-
-        if type == 'ID':
-            self.by = By.ID
-            self._identify = self.identify_by_id
-        elif type == 'CSS_SELECTOR':
-            self.by = By.CSS_SELECTOR
-            self._identify = self.identify_by_css_selector
-        elif type == 'CLASS_NAME':
-            self.by = By.CLASS_NAME
-            self._identify = self.identify_by_class
-        elif type == 'NAME':
-            self.by = By.NAME
-            self._identify = self.identify_by_name
-        elif type == 'TAG_NAME':
-            self.by = [(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')]
-            self._identify = self.identify_by_text
-        else:
-            raise RuntimeError(f'Unknown target type: {type}@@{identifier}')
-
-    def identify(self, trigger: WebElement) -> bool:
-        return self._identify(trigger)
-
-    def identify_by_id (self, trigger: WebElement) -> bool:
-        return self.identifier in trigger.get_attribute('id')
-
-    def identify_by_css_selector(self, trigger: WebElement) -> bool:
-        return self.identifier.replace('.', ' ').strip() in trigger.get_attribute('class')
-    def identify_by_class(self, trigger: WebElement) -> bool:
-        return self.identifier in trigger.get_attribute('class')
-
-    def identify_by_name(self, trigger: WebElement) -> bool:
-        return self.identifier in trigger.get_attribute('name')
-
-    def identify_by_text(self, trigger: WebElement) -> bool:
-        return self.identifier in trigger.text
-
-    def __repr__(self):
-        return f'Target({self.variable})'
-
-Targets = dict[str, Target]
-
-def create_targets(versions: dict) -> Targets:
-    targets = {}
-
-    targets['USER_NAME'] = Target(versions['USER_NAME_EL'])
-    targets['PASSWORD'] = Target(var.PASSWORD_EL)
-    targets['SUBMIT'] = Target(var.SUBMIT_EL)
-    targets['ERROR'] = Target(versions['ERROR_EL'])
-    targets['SUCCESS'] = Target(var.SUCCESS_EL_TEXT)
-    targets['IBKEY_PROMO'] = Target(var.IBKEY_PROMO_EL_CLASS)
-    targets['TWO_FA'] = Target(var.TWO_FA_EL_ID)
-    targets['TWO_FA_NOTIFICATION'] = Target(var.TWO_FA_NOTIFICATION_EL)
-    targets['TWO_FA_INPUT'] = Target(var.TWO_FA_INPUT_EL_ID)
-    targets['TWO_FA_SELECT'] = Target(var.TWO_FA_SELECT_EL_ID)
-
-    if var.USER_NAME_EL is not None and var.USER_NAME_EL != targets['USER_NAME'].variable:
-        _LOGGER.warning(f'USER_NAME target is forced to "{var.USER_NAME_EL}", contrary to the element found on the website: "{targets["USER_NAME"]}"')
-        targets['USER_NAME'] = Target(var.USER_NAME_EL)
-
-    if var.ERROR_EL is not None and var.ERROR_EL != targets['ERROR'].variable:
-        _LOGGER.warning(f'ERROR target is forced to "{var.ERROR_EL}", contrary to the element found on the website: "{targets["ERROR"]}"')
-        targets['ERROR'] = Target(var.ERROR_EL)
-
-    return targets
-
-def is_present(target:Target) -> callable:
+def is_present(target: Target) -> callable:
     return EC.presence_of_element_located((target.by, target.identifier))
 
-def is_visible(target:Target) -> callable:
+def is_visible(target: Target) -> callable:
     return EC.visibility_of_element_located((target.by, target.identifier))
 
-def is_clickable(target:Target) -> callable:
+def is_clickable(target: Target) -> callable:
     return EC.element_to_be_clickable((target.by, target.identifier))
 
-def has_text(target:Target) -> callable:
+def has_text(target: Target) -> callable:
     return text_to_be_present_in_element(target.by, target.identifier)
 
-def find_element(target:Target, driver:webdriver.Chrome) -> WebElement:
+def find_element(target: Target, driver:webdriver.Chrome) -> WebElement:
     return driver.find_element(target.by, target.identifier)
-
-def identify_target(trigger:WebElement, targets:Targets) -> Optional[Target]:
-    for target in targets.values():
-        try:
-            if target.identify(trigger):
-                return target
-        except TypeError as e:
-            # this is raised if trigger doesn't have Target's attribute, we can ignore it
-            if "argument of type 'NoneType' is not iterable" in str(e):
-                continue
-            raise
-
-    raise RuntimeError(f'Trigger found but cannot be identified: {trigger} :: {trigger.get_attribute("outerHTML")}')
 
 
 def check_version(driver) -> int:
@@ -169,28 +81,6 @@ def check_version(driver) -> int:
     _LOGGER.warning(f'Cannot determine the version of IBKR website, assuming version 1')
 
     return 1
-
-def start_up_browser(driver_factory:DriverFactory, base_url: str, route_auth: str) -> (webdriver.Chrome, Optional[Display]):
-    display = None
-    if sys.platform == 'linux':
-        display = Display(visible=False, size=(800, 600))
-        display.start()
-
-    driver = driver_factory.new_driver()
-    if driver is None:
-        return False, False
-
-    driver.get(base_url + route_auth)
-    return driver, display
-
-def shut_down_browser(driver:webdriver.Chrome, display:Optional[Display]):
-    _LOGGER.info(f'Cleaning up the resources. Display: {display} | Driver: {driver}')
-
-    if display is not None:
-        display.stop()
-
-    if driver is not None:
-        release_chrome_driver(driver)
 
 
 def _wait_and_identify_trigger(targets: Targets,

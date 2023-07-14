@@ -1,15 +1,18 @@
 import logging
 import os
+import sys
 import tempfile
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from pyvirtualdisplay import Display
 from selenium import webdriver
 from selenium.common import WebDriverException
 
 import ibeam
 from ibeam.src import var
+from ibeam.src.login.authenticate import _LOGGER
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
@@ -138,3 +141,27 @@ class DriverFactory():
         page_load_timeout = page_load_timeout if page_load_timeout is not None else self.page_load_timeout
 
         return start_driver(driver_path=driver_path, name=name, headless=headless, incognito=incognito, ui_scaling=ui_scaling, page_load_timeout=page_load_timeout)
+
+
+def start_up_browser(driver_factory:DriverFactory, base_url: str, route_auth: str) -> (webdriver.Chrome, Optional[Display]):
+    display = None
+    if sys.platform == 'linux':
+        display = Display(visible=False, size=(800, 600))
+        display.start()
+
+    driver = driver_factory.new_driver()
+    if driver is None:
+        return False, False
+
+    driver.get(base_url + route_auth)
+    return driver, display
+
+
+def shut_down_browser(driver:webdriver.Chrome, display:Optional[Display]):
+    _LOGGER.info(f'Cleaning up the resources. Display: {display} | Driver: {driver}')
+
+    if display is not None:
+        display.stop()
+
+    if driver is not None:
+        release_chrome_driver(driver)
