@@ -152,7 +152,6 @@ def start_up_browser(driver_factory:DriverFactory, base_url: str, route_auth: st
     if driver is None:
         return False, False
 
-    driver.get(base_url + route_auth)
     return driver, display
 
 

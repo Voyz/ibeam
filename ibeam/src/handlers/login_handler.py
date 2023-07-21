@@ -178,6 +178,8 @@ class LoginHandler():
         user_name_el = find_element(targets['USER_NAME'], driver)
         password_el = find_element(targets['PASSWORD'], driver)
 
+        wait_and_identify_trigger(is_clickable(targets['USER_NAME']))
+
         user_name_el.clear()
         password_el.clear()
 
@@ -399,6 +401,22 @@ class LoginHandler():
         elif target == targets['SUCCESS']:
             self.step_success()
 
+    def load_page(self, targets:Targets, driver:webdriver.Chrome, base_url: str, route_auth: str):
+        driver.get(base_url + route_auth)
+
+        website_version = check_version(driver)
+
+        targets = targets_from_versions(targets, self._VERSIONS[website_version])
+        _LOGGER.debug(f'Targets: {targets}')
+
+        wait_and_identify_trigger = partial(_wait_and_identify_trigger, targets, driver, self.oauth_timeout)
+
+        # wait for the page to load
+        wait_and_identify_trigger(is_clickable(targets['USER_NAME']), skip_identify=True)
+        _LOGGER.info('Gateway auth webpage loaded')
+
+        return wait_and_identify_trigger
+
     def login(self) -> (bool, bool):
         """
         Logs into the currently running gateway.
@@ -421,22 +439,19 @@ class LoginHandler():
             _LOGGER.info(f'Loading auth webpage at {self.base_url + self.route_auth}')
             driver, display = start_up_browser(self.driver_factory, self.base_url, self.route_auth)
 
-            website_version = check_version(driver)
-
-            targets = targets_from_versions(targets, self._VERSIONS[website_version])
-            _LOGGER.debug(f'Targets: {targets}')
-
-            wait_and_identify_trigger = partial(_wait_and_identify_trigger, targets, driver, self.oauth_timeout)
-
-            # wait for the page to load
-            wait_and_identify_trigger(is_present(targets['USER_NAME']), skip_identify=True)
-            _LOGGER.info('Gateway auth webpage loaded')
+            wait_and_identify_trigger = self.load_page(targets, driver, self.base_url, self.route_auth)
 
             immediate_attempts = 0
 
             while immediate_attempts < max(self.max_immediate_attempts, 1):
                 immediate_attempts += 1
                 _LOGGER.info(f'Login attempt number {immediate_attempts}')
+
+                try:
+                    wait_and_identify_trigger(is_clickable(targets['USER_NAME']), skip_identify=True)
+                except TimeoutException as e:
+                    _LOGGER.info(f'Page loaded but {targets["USER_NAME"]} is not clickable. Reloading webpage.')
+                    wait_and_identify_trigger = self.load_page(targets, driver, self.base_url, self.route_auth)
 
                 try:
                     self.attempt(targets, wait_and_identify_trigger, driver)
