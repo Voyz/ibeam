@@ -60,6 +60,9 @@ HEALTH_SERVER_PORT = int(os.environ.get("IBEAM_HEALTH_SERVER_PORT", 5001))
 SECRETS_SOURCE = os.environ.get("IBEAM_SECRETS_SOURCE", 'env')
 """Source of secrets."""
 
+GCP_SECRETS_URL = os.environ.get("IBEAM_GCP_SECRETS_URL")
+"""Base URL for GCP secrets manager."""
+
 ########### GATEWAY ROUTES ###########
 
 GATEWAY_BASE_URL = os.environ.get('IBEAM_GATEWAY_BASE_URL', "https://localhost:5000")

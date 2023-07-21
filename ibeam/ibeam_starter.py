@@ -86,7 +86,7 @@ if __name__ == '__main__':
     )
 
     _LOGGER.info(f'Secrets source: {cnf.SECRETS_SOURCE}')
-    secrets_handler = SecretsHandler(secrets_source=cnf.SECRETS_SOURCE)
+    secrets_handler = SecretsHandler(secrets_source=cnf.SECRETS_SOURCE, gcp_base_url=cnf.GCP_SECRETS_URL)
 
     targets = create_targets(cnf)
 
