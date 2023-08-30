@@ -31,6 +31,8 @@ Features:
 * **Not so secure** - Yupp, you'll need to store the credentials somewhere, and that's a risk. Read more about it
   in [Security](#security).
 
+**NOTE**: IBeam is not designed to automate logging into TWS or IB Gateway. Use [IBC](IBC) for that.
+
 ## Documentation:
 
 * Setup
@@ -242,3 +244,5 @@ Thanks and have an awesome day 👋
 [issues]: https://github.com/Voyz/ibeam/issues
 
 [gateway]: https://interactivebrokers.github.io/cpwebapi/
+
+[IBC]: https://github.com/IbcAlpha/IBC
