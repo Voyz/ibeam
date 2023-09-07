@@ -1,4 +1,4 @@
-selenium==4.9.*
+selenium==4.12.*
 cryptography==40.0.*
 pyvirtualdisplay==3.0.*
 apscheduler==3.10.*
