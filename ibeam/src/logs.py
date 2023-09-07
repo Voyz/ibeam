@@ -18,11 +18,6 @@ def initialize(log_format: str,
     logger = logging.getLogger('ibeam')
     formatter = logging.Formatter(log_format)
 
-    # stream_handler = logging.StreamHandler(stream=sys.stdout)
-    #
-    # stream_handler.setFormatter(formatter)
-    # stream_handler.setLevel(getattr(logging, var.LOG_LEVEL))
-
     # stdout handler, for INFO and below:
     h1 = logging.StreamHandler(stream=sys.stdout)
     h1.setLevel(getattr(logging, log_level))

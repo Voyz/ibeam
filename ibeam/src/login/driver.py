@@ -15,7 +15,6 @@ from ibeam.src import var
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
-
 _DRIVER_NAMES = {}
 
 
@@ -142,7 +141,7 @@ class DriverFactory():
         return start_driver(driver_path=driver_path, name=name, headless=headless, incognito=incognito, ui_scaling=ui_scaling, page_load_timeout=page_load_timeout)
 
 
-def start_up_browser(driver_factory:DriverFactory, base_url: str, route_auth: str) -> (webdriver.Chrome, Optional[Display]):
+def start_up_browser(driver_factory:DriverFactory) -> (webdriver.Chrome, Optional[Display]):
     display = None
     if sys.platform == 'linux':
         display = Display(visible=False, size=(800, 600))

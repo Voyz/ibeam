@@ -14,10 +14,6 @@ from ibeam.src.handlers.strategy_handler import StrategyHandler
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-# from ibeam import config
-
-# config.initialize()
-
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
 class GatewayClient():

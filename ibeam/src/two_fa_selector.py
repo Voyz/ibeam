@@ -11,8 +11,6 @@ from ibeam.src.two_fa_handlers.notification_resend_handler import NotificationRe
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 
-
-
 def select(handler_name:str,
            driver_factory:DriverFactory,
            outputs_dir:str,

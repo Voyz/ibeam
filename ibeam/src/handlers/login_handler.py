@@ -142,28 +142,6 @@ class LoginHandler():
         self.failed_attempts = 0
         self.presubmit_buffer = self.min_presubmit_buffer
 
-
-
-    # def login(self):
-    #     return log_in(
-    #         targets=self.targets,
-    #         driver_factory=self.driver_factory,
-    #         account=self.secrets_handler.account,
-    #         password=self.secrets_handler.password,
-    #         key=self.secrets_handler.key,
-    #         base_url=self.cnf.GATEWAY_BASE_URL,
-    #         two_fa_handler=self.two_fa_handler,
-    #         route_auth=self.cnf.ROUTE_AUTH,
-    #         two_fa_select_target=self.cnf.TWO_FA_SELECT_TARGET,
-    #         strict_two_fa_code=self.cnf.STRICT_TWO_FA_CODE,
-    #         max_immediate_attempts=self.cnf.MAX_IMMEDIATE_ATTEMPTS,
-    #         oauth_timeout=self.cnf.OAUTH_TIMEOUT,
-    #         max_presubmit_buffer=self.cnf.MAX_PRESUBMIT_BUFFER,
-    #         min_presubmit_buffer=self.cnf.MIN_PRESUBMIT_BUFFER,
-    #         max_failed_auth=self.cnf.MAX_FAILED_AUTH,
-    #         outputs_dir=self.cnf.OUTPUTS_DIR,
-    #     )
-
     def step_login(self,
                    targets: Targets,
                    wait_and_identify_trigger: callable,
@@ -437,7 +415,7 @@ class LoginHandler():
 
         try:
             _LOGGER.info(f'Loading auth webpage at {self.base_url + self.route_auth}')
-            driver, display = start_up_browser(self.driver_factory, self.base_url, self.route_auth)
+            driver, display = start_up_browser(self.driver_factory)
 
             wait_and_identify_trigger = self.load_page(targets, driver, self.base_url, self.route_auth)
 

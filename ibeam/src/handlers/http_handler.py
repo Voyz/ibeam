@@ -222,10 +222,6 @@ class HttpHandler():
 
             except Exception as e:  # all other exceptions
                 _LOGGER.exception(f'Unrecognised Exception:\n{exception_to_string(e)}')
-                # try:
-                #     raise RuntimeError('Unrecognised Exception') from e
-                # except Exception as ee:
-                #     _LOGGER.exception(ee)
 
             if max_attempts <= 1:
                 return status

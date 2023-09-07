@@ -8,8 +8,7 @@ from typing import Optional
 
 from selenium.common.exceptions import ElementClickInterceptedException
 
-from ibeam.src import var
-from ibeam.src.login.driver import release_chrome_driver, save_screenshot, start_driver, DriverFactory
+from ibeam.src.login.driver import release_chrome_driver, save_screenshot, DriverFactory
 from ibeam.src.utils.selenium_utils import any_of
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
