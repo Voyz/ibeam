@@ -91,6 +91,9 @@ class GatewayClient():
                 self._health_server.shutdown()
         elif success:
             _LOGGER.info(f'Gateway running and authenticated, session id: {status.session_id}, server name: {status.server_name}')
+            validate_success = self.http_handler.validate()
+            if not validate_success:
+                _LOGGER.warning(f'Validation result is False when IBeam attempted to extend the SSO token. This could indicate token authentication issues.')
 
     def __getstate__(self):
         state = self.__dict__.copy()
