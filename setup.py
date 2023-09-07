@@ -22,11 +22,12 @@ setup(
               'algorithmic trading', 'data flow', 'quant', 'trading'],
     install_requires=[
         'selenium==3.*',
-        'cryptography==3.*',
-        'pyvirtualdisplay==1.*',
+        'cryptography==40.*',
+        'pyvirtualdisplay==3.*',
         'apscheduler==3.*',
         'psutil==5.*',
-        'requests==2.*'
+        'requests==2.*',
+        'pillow==9.*'
     ],
 
     classifiers=[

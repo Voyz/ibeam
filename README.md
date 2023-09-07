@@ -156,15 +156,19 @@ in a container or directly on a host machine, an unwanted user may gain access t
 exposed to a risk of someone unauthorised reading the credentials, you may want to look for other solutions than IBeam
 or use the Gateway standalone and authenticate manually each time.
 
-We considered providing a possibility to read the credentials from an external credentials store, such as GCP Secrets,
-yet that would require some authentication credentials too, which brings back the same issue it was to solve.
+There are currently two proposed solutions to this problem:
 
-You can remove one of the attack vectors by using a locked Docker Swarm instance, installing your credentials into it
-using Docker Secrets, and telling IBeam to read the secrets from the container's in-memory `/run` filesystem.
-This configuration allows the credentials to be encrypted when at rest.
-But the credentials are still accessible in plaintext via the running container, so if a security issue arises where an
-exploit exists for the port 5000 API, or if your host is compromised and an attacker can access your running container,
-then the secret could be exposed. See [Advanced Secrets][advanced-secrets] for more information.
+1. **Docker Swarm**
+
+    You can remove one of the attack vectors by using a locked Docker Swarm instance, installing your credentials into it using Docker Secrets, and telling IBeam to read the secrets from the container's in-memory `/run` filesystem.
+    This configuration allows the credentials to be encrypted when at rest. 
+    But the credentials are still accessible in plaintext via the running container, so if a security issue arises where an exploit exists for the port 5000 API, or if your host is compromised and an attacker can access your running container, then the secret could be exposed. 
+2. **GCP Secret Manager**
+
+    If you're deploying IBeam on Google Cloud Platform, you can securely use the Service Account's credentials to access [GCP Secret Manager][secret-manager-docs]. This is possible since all types of GCP deployment (currently: Compute Engine, Kubernetes, Cloud Run and Cloud Functions) are running within a context that has a Service Account available. IBeam can query Google's metadata server when running on GCP for the Service Account's access token, and use that to read secrets from the Secret Manager.
+
+
+See [Advanced Secrets][advanced-secrets] for more information.
 
 ## Roadmap
 
@@ -177,7 +181,7 @@ you enjoy using IBeam, we encourage you to attempt implementing one of the follo
 * ~~Remove necessity to install Chrome or find a lighter replacement.~~
 * Add usage examples.
 * Full test coverage.
-* Improve the security issues.
+* ~~Improve the security issues.~~
 * Find a lighter replacement to using Chromium
 
 Read the [CONTRIBUTING](https://github.com/Voyz/ibeam/blob/master/CONTRIBUTING.md) guideline to get started.
@@ -249,3 +253,5 @@ Thanks and have an awesome day 👋
 [ibc]: https://github.com/IbcAlpha/IBC
 
 [ib-gateway-docker]: https://github.com/UnusualAlpha/ib-gateway-docker
+
+[secret-manager-docs]: https://cloud.google.com/secret-manager/docs

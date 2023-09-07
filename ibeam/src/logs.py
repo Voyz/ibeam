@@ -1,29 +1,41 @@
 import datetime
 import logging
 import os
-
-from ibeam.src import var
+import sys
 
 initialized = False
 
 
-def initialize():
+def initialize(log_format: str,
+               log_level: str,
+               log_to_file: bool,
+               outputs_dir: str
+               ):
     global initialized
     if initialized: return
     initialized = True
 
     logger = logging.getLogger('ibeam')
-    formatter = logging.Formatter(var.LOG_FORMAT)
+    formatter = logging.Formatter(log_format)
 
-    stream_handler = logging.StreamHandler()
+    # stdout handler, for INFO and below:
+    h1 = logging.StreamHandler(stream=sys.stdout)
+    h1.setLevel(getattr(logging, log_level))
+    h1.addFilter(lambda record: record.levelno <= logging.INFO)
+    h1.setFormatter(formatter)
+    logger.addHandler(h1)
 
-    stream_handler.setFormatter(formatter)
-    stream_handler.setLevel(getattr(logging, var.LOG_LEVEL))
+    # stderr handler, for WARNING and above:
+    h2 = logging.StreamHandler(stream=sys.stderr)
+    h2.setLevel(logging.WARNING)
+    h2.setFormatter(formatter)
+    logger.addHandler(h2)
+
+
     logger.setLevel(logging.DEBUG)
-    logger.addHandler(stream_handler)
 
-    if var.LOG_TO_FILE:
-        file_handler = DailyRotatingFileHandler(os.path.join(var.OUTPUTS_DIR, 'ibeam_log'))
+    if log_to_file:
+        file_handler = DailyRotatingFileHandler(os.path.join(outputs_dir, 'ibeam_log'))
         file_handler.setFormatter(formatter)
         file_handler.setLevel(logging.DEBUG)
         logger.addHandler(file_handler)

@@ -16,6 +16,7 @@ from unittest import mock
 from ibeam.src.gateway_client import SECRETS_SOURCE_ENV
 from ibeam.src.gateway_client import SECRETS_SOURCE_FS
 from ibeam.src.gateway_client import GatewayClient
+from ibeam.src.secrets_handler import secret_value
 
 
 def next_free_port(host='127.0.0.1'):
@@ -48,7 +49,7 @@ def test_init_prompt(mock_input, mock_getpass):
 
         # test init w/o any setup, which should write prompts to
         # stdout and should read stdin for the values
-        ibeam.src.var.IBEAM_HEALTH_SERVER_PORT = next_free_port()
+        ibeam.src.var.HEALTH_SERVER_PORT = next_free_port()
 
         client = GatewayClient(
             http_handler=None, inputs_handler=None, two_fa_handler=None)
@@ -160,7 +161,7 @@ def test_secret_value(tmpdir):
         with test_setup(test):
 
             # test init which will call secret_value
-            ibeam.src.var.IBEAM_HEALTH_SERVER_PORT = next_free_port()
+            ibeam.src.var.HEALTH_SERVER_PORT = next_free_port()
 
             client = GatewayClient(
                 http_handler=None, inputs_handler=None, two_fa_handler=None,
@@ -186,8 +187,8 @@ def test_secret_value(tmpdir):
 
                         # test secret_value
                         for field in ibeam_fields:
-                            val = client.secret_value(
-                                name=field, lstrip='\t')
+                            val = secret_value(client.secrets_handler.secrets_source, client.encoding,
+                                               name=field, lstrip='\t')
 
                             assert val == getattr(test, field)
                             assert not val.startswith('\t')
@@ -211,8 +212,8 @@ def test_secret_value(tmpdir):
 
                         # test secret_value
                         for field in ibeam_fields:
-                            val = client.secret_value(
-                                name=field, rstrip='\t')
+                            val = secret_value(client.secrets_handler.secrets_source, client.encoding,
+                                               name=field, rstrip='\t')
 
                             assert val == getattr(test, field)
                             assert not val.endswith('\t')
@@ -237,7 +238,7 @@ def test_secret_value(tmpdir):
 
                         # test secret_value
                         for field in ibeam_fields:
-                            val = client.secret_value(name=field)
+                            val = secret_value(client.secrets_handler.secrets_source, client.encoding, name=field)
 
                             assert val == getattr(test, field)
 
