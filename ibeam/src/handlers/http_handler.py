@@ -86,7 +86,7 @@ class Status():
         return 'NOT AUTHENTICATED'
 
     def __repr__(self):
-        d = self.__dict__
+        d = self.__dict__.copy()
         if 'response' in d:
             d.pop('response')
         return f'Status({", ".join([f"{k}={repr(v)}" for k, v in d.items()])})'
