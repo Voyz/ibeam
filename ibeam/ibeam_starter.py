@@ -4,6 +4,12 @@ import os
 import sys
 from pathlib import Path
 
+def add_to_path():
+    _this_filedir = os.path.abspath(os.path.dirname(__file__))
+    sys.path.insert(0, str(Path(_this_filedir).parent))
+
+add_to_path()
+
 from ibeam.config import Config
 from ibeam.src.handlers.login_handler import LoginHandler
 from ibeam.src.handlers.process_handler import ProcessHandler
@@ -11,9 +17,6 @@ from ibeam.src.handlers.secrets_handler import SecretsHandler
 from ibeam.src.handlers.strategy_handler import StrategyHandler
 from ibeam.src.login.driver import DriverFactory
 from ibeam.src.login.targets import create_targets
-
-_this_filedir = os.path.abspath(os.path.dirname(__file__))
-sys.path.insert(0, str(Path(_this_filedir).parent))
 
 import ibeam
 
@@ -23,7 +26,6 @@ from ibeam.src import var, two_fa_selector
 from ibeam.src.handlers.inputs_handler import InputsHandler
 
 _LOGGER = logging.getLogger('ibeam')
-
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Start, authenticate and verify the IB Gateway.')
@@ -57,7 +59,6 @@ if __name__ == '__main__':
 
     if args.verbose:
         logs.set_level_for_all(_LOGGER, logging.DEBUG)
-
 
     inputs_handler = InputsHandler(inputs_dir=cnf.INPUTS_DIR, gateway_dir=cnf.GATEWAY_DIR)
 
