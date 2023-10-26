@@ -13,7 +13,8 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONPATH="${PYTHONPATH}:/srv:/srv/ibeam"
 
 COPY requirements.txt /srv/requirements.txt
-
+RUN apt-get update
+    
 RUN \
     # Create python virtual environment and required directories
     python -m venv /opt/venv && \
@@ -22,10 +23,17 @@ RUN \
     addgroup --gid $GROUP_ID $GROUP_NAME && \
     adduser --disabled-password --gecos "" --uid $USER_ID --gid $GROUP_ID --shell /bin/bash $USER_NAME && \
     # Install apt packages
-    apt-get update && \
+    # apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y default-jre dbus-x11 xfonts-base xfonts-100dpi \
-        xfonts-75dpi xfonts-cyrillic xfonts-scalable xorg xvfb gtk2-engines-pixbuf nano curl iputils-ping \
-        chromium chromium-driver build-essential && \
+        xfonts-75dpi xfonts-cyrillic xfonts-scalable xvfb gtk2-engines-pixbuf  iputils-ping
+        
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y xorg nano chromium chromium-driver build-essential
+RUN DEBIAN_FRONTEND=noninteractive apt-get install -y pkg-config libssl-dev curl libffi-dev zlib1g-dev libjpeg-dev
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+RUN \
     # Install python packages
     pip install --upgrade pip setuptools wheel && \
     pip install -r /srv/requirements.txt && \
@@ -42,6 +50,8 @@ RUN \
     # Update file ownership and permissions
     chown -R $USER_NAME:$GROUP_NAME $SRC_ROOT $OUTPUTS_DIR $IBEAM_GATEWAY_DIR && \
     chmod 744 /opt/venv/bin/activate /srv/ibeam/run.sh $SRC_ROOT/activate.sh    
+
+
 
 WORKDIR $SRC_ROOT
 
