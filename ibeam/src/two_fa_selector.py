@@ -18,13 +18,13 @@ def select(handler_name:str,
            inputs_dir: os.PathLike) -> Optional[TwoFaHandler]:
 
     if handler_name == 'GOOGLE_MSG':
-        handler = GoogleMessagesTwoFaHandler(driver_factory, outputs_dir)
+        handler = GoogleMessagesTwoFaHandler(driver_factory, outputs_dir=outputs_dir)
     elif handler_name == 'EXTERNAL_REQUEST':
-        handler = ExternalRequestTwoFaHandler(outputs_dir)
+        handler = ExternalRequestTwoFaHandler(outputs_dir=outputs_dir)
     elif handler_name == 'NOTIFICATION_RESEND':
-        handler = NotificationResendTwoFaHandler(outputs_dir)
+        handler = NotificationResendTwoFaHandler(outputs_dir=outputs_dir)
     elif handler_name == 'CUSTOM_HANDLER':
-        handler = load_custom_two_fa_handler(custom_two_fa_handler, inputs_dir)(outputs_dir)
+        handler = load_custom_two_fa_handler(custom_two_fa_handler, inputs_dir)(outputs_dir=outputs_dir)
     else:
         handler = None
 
