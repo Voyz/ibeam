@@ -1,6 +1,9 @@
 import os
 from distutils.util import strtobool
 
+
+UNDEFINED = object()
+
 def to_bool(value):
     return bool(strtobool(str(value)))
 
@@ -12,10 +15,10 @@ OUTPUTS_DIR = os.environ.get('IBEAM_OUTPUTS_DIR',
                                  os.path.join(os.path.abspath(os.path.dirname(__file__)), '..', '..', 'outputs')))
 """Directory path of Outputs Directory."""
 
-GATEWAY_DIR = os.environ.get('IBEAM_GATEWAY_DIR')
+GATEWAY_DIR = os.environ.get('IBEAM_GATEWAY_DIR', UNDEFINED)
 """Path to the root of the IBKR Gateway."""
 
-CHROME_DRIVER_PATH = os.environ.get('IBEAM_CHROME_DRIVER_PATH')
+CHROME_DRIVER_PATH = os.environ.get('IBEAM_CHROME_DRIVER_PATH', UNDEFINED)
 """Path to the Chrome Driver executable file."""
 
 GATEWAY_STARTUP = int(os.environ.get('IBEAM_GATEWAY_STARTUP', 20))
@@ -60,7 +63,7 @@ HEALTH_SERVER_PORT = int(os.environ.get("IBEAM_HEALTH_SERVER_PORT", 5001))
 SECRETS_SOURCE = os.environ.get("IBEAM_SECRETS_SOURCE", 'env')
 """Source of secrets."""
 
-GCP_SECRETS_URL = os.environ.get("IBEAM_GCP_SECRETS_URL")
+GCP_SECRETS_URL = os.environ.get("IBEAM_GCP_SECRETS_URL", None)
 """Base URL for GCP secrets manager."""
 
 ########### GATEWAY ROUTES ###########
