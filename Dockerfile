@@ -13,7 +13,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONPATH="${PYTHONPATH}:/srv:/srv/ibeam"
 
 COPY requirements.txt /srv/requirements.txt
-
+    
 RUN \
     # Create python virtual environment and required directories
     python -m venv /opt/venv && \
@@ -25,7 +25,13 @@ RUN \
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y default-jre dbus-x11 xfonts-base xfonts-100dpi \
         xfonts-75dpi xfonts-cyrillic xfonts-scalable xorg xvfb gtk2-engines-pixbuf nano curl iputils-ping \
-        chromium chromium-driver build-essential && \
+        chromium chromium-driver build-essential pkg-config libssl-dev  libffi-dev zlib1g-dev libjpeg-dev 
+
+RUN curl https://sh.rustup.rs -sSf | sh -s -- -y
+
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+RUN \
     # Install python packages
     pip install --upgrade pip setuptools wheel && \
     pip install -r /srv/requirements.txt && \
