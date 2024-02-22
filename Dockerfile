@@ -13,7 +13,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PYTHONPATH="${PYTHONPATH}:/srv:/srv/ibeam"
 
 COPY requirements.txt /srv/requirements.txt
-    
+
 RUN \
     # Create python virtual environment and required directories
     python -m venv /opt/venv && \
