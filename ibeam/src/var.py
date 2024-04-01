@@ -133,7 +133,7 @@ IBKEY_PROMO_EL_CLASS = os.environ.get('IBEAM_IBKEY_PROMO_EL_CLASS', 'CLASS_NAME@
 AUTHENTICATION_STRATEGY = os.environ.get('IBEAM_AUTHENTICATION_STRATEGY', 'B')
 """The authentication strategy used by IBeam."""
 
-MAX_STATUS_CHECK_RETRIES = int(os.environ.get('IBEAM_MAX_STATUS_CHECK_RETRIES', 15))
+MAX_STATUS_CHECK_RETRIES = int(os.environ.get('IBEAM_MAX_STATUS_CHECK_RETRIES', 120))
 """How many times to reattempt the status check."""
 
 MAX_REAUTHENTICATE_RETRIES = int(os.environ.get('IBEAM_MAX_REAUTHENTICATE_RETRIES', 3))
@@ -168,4 +168,4 @@ TWO_FA_SELECT_TARGET = os.environ.get('IBEAM_TWO_FA_SELECT_TARGET', 'IB Key')
 CUSTOM_TWO_FA_HANDLER = os.environ.get('IBEAM_CUSTOM_TWO_FA_HANDLER', 'custom_two_fa_handler.CustomTwoFaHandler')
 """Fully qualified path of the custom 2FA handler in the inputs directory."""
 
-all_variables = {item: value for item, value in vars().items() if (not item.startswith("__") and item.isupper())}
+all_variables = {key: value for key, value in vars().items() if (not key.startswith("__") and key.isupper() and key != 'UNDEFINED')}
