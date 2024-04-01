@@ -248,7 +248,7 @@ Thanks and have an awesome day 👋
 
 [issues]: https://github.com/Voyz/ibeam/issues
 
-[gateway]: https://interactivebrokers.github.io/cpwebapi/
+[gateway]: https://ibkrcampus.com/ibkr-api-page/webapi-doc/
 
 [ibc]: https://github.com/IbcAlpha/IBC
 
