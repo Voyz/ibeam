@@ -152,6 +152,14 @@ class LoginHandler():
                    presubmit_buffer: int,
                    ):
 
+        if account is None:
+            _LOGGER.error(f'Account cannot be None. Specify by setting IBEAM_ACCOUNT environment variable.')
+            raise AttemptException(cause='shutdown')
+
+        if password is None:
+            _LOGGER.error(f'Password cannot be None. Specify by setting IBEAM_PASSWORD environment variable.')
+            raise AttemptException(cause='shutdown')
+
         # input credentials
         user_name_el = find_element(targets['USER_NAME'], driver)
         password_el = find_element(targets['PASSWORD'], driver)
