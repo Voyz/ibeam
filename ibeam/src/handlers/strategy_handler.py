@@ -197,6 +197,8 @@ class StrategyHandler():
 
             return False, False, status
 
+        self.http_handler.initialise()
+
         return True, False, status
 
 

@@ -102,6 +102,7 @@ class HttpHandler():
                  route_tickle: str,
                  route_logout: str,
                  route_reauthenticate: str,
+                 route_initialise: str,
                  request_timeout: int,
                  ):
 
@@ -112,6 +113,7 @@ class HttpHandler():
         self.route_tickle = route_tickle
         self.route_logout = route_logout
         self.route_reauthenticate = route_reauthenticate
+        self.route_initialise = route_initialise
         self.request_timeout = request_timeout
         self.build_ssh_context()
 
@@ -274,6 +276,10 @@ class HttpHandler():
     def reauthenticate(self):
         """Reauthenticate will work only if there is an existing session."""
         return self.url_request(self.base_url + self.route_reauthenticate, 'POST')
+
+    def initialise(self):
+        """Initialise the session."""
+        return self.url_request(self.base_url + self.route_initialise, 'POST')
 
     def base_route(self):
         """Call base base_url"""

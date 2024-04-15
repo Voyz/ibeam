@@ -69,6 +69,7 @@ if __name__ == '__main__':
         route_tickle=cnf.ROUTE_TICKLE,
         route_logout=cnf.ROUTE_LOGOUT,
         route_reauthenticate=cnf.ROUTE_REAUTHENTICATE,
+        route_initialise=cnf.ROUTE_INITIALISE,
         request_timeout=cnf.REQUEST_TIMEOUT,
     )
 

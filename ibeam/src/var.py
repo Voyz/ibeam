@@ -80,6 +80,9 @@ ROUTE_VALIDATE = os.environ.get('IBEAM_ROUTE_VALIDATE', '/v1/portal/sso/validate
 ROUTE_REAUTHENTICATE = os.environ.get('IBEAM_ROUTE_REAUTHENTICATE', '/v1/portal/iserver/reauthenticate?force=true')
 """Gateway route with reauthentication call."""
 
+ROUTE_INITIALISE = os.environ.get('IBEAM_ROUTE_INITIALISE', '/v1/api/iserver/auth/ssodh/init')
+"""Gateway route with session initialisation call."""
+
 ROUTE_AUTH_STATUS = os.environ.get('IBEAM_ROUTE_AUTH_STATUS', '/v1/api/iserver/auth/status')
 """Gateway route with authentication status call."""
 
