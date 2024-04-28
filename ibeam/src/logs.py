@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 import sys
+from pathlib import Path
 
 initialized = False
 
@@ -62,7 +63,11 @@ class DailyRotatingFileHandler(logging.FileHandler):
 
     def _open(self):
         self.timestamp = self.get_timestamp()
-        return open(self.get_filename(self.timestamp), self.mode, encoding=self.encoding)
+        try:
+            return open(self.get_filename(self.timestamp), self.mode, encoding=self.encoding)
+        except FileNotFoundError:
+            Path(self.baseFilename).parent.mkdir(parents=True, exist_ok=True)
+            return open(self.get_filename(self.timestamp), self.mode, encoding=self.encoding)
 
     def emit(self, record):
         if self.get_timestamp() != self.timestamp:
