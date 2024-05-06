@@ -31,6 +31,8 @@ Features:
 * **Not so secure** - Yupp, you'll need to store the credentials somewhere, and that's a risk. Read more about it
   in [Security](#security).
 
+If you need a Python client for IBKR Web API, consider using [IBind][ibind]. 
+
 **NOTE**: IBeam is not designed to automate logging into TWS or IB Gateway (also known as TWS Gateway). Use [IBC](ibc) for that.
 There are also [Docker image projects that include TWS/Gateway and IBC](ib-gateway-docker).
 
@@ -255,3 +257,5 @@ Thanks and have an awesome day 👋
 [ib-gateway-docker]: https://github.com/UnusualAlpha/ib-gateway-docker
 
 [secret-manager-docs]: https://cloud.google.com/secret-manager/docs
+
+[ibind]: https://github.com/Voyz/ibind
