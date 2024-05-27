@@ -278,12 +278,16 @@ class LoginHandler():
             return trigger, target
 
     def step_handle_ib_key_promo(self,
+                                 driver: webdriver.Chrome,
                                  targets: Targets,
                                  wait_and_identify_trigger: callable,
                                  ib_promo_key_trigger: WebElement,
                                  ):
         _LOGGER.info('Handling IB-Key promo display...')
-        ib_promo_key_trigger.click()
+        # ib_promo_key_trigger.click()
+        time.sleep(3)
+        driver.execute_script("arguments[0].click();", ib_promo_key_trigger)
+
         trigger, target = wait_and_identify_trigger(
             has_text(targets['SUCCESS']),
             is_visible(targets['ERROR'])
@@ -376,7 +380,7 @@ class LoginHandler():
             trigger, target = self.step_two_fa(targets, wait_and_identify_trigger, driver, self.two_fa_handler, self.strict_two_fa_code)
 
         if target == targets['IBKEY_PROMO']:
-            trigger, target = self.step_handle_ib_key_promo(targets, wait_and_identify_trigger, trigger)
+            trigger, target = self.step_handle_ib_key_promo(driver, targets, wait_and_identify_trigger, trigger)
 
         if target == targets['ERROR']:
             self.step_error(driver, trigger, self.max_presubmit_buffer, self.max_failed_auth, self.outputs_dir)
