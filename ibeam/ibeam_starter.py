@@ -146,6 +146,8 @@ if __name__ == '__main__':
             _LOGGER.info(f'Gateway running with pids: {pids}')
         else:
             _LOGGER.info(f'Gateway not running.')
+        while True:
+            pass
     elif args.authenticate:
         success, _ = strategy_handler.try_authenticating()
         _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
