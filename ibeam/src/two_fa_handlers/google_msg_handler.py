@@ -59,10 +59,10 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
 
             WebDriverWait(driver_2fa, 240).until(any_of(sms_auth_present, sms_code_present))
 
-            sms_auth_el = driver_2fa.find_elements_by_class_name(_GOOG_QR_CODE_CLASS)
+            sms_auth_el = driver_2fa.find_elements(By.CLASS_NAME, _GOOG_QR_CODE_CLASS)
 
             if sms_auth_el:
-                driver_2fa.find_element_by_class_name(_GOOG_AUTH_REMEMBER_CLASS).click()
+                driver_2fa.find_element(By.CLASS_NAME, _GOOG_AUTH_REMEMBER_CLASS).click()
 
                 data = urllib.parse.quote(sms_auth_el[0].get_attribute('data-' + _GOOG_QR_CODE_DATA))
 
@@ -73,7 +73,7 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
 
                 WebDriverWait(driver_2fa, 120).until(sms_code_present)
 
-            sms_list_el = driver_2fa.find_elements_by_css_selector(_GOOG_MESSAGES_LIST_CLASS)
+            sms_list_el = driver_2fa.find_elements(By.CSS_SELECTOR, _GOOG_MESSAGES_LIST_CLASS)
 
             if not sms_list_el:
                 _LOGGER.error('Timeout or authentication error while loading sms messages.')
@@ -120,4 +120,4 @@ class GoogleMessagesTwoFaHandler(TwoFaHandler):
         return code_two_fa
 
     def __str__(self):
-        return f"GoogleMessagesTwoFaHandler(driver_path={self.driver_path})"
+        return f"GoogleMessagesTwoFaHandler(driver_path={self.driver_factory.driver_path})"
