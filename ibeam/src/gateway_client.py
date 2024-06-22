@@ -26,6 +26,7 @@ class GatewayClient():
                  spawn_new_processes: bool,
                  maintenance_interval: int,
                  request_retries: int,
+                 active:bool=True,
                  ):
 
         self._should_shutdown = False
@@ -40,7 +41,15 @@ class GatewayClient():
         self.request_retries = request_retries
 
         self._concurrent_maintenance_attempts = 1
-        self._health_server = new_health_server(self.health_server_port, self.http_handler.get_status, self.get_shutdown_status)
+        self._health_server = new_health_server(
+            self.health_server_port,
+            self.http_handler.get_status,
+            self.get_shutdown_status,
+            self.on_activate,
+            self.on_deactivate,
+        )
+
+        self._active = active
 
     def get_shutdown_status(self) -> bool:
         return self._should_shutdown
@@ -53,6 +62,24 @@ class GatewayClient():
         success, shutdown, status = self.strategy_handler.try_authenticating(request_retries=request_retries)
         self._should_shutdown = shutdown
         return success, shutdown, status
+
+    def on_activate(self) -> bool:
+        if self._active:
+            return True
+
+        _LOGGER.info('Activating')
+        self._active = True
+        return True
+
+    def on_deactivate(self) -> bool:
+        if not self._active:
+            return True
+
+        _LOGGER.info('Deactivating')
+        self._active = False
+        self.http_handler.logout()
+        self.process_handler.kill_gateway()
+        return True
 
     def build_scheduler(self):
         if self.spawn_new_processes:
@@ -79,6 +106,10 @@ class GatewayClient():
             self._health_server.shutdown()
 
     def _maintenance(self):
+        if not self._active:
+            _LOGGER.info('Maintenance skipped, GatewayClient is not active.')
+            return
+
         _LOGGER.info('Maintenance')
 
         success, shutdown, status = self.start_and_authenticate(request_retries=self.request_retries)
@@ -106,3 +137,7 @@ class GatewayClient():
     def __setstate__(self, state):
         self.__dict__.update(state)
         self.build_scheduler()
+
+    @property
+    def active(self):
+        return self._active

@@ -6,13 +6,19 @@ import logging
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
 
-def new_health_server(port: int, check_status, get_shutdown_status):
+def new_health_server(port: int, check_status, get_shutdown_status,
+                      activate_callback:callable,
+                      deactivate_callback:callable):
     class HealthzHandler(BaseHTTPRequestHandler):
         def do_GET(self):
             if self.path == "/livez":
                 return self._live()
             elif self.path == "/readyz":
                 return self._ready()
+            elif self.path == "/activate":
+                return self._activate()
+            elif self.path == "/deactivate":
+                return self._deactivate()
             self.send_error(404, "Not Found")
 
         def _live(self):
@@ -26,6 +32,18 @@ def new_health_server(port: int, check_status, get_shutdown_status):
             if not status.authenticated:
                 return self._not_ready()
             self._send_ok()
+
+        def _activate(self):
+            if activate_callback():
+                return self._send_ok()
+            else:
+                return self._send_500()
+
+        def _deactivate(self):
+            if deactivate_callback():
+                return self._send_ok()
+            else:
+                return self._send_500()
 
         def _send_ok(self):
             self.send_response(200)

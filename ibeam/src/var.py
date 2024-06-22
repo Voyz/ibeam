@@ -1,11 +1,12 @@
 import os
 from distutils.util import strtobool
 
-
 UNDEFINED = object()
+
 
 def to_bool(value):
     return bool(strtobool(str(value)))
+
 
 INPUTS_DIR = os.environ.get('IBEAM_INPUTS_DIR', '/srv/inputs/')
 """Directory path of Inputs Directory."""
@@ -65,6 +66,9 @@ SECRETS_SOURCE = os.environ.get("IBEAM_SECRETS_SOURCE", 'env')
 
 GCP_SECRETS_URL = os.environ.get("IBEAM_GCP_SECRETS_URL", None)
 """Base URL for GCP secrets manager."""
+
+START_ACTIVE = to_bool(os.environ.get('IBEAM_START_ACTIVE', True))
+"""Whether IBeam should start activated or dormant."""
 
 ########### GATEWAY ROUTES ###########
 

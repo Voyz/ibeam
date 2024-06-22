@@ -136,6 +136,7 @@ if __name__ == '__main__':
         spawn_new_processes=cnf.SPAWN_NEW_PROCESSES,
         maintenance_interval=cnf.MAINTENANCE_INTERVAL,
         request_retries=cnf.REQUEST_RETRIES,
+        active=cnf.START_ACTIVE,
     )
 
     _LOGGER.info(f'Configuration:\n{cnf.all_variables}')
@@ -167,11 +168,15 @@ if __name__ == '__main__':
         _LOGGER.info(f'Gateway {"" if success else "not "}killed.')
     else:
         # we have to do this here first because APS waits before running it the first time
-        success, shutdown, status = client.start_and_authenticate()
-        if success:
-            _LOGGER.info(f'Gateway running and authenticated, session id: {status.session_id}, server name: {status.server_name}')
+        if client.active:
+            success, shutdown, status = client.start_and_authenticate()
+            if success:
+                _LOGGER.info(f'Gateway running and authenticated, session id: {status.session_id}, server name: {status.server_name}')
 
-        if shutdown:
-            _LOGGER.warning('Shutting IBeam down due to critical error.')
+            if shutdown:
+                _LOGGER.warning('Shutting IBeam down due to critical error.')
+            else:
+                client.maintain()
         else:
+            _LOGGER.info(f'IBeam initialised in an inactive state. Starting maintenance loop.')
             client.maintain()
