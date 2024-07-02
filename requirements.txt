@@ -1,7 +1,7 @@
-selenium==4.12.*
-cryptography==40.0.*
+selenium==4.22.*
+cryptography==42.0.*
 pyvirtualdisplay==3.0.*
 apscheduler==3.10.*
-psutil==5.9.*
-requests==2.30.*
-pillow==9.5.*
+psutil==6.0.*
+requests==2.32.*
+pillow==10.3.*

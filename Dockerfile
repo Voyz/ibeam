@@ -1,4 +1,4 @@
-FROM python:3.11.3-slim-bullseye
+FROM python:3.12.4-slim-bookworm
 
 ENV PATH="/opt/venv/bin:$PATH" \
     JAVA_HOME="/usr/lib/jvm/default-java" \
@@ -24,7 +24,7 @@ RUN \
     # Install apt packages
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y default-jre dbus-x11 xfonts-base xfonts-100dpi \
-        xfonts-75dpi xfonts-cyrillic xfonts-scalable xorg xvfb gtk2-engines-pixbuf nano curl iputils-ping \
+        xfonts-75dpi xfonts-scalable xorg xvfb gtk2-engines-pixbuf nano curl iputils-ping \
         chromium chromium-driver build-essential && \
     # Install python packages
     pip install --upgrade pip setuptools wheel && \
