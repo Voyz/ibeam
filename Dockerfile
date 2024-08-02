@@ -1,3 +1,13 @@
+FROM alpine:latest AS build
+
+RUN apk add unzip wget
+RUN wget https://download2.interactivebrokers.com/portal/clientportal.gw.zip
+RUN echo "2f2d380b2f9424520ff5f9c11fe45e82ef39459329ac056258a3274bea6f76f9 clientportal.gw.zip" | sha256sum -c  # check validity of the package
+RUN unzip clientportal.gw.zip -d /tmp/ib-cpapi
+RUN sed -i 's/131\.216\.\*/172\.\*/g' /tmp/ib-cpapi/root/conf.yaml  # add Docker private network addresses to whitelisted IPs
+
+
+
 FROM python:3.11.3-slim-bullseye
 
 ENV PATH="/opt/venv/bin:$PATH" \
@@ -33,7 +43,7 @@ RUN \
     apt-get purge -y --auto-remove build-essential && \
     rm -rf /var/lib/apt/lists/*
 
-COPY copy_cache/clientportal.gw $IBEAM_GATEWAY_DIR
+COPY --from=build /tmp/ib-cpapi $IBEAM_GATEWAY_DIR
 COPY ibeam $SRC_ROOT
 
 RUN \
