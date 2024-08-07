@@ -4,7 +4,7 @@ RUN apk add unzip wget
 RUN wget https://download2.interactivebrokers.com/portal/clientportal.gw.zip
 RUN echo "2f2d380b2f9424520ff5f9c11fe45e82ef39459329ac056258a3274bea6f76f9 clientportal.gw.zip" | sha256sum -c  # check validity of the package
 RUN unzip clientportal.gw.zip -d /tmp/ib-cpapi
-RUN sed -i 's/131\.216\.\*/172\.\*/g' /tmp/ib-cpapi/root/conf.yaml  # add Docker private network addresses to whitelisted IPs
+RUN sed -i 's/131\.216\.\*/172\.17\.\*/g' /tmp/ib-cpapi/root/conf.yaml  # add Docker private network addresses to whitelisted IPs
 
 
 
