@@ -33,8 +33,8 @@ Features:
 
 If you need a Python client for IBKR Web API, consider using [IBind][ibind]. 
 
-**NOTE**: IBeam is not designed to automate logging into TWS or IB Gateway (also known as TWS Gateway). Use [IBC](ibc) for that.
-There are also [Docker image projects that include TWS/Gateway and IBC](ib-gateway-docker).
+**NOTE**: IBeam is not designed to automate logging into TWS or IB Gateway (also known as TWS Gateway). Use [IBC][ibc] for that.
+There are also [Docker image projects that include TWS/Gateway and IBC][ib-gateway-docker].
 
 ## Documentation:
 
