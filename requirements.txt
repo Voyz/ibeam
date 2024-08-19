@@ -3,5 +3,5 @@ cryptography==40.0.*
 pyvirtualdisplay==3.0.*
 apscheduler==3.10.*
 psutil==5.9.*
-requests==2.30.*
+requests==2.31.*
 pillow==9.5.*
