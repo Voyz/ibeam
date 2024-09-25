@@ -118,7 +118,19 @@ python ibeam_starter.py
 ```
 
 ----
-Once started, verify the Gateway is running by calling:
+Once started, open browser and go to
+
+```url
+https://localhost:5000
+```
+
+login with credentials. If successful, should see
+
+```html
+Client login succeeds
+```
+
+verify the Gateway is running by calling:
 
 ```posh
 curl -X GET "https://localhost:5000/v1/api/one/user" -k
