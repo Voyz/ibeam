@@ -167,13 +167,11 @@ If using `docker buildx`, run:
 docker buildx build -t ibeam --load .
 ```
 
-Alternatively, `docker-compose` can be used to build and run a local IBeam instance as follows:
+Alternatively, `docker compose` can be used to build and run a local IBeam instance as follows:
 
-Create a `docker-compose.yml` file with the following content:
+Create a `compose.yaml` file with the following content:
 
 ```yaml
-version: "2.1"
-
 services:
   ibeam:
     build: .
@@ -196,7 +194,7 @@ IBEAM_PASSWORD=your_password123
 Run the following command:
 
 ```shell
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ### <a name="multi-platform-builds"></a>Building and Pushing Multi-Platform Images
