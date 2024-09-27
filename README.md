@@ -109,12 +109,6 @@ Run the following command:
 docker compose up -d
 ```
 
-to check output
-
-```sh
-docker compose logs -f
-```
-
 #### Standalone:
 
 ```posh
