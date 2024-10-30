@@ -78,13 +78,11 @@ pip install ibeam
 docker run --env IBEAM_ACCOUNT=your_account123 --env IBEAM_PASSWORD=your_password123 -p 5000:5000 voyz/ibeam
 ```
 
-#### docker-compose:
+#### docker compose:
 
-Create a `docker-compose.yml` file with the following contents:
+Create a `compose.yaml` file with the following contents:
 
 ```yaml
-version: "2.1"
-
 services:
   ibeam:
     image: voyz/ibeam
@@ -108,7 +106,7 @@ IBEAM_PASSWORD=your_password123
 Run the following command:
 
 ```posh
-docker-compose up -d
+docker compose up -d
 ```
 
 #### Standalone:
