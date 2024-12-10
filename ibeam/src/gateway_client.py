@@ -126,6 +126,9 @@ class GatewayClient():
             if not validate_success:
                 _LOGGER.warning(f'Validation result is False when IBeam attempted to extend the SSO token. This could indicate token authentication issues.')
 
+    def shutdown(self):
+        self._health_server.shutdown()
+
     def __getstate__(self):
         state = self.__dict__.copy()
 

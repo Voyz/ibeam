@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import signal
 import sys
 from pathlib import Path
 
@@ -15,7 +16,7 @@ from ibeam.src.handlers.login_handler import LoginHandler
 from ibeam.src.handlers.process_handler import ProcessHandler
 from ibeam.src.handlers.secrets_handler import SecretsHandler
 from ibeam.src.handlers.strategy_handler import StrategyHandler
-from ibeam.src.login.driver import DriverFactory
+from ibeam.src.login.driver import DriverFactory, shut_down_browser
 from ibeam.src.login.targets import create_targets
 
 import ibeam
@@ -138,6 +139,13 @@ if __name__ == '__main__':
         request_retries=cnf.REQUEST_RETRIES,
         active=cnf.START_ACTIVE,
     )
+
+    def stop(_, _1):
+        client.shutdown()
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, stop)
+    signal.signal(signal.SIGTERM, stop)
 
     _LOGGER.info(f'Configuration:\n{cnf.all_variables}')
 
