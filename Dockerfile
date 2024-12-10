@@ -50,4 +50,5 @@ USER $USER_NAME
 #CMD python ./ibeam_starter.py
 #ENTRYPOINT ["/srv/ibeam/run.sh"]
 #ENTRYPOINT ["bash"]
-CMD ["/srv/ibeam/run.sh"]
+#CMD ["/srv/ibeam/run.sh"]
+CMD ["python", "ibeam_starter.py"]
