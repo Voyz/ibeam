@@ -14,9 +14,10 @@ _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
 
 
 class Target():
-    def __init__(self,
-                 variable:str,
-                 ):
+    def __init__(
+            self,
+            variable: str,
+            ):
         type, identifier = variable.split("@@")
         self.type = type
         self.identifier = identifier
@@ -34,6 +35,9 @@ class Target():
         elif type == 'NAME':
             self.by = By.NAME
             self._identify = self.identify_by_name
+        elif type == 'FOR':
+            self.by = By.CSS_SELECTOR
+            self._identify = self.identify_by_for
         elif type == 'TAG_NAME':
             self.by = [(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')]
             self._identify = self.identify_by_text
@@ -43,11 +47,12 @@ class Target():
     def identify(self, trigger: WebElement) -> bool:
         return self._identify(trigger)
 
-    def identify_by_id (self, trigger: WebElement) -> bool:
+    def identify_by_id(self, trigger: WebElement) -> bool:
         return self.identifier in trigger.get_attribute('id')
 
     def identify_by_css_selector(self, trigger: WebElement) -> bool:
         return self.identifier.replace('.', ' ').strip() in trigger.get_attribute('class')
+
     def identify_by_class(self, trigger: WebElement) -> bool:
         return self.identifier in trigger.get_attribute('class')
 
@@ -57,11 +62,15 @@ class Target():
     def identify_by_text(self, trigger: WebElement) -> bool:
         return self.identifier in trigger.text
 
+    def identify_by_for(self, trigger: WebElement) -> bool:
+        return self.identifier in trigger.get_attribute('for')
+
     def __repr__(self):
         return f'Target({self.variable})'
 
 
 Targets = dict[str, Target]
+
 
 def targets_from_versions(targets: Targets, versions: dict) -> Targets:
     version_target_user_name = Target(versions['USER_NAME_EL'])
@@ -79,7 +88,8 @@ def targets_from_versions(targets: Targets, versions: dict) -> Targets:
 
     return targets
 
-def create_targets(cnf:Config) -> Targets:
+
+def create_targets(cnf: Config) -> Targets:
     targets = {}
 
     targets['PASSWORD'] = Target(cnf.PASSWORD_EL)
@@ -90,11 +100,12 @@ def create_targets(cnf:Config) -> Targets:
     targets['TWO_FA_NOTIFICATION'] = Target(cnf.TWO_FA_NOTIFICATION_EL)
     targets['TWO_FA_INPUT'] = Target(cnf.TWO_FA_INPUT_EL_ID)
     targets['TWO_FA_SELECT'] = Target(cnf.TWO_FA_SELECT_EL_ID)
+    targets['LIVE_PAPER_TOGGLE'] = Target(cnf.LIVE_PAPER_TOGGLE_EL)
 
     return targets
 
 
-def identify_target(trigger:WebElement, targets:Targets) -> Optional[Target]:
+def identify_target(trigger: WebElement, targets: Targets) -> Optional[Target]:
     for target in targets.values():
         try:
             if target.identify(trigger):
@@ -124,5 +135,5 @@ def has_text(target: Target) -> callable:
     return text_to_be_present_in_element(target.by, target.identifier)
 
 
-def find_element(target: Target, driver:webdriver.Chrome) -> WebElement:
+def find_element(target: Target, driver: webdriver.Chrome) -> WebElement:
     return driver.find_element(target.by, target.identifier)

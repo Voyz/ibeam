@@ -121,6 +121,7 @@ class LoginHandler():
                  min_presubmit_buffer: int,
                  max_failed_auth: int,
                  outputs_dir: str,
+                 use_paper_account: bool = False,
                  ):
 
         self.secrets_handler = secrets_handler
@@ -138,6 +139,7 @@ class LoginHandler():
         self.min_presubmit_buffer = min_presubmit_buffer
         self.max_failed_auth = max_failed_auth
         self.outputs_dir = outputs_dir
+        self.use_paper_account = use_paper_account
 
         self.failed_attempts = 0
         self.presubmit_buffer = self.min_presubmit_buffer
@@ -165,6 +167,12 @@ class LoginHandler():
         password_el = find_element(targets['PASSWORD'], driver)
 
         wait_and_identify_trigger(is_clickable(targets['USER_NAME']))
+
+        if self.use_paper_account:
+            _LOGGER.info('Switching to paper mode')
+            live_paper_toggle_el = find_element(targets['LIVE_PAPER_TOGGLE'], driver)
+            live_paper_toggle_el.click()
+            time.sleep(3)
 
         user_name_el.clear()
         password_el.clear()
@@ -295,6 +303,33 @@ class LoginHandler():
 
         return trigger, target
 
+    def step_paper_toggle(self,
+                          driver:webdriver.Chrome,
+                          targets: Targets,
+                          wait_and_identify_trigger: callable
+                          ):
+        _LOGGER.info('Switching to paper mode and reattempting to submit the form')
+        live_paper_toggle_el = find_element(targets['LIVE_PAPER_TOGGLE'], driver)
+        live_paper_toggle_el.click()
+
+        time.sleep(3)
+
+        submit_form_el = find_element(targets['SUBMIT'], driver)
+        submit_form_el.click()
+
+        time.sleep(3)
+
+        trigger, target = wait_and_identify_trigger(
+            has_text(targets['SUCCESS']),
+            is_visible(targets['TWO_FA']),
+            is_visible(targets['TWO_FA_SELECT']),
+            is_visible(targets['TWO_FA_NOTIFICATION']),
+            is_visible(targets['ERROR']),
+            is_clickable(targets['IBKEY_PROMO']),
+        )
+
+        return trigger, target
+
     def step_error(self,
                    driver:webdriver.Chrome,
                    error_trigger: WebElement,
@@ -369,6 +404,9 @@ class LoginHandler():
             driver: webdriver.Chrome
     ):
         trigger, target = self.step_login(targets, wait_and_identify_trigger, driver, self.secrets_handler.account, self.secrets_handler.password, self.secrets_handler.key, self.presubmit_buffer)
+
+        if target == targets['ERROR'] and trigger.text == 'You have selected the Live Account Mode, but the specified user is a Paper Trading user. Please select the correct Login mode.':
+            trigger, target = self.step_paper_toggle(driver, targets, wait_and_identify_trigger)
 
         if target == targets['TWO_FA_SELECT']:
             trigger, target = self.step_select_two_fa(targets, wait_and_identify_trigger, driver, self.two_fa_select_target)

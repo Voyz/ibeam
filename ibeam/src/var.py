@@ -114,6 +114,12 @@ ERROR_EL = os.environ.get('IBEAM_ERROR_EL', None)
 SUCCESS_EL_TEXT = os.environ.get('IBEAM_SUCCESS_EL_TEXT', 'TAG_NAME@@Client login succeeds')
 """HTML element text indicating successful authentication."""
 
+LIVE_PAPER_TOGGLE_EL = os.environ.get('IBEAM_LIVE_PAPER_TOGGLE_EL', 'FOR@@label[for=toggle1]')
+"""HTML element name attribute containing the live paper toggle button."""
+
+USE_PAPER_ACCOUNT = to_bool(os.environ.get('IBEAM_USE_PAPER_ACCOUNT', False))
+"""Whether to attempt switching to paper mode before attempting logging in."""
+
 OAUTH_TIMEOUT = int(os.environ.get('IBEAM_OAUTH_TIMEOUT', 15))
 """How many seconds to wait for the OAuth login request to complete."""
 

@@ -108,6 +108,7 @@ if __name__ == '__main__':
         min_presubmit_buffer=cnf.MIN_PRESUBMIT_BUFFER,
         max_failed_auth=cnf.MAX_FAILED_AUTH,
         outputs_dir=cnf.OUTPUTS_DIR,
+        use_paper_account=cnf.USE_PAPER_ACCOUNT,
     )
 
     process_handler = ProcessHandler(
