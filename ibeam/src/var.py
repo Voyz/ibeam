@@ -158,7 +158,7 @@ TWO_FA_EL_ID = os.environ.get('IBEAM_TWO_FA_EL_ID', 'ID@@twofactbase')
 TWO_FA_NOTIFICATION_EL = os.environ.get('IBEAM_TWO_FA_NOTIFICATION_EL', 'CLASS_NAME@@login-step-notification')
 """HTML element check for if Gateway will require 2FA notification authentication."""
 
-TWO_FA_INPUT_EL_ID = os.environ.get('IBEAM_TWO_FA_INPUT_EL_ID', 'ID@@chlginput')
+TWO_FA_INPUT_EL_ID = os.environ.get('IBEAM_TWO_FA_INPUT_EL_ID', 'ID@@xyz-field-bronze-response')
 """HTML element to input 2FA code into"""
 
 TWO_FA_HANDLER = os.environ.get('IBEAM_TWO_FA_HANDLER', None)
@@ -167,7 +167,7 @@ TWO_FA_HANDLER = os.environ.get('IBEAM_TWO_FA_HANDLER', None)
 STRICT_TWO_FA_CODE = to_bool(os.environ.get('IBEAM_STRICT_TWO_FA_CODE', True))
 """Whether to ensure only 2FA code made of 6 digits can be used."""
 
-TWO_FA_SELECT_EL_ID = os.environ.get('IBEAM_TWO_FA_SELECT_EL_ID', 'ID@@sf_select')
+TWO_FA_SELECT_EL_ID = os.environ.get('IBEAM_TWO_FA_SELECT_EL_ID', 'ID@@xyz-field-bronze-response')
 """HTML element check for if Gateway requires to select the 2FA method."""
 
 TWO_FA_SELECT_TARGET = os.environ.get('IBEAM_TWO_FA_SELECT_TARGET', 'IB Key')
