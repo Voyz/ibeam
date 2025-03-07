@@ -26,8 +26,9 @@ ips:
     - 10.*
     - 192.*
     - 131.216.*
-    - 127.0.0.1
-    - 0.0.0.0
-    - 172.17.0.*
+    - 172.17.0.* # docker internal
+    - 127.0.0.1 # localhost
+    - x.x.x.x # IP address of your machine used to call the API
   deny:
     - 212.90.324.10
+    - 0.0.0.0/0 # all other addresses
