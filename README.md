@@ -119,7 +119,7 @@ python ibeam_starter.py
 Once started, verify the Gateway is running by calling:
 
 ```posh
-curl -X GET "https://localhost:5000/v1/api/one/user" -k
+curl -X GET "https://localhost:5000/v1/api/iserver/auth/status" -k
 ```
 
 Read more in [Installation and Startup][installation-and-startup] and [Advanced Secrets][advanced-secrets].
