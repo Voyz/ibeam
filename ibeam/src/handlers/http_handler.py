@@ -144,8 +144,13 @@ class HttpHandler():
                 # if this doesn't throw an exception, the gateway is running and there is an active session
                 response = self.url_request(url, method=method)
                 status.running = True
-                status.session = True
-                status.response = response
+                status.response = response.read().decode('utf8')
+
+                if status.response == '{"error":"no session"}':
+                    _LOGGER.error(f'Error: "no session" returned.')
+                    status.session = False
+                else:
+                    status.session = True
 
                 return status
 
@@ -243,18 +248,18 @@ class HttpHandler():
         status = self.tickle(max_attempts=max_attempts)
 
         if status.session:
-            status.response = json.loads(status.response.read().decode('utf8'))
+            json_response = json.loads(status.response)
 
-            status.authenticated = status.response['iserver']['authStatus']['authenticated']
-            status.competing = status.response['iserver']['authStatus']['competing']
-            status.connected = status.response['iserver']['authStatus']['connected']
-            status.collision = status.response['collission']
-            status.session_id = status.response['session']
-            status.expires = int(status.response['ssoExpires'])
+            status.authenticated = json_response['iserver']['authStatus']['authenticated']
+            status.competing = json_response['iserver']['authStatus']['competing']
+            status.connected = json_response['iserver']['authStatus']['connected']
+            status.collision = json_response['collission']
+            status.session_id = json_response['session']
+            status.expires = int(json_response['ssoExpires'])
 
             # some fields are not present if unauthenticated
-            status.server_name = status.response['iserver']['authStatus'].get('serverInfo', {}).get('serverName')
-            status.server_version = status.response['iserver']['authStatus'].get('serverInfo', {}).get('serverVersion')
+            status.server_name = json_response['iserver']['authStatus'].get('serverInfo', {}).get('serverName')
+            status.server_version = json_response['iserver']['authStatus'].get('serverInfo', {}).get('serverVersion')
 
         return status
 
@@ -262,8 +267,7 @@ class HttpHandler():
         """Validate provides information on the current session. Works also after logout."""
         status = self.try_request(self.base_url + self.route_validate, 'GET')
         if status.session:
-            status.response = json.loads(status.response.read().decode('utf8'))
-            return status.response['RESULT']
+            return json.loads(status.response)['RESULT']
         return False
 
     def tickle(self, max_attempts=1) -> Status:
