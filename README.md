@@ -26,6 +26,7 @@ Features:
 * **No physical display required** - virtual display buffer can be used instead.
 * **No interaction from the user required** - automated injection of IBKR credentials into the authentication page used
   by the Gateway.
+* **Two-Factor Authentication support** - supports multiple 2FA methods including TOTP (Google Authenticator, Authy) and SMS via Google Messages.
 * **TLS certificate support** - you can provide your own certificates.
 * **Containerised using Docker** - it's a plug and play image, although IBeam can be used as standalone too.
 * **Not so secure** - Yupp, you'll need to store the credentials somewhere, and that's a risk. Read more about it
