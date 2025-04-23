@@ -14,7 +14,7 @@ class TestTotpTwoFaHandler(unittest.TestCase):
     TEST_SECRET = "JBSWY3DPEHPK3PXP"
 
     def setUp(self):
-        """Set up test environment."""
+        """Set up test environment before each test."""
         # Save original environment variable if it exists
         self.original_secret = os.environ.get('IBEAM_TOTP_SECRET')
         
@@ -22,7 +22,7 @@ class TestTotpTwoFaHandler(unittest.TestCase):
         os.environ['IBEAM_TOTP_SECRET'] = self.TEST_SECRET
 
     def tearDown(self):
-        """Clean up test environment."""
+        """Clean up test environment after each test."""
         # Restore original environment variable
         if self.original_secret:
             os.environ['IBEAM_TOTP_SECRET'] = self.original_secret
