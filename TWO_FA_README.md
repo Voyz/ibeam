@@ -55,6 +55,10 @@ export IBEAM_TWO_FA_HANDLER=TOTP
 export IBEAM_TOTP_SECRET=YOUR_TOTP_SECRET  # Your TOTP secret key (base32 encoded)
 ```
 
+### Availability Notice
+
+TOTP-based two-factor authentication may not be available to all IBKR users. While IBKR documentation doesn't explicitly state limitations, some users may only have access to SMS-based 2FA. If you're unable to set up TOTP authentication in your IBKR account settings, please contact IBKR customer support for assistance.
+
 ### Features of TOTP Handler
 
 - Fully automated TOTP code generation
@@ -67,27 +71,16 @@ export IBEAM_TOTP_SECRET=YOUR_TOTP_SECRET  # Your TOTP secret key (base32 encode
 - The `pyotp` Python package must be installed (included in IBeam's requirements)
 - You must have your TOTP secret key (the same key used to set up your authenticator app)
 
-### Security Considerations for TOTP Handler
+### Setup Guide
 
-- The TOTP secret is sensitive information. Store it securely and do not hardcode it in your scripts.
-- Use environment variables or a secure secrets management system to provide the secret to IBeam.
-- The handler logs only the last two digits of the generated TOTP code to avoid exposing the full code in logs.
+For a comprehensive step-by-step guide on setting up and using the TOTP handler, please see the [TOTP Handler Documentation](docs/totp_handler.md).
 
-### Troubleshooting TOTP Handler
-
-#### Error: "IBEAM_TOTP_SECRET environment variable is not set"
-
-Make sure you've set the `IBEAM_TOTP_SECRET` environment variable.
-
-#### Error: "Invalid TOTP secret"
-
-The TOTP secret must be a valid base32-encoded string. Check that your secret is correctly formatted.
-
-#### TOTP Code Not Accepted
-
-- Verify that your system clock is synchronized correctly. TOTP codes are time-based and require accurate time.
-- Confirm that the TOTP secret matches the one used by the service you're authenticating with.
-- Some services may have a specific TOTP implementation (e.g., different time step). Consult the service's documentation.
+The guide includes:
+- How to enable TOTP 2FA in your IBKR account
+- How to obtain and save your TOTP secret key
+- Configuration examples for both standalone and Docker deployments
+- Verification steps to ensure your setup is working correctly
+- Troubleshooting common issues
 
 ## Custom Handler
 

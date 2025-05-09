@@ -2,6 +2,10 @@
 
 This module provides a handler for generating TOTP codes automatically
 for use with IBeam's two-factor authentication system.
+
+Note: TOTP-based two-factor authentication may not be available to all IBKR users.
+If you're unable to set up TOTP authentication in your IBKR account settings,
+please contact IBKR customer support for assistance.
 """
 
 import logging
@@ -64,6 +68,12 @@ class TotpTwoFaHandler(TwoFaHandler):
             
         Returns:
             A string containing the current TOTP code or None if an error occurs.
+            
+        Note:
+            IBKR sometimes displays a 'Failed' error when inputting 2FA codes despite
+            the code being correct. This is usually due to timing issues, as TOTP codes
+            have a limited validity period. The handler generates a fresh code each time
+            to minimize this issue.
         """
         try:
             # Generate the TOTP code
