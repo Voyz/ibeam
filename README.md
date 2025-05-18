@@ -213,10 +213,11 @@ or destructive.
 
 ## Built by Voy
 
-Hi! Thanks for checking out and using this library. If you are interested in discussing your project, require
-mentorship, consider hiring me, or just wanna chat - I'm happy to talk.
+Hi! Thanks for checking out and using this library.
 
-You can send me an email to get in touch: hello@voyzan.com
+If you are in need of some help with your project and would like to hire me, or just wanna chat about trading - I'm happy to talk.
+
+You can contact me through: https://voyzan.com
 
 Or if you'd just want to give something back, I've got a Buy Me A Coffee account:
 
