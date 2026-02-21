@@ -96,6 +96,8 @@ services:
     restart: 'no' # Prevents IBEAM_MAX_FAILED_AUTH from being exceeded
 ```
 
+> **Note:** By default, login timeouts (e.g. when a 2FA push notification is ignored) count toward the `IBEAM_MAX_FAILED_AUTH` limit, causing IBeam to shut down after the configured number of failed attempts. This behaviour is controlled by `IBEAM_COUNT_TIMEOUT_AS_FAILED` (default: `True`). Set it to `False` to restore the old behaviour where timeouts do not count toward the failed authentication limit.
+
 Create an `env.list` file in the same directory with the following contents:
 
 ```posh

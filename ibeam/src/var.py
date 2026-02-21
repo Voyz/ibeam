@@ -132,6 +132,9 @@ ERROR_SCREENSHOTS = to_bool(os.environ.get('IBEAM_ERROR_SCREENSHOTS', False))
 MAX_FAILED_AUTH = int(os.environ.get('IBEAM_MAX_FAILED_AUTH', 5))
 """Maximum number of failed authentication attempts."""
 
+COUNT_TIMEOUT_AS_FAILED = to_bool(os.environ.get('IBEAM_COUNT_TIMEOUT_AS_FAILED', True))
+"""Whether to count login timeouts toward the maximum number of failed authentication attempts."""
+
 MIN_PRESUBMIT_BUFFER = int(os.environ.get('IBEAM_MIN_PRESUBMIT_BUFFER', 5))
 """Minimum number of seconds to wait before hitting the submit button"""
 

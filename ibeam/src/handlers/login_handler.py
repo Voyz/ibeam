@@ -122,6 +122,7 @@ class LoginHandler():
                  max_failed_auth: int,
                  outputs_dir: str,
                  use_paper_account: bool = False,
+                 count_timeout_as_failed: bool = True,
                  ):
 
         self.secrets_handler = secrets_handler
@@ -140,6 +141,7 @@ class LoginHandler():
         self.max_failed_auth = max_failed_auth
         self.outputs_dir = outputs_dir
         self.use_paper_account = use_paper_account
+        self.count_timeout_as_failed = count_timeout_as_failed
 
         self.failed_attempts = 0
         self.presubmit_buffer = self.min_presubmit_buffer
@@ -383,6 +385,14 @@ class LoginHandler():
 
         save_screenshot(driver, outputs_dir, '__timeout-exception')
 
+        if self.count_timeout_as_failed and self.max_failed_auth > 0:
+            self.failed_attempts += 1
+            _LOGGER.warning(f'Login timeout counted as a failed login attempt ({self.failed_attempts}/{self.max_failed_auth})')
+            if self.failed_attempts >= self.max_failed_auth:
+                _LOGGER.critical(
+                    f'######## ATTENTION! ######## Maximum number of failed authentication attempts (IBEAM_MAX_FAILED_AUTH={self.max_failed_auth}) reached. IBeam will shut down to prevent an account lock-out. It is recommended you attempt to authenticate manually in order to reset the counter. Read the execution logs and report issues at https://github.com/Voyz/ibeam/issues')
+                raise AttemptException(cause='shutdown')
+
     def step_failed_two_fa(self, driver:webdriver.Chrome):
         # this means no two_fa_code was returned and trigger remained the same - ie. don't authenticate
         time.sleep(1)
@@ -501,7 +511,10 @@ class LoginHandler():
 
             time.sleep(1)
         except TimeoutException as e:
-            self.handle_timeout_exception(e, targets, driver, website_version, self.route_auth, self.base_url, self.outputs_dir)
+            try:
+                self.handle_timeout_exception(e, targets, driver, website_version, self.route_auth, self.base_url, self.outputs_dir)
+            except AttemptException:
+                raise
             success = False
         except Exception as e:
             _LOGGER.error(f'Error encountered during authentication \nException:\n{exception_to_string(e)}')
