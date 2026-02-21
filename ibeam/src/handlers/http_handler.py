@@ -260,18 +260,15 @@ class HttpHandler():
                 # some fields are not present if unauthenticated
                 status.server_name = auth_status.get('serverInfo', {}).get('serverName')
                 status.server_version = auth_status.get('serverInfo', {}).get('serverVersion')
-            else:
-                # flat response structure returned by some gateway versions/states
-                _LOGGER.warning(f'Response does not contain expected "iserver.authStatus" structure, falling back to flat response parsing. Response: {status.response}')
-                status.authenticated = json_response.get('authenticated', False)
-                status.competing = json_response.get('competing', False)
-                status.connected = json_response.get('connected', False)
-                status.server_name = json_response.get('serverInfo', {}).get('serverName')
-                status.server_version = json_response.get('serverInfo', {}).get('serverVersion')
 
-            status.collision = json_response.get('collission', False)
-            status.session_id = json_response.get('session')
-            status.expires = int(json_response['ssoExpires']) if 'ssoExpires' in json_response else None
+                status.collision = json_response.get('collission', False)
+                status.session_id = json_response.get('session')
+                status.expires = int(json_response['ssoExpires']) if 'ssoExpires' in json_response else None
+            else:
+                _LOGGER.warning(f'Response does not contain expected "iserver.authStatus" structure, treating as not authenticated. Response: {status.response}')
+                status.authenticated = False
+                status.competing = False
+                status.connected = False
 
         return status
 
