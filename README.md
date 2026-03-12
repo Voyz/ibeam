@@ -104,6 +104,8 @@ IBEAM_ACCOUNT=your_account123
 IBEAM_PASSWORD=your_password123
 ```
 
+For a reusable starting point, copy [`env.list.example`](./env.list.example) to `env.list` and adjust the values for your account.
+
 Run the following command:
 
 ```posh
@@ -124,6 +126,40 @@ curl -X GET "https://localhost:5000/v1/api/iserver/auth/status" -k
 ```
 
 Read more in [Installation and Startup][installation-and-startup] and [Advanced Secrets][advanced-secrets].
+
+### Two-factor device selection
+
+Some IBKR accounts show an extra `Select Second Factor Device` dropdown after submitting the username and password. If your account does, add the following settings to `env.list`:
+
+```posh
+IBEAM_TWO_FA_SELECT=true
+IBEAM_TWO_FA_SELECT_TARGET=IB Key
+```
+
+If your IBKR page uses a different device label, set `IBEAM_TWO_FA_SELECT_TARGET` to the text shown in that dropdown, for example `Mobile Authenticator App`.
+
+`IBEAM_TWO_FA_SELECT_EL_ID` defaults to `TAG@@select` and usually does not need to be changed.
+
+IBeam also includes a built-in fallback for code-entry screens that expose an input with a placeholder containing `Code`, which covers variants such as `Mobile Authenticator App Code` without requiring an extra env override.
+
+### Manual 2FA fallback
+
+If you do not have a usable automated 2FA handler, IBeam can pause at the second-factor step and wait for you to finish the login manually in your own browser.
+
+Add the following optional settings to `env.list`:
+
+```posh
+IBEAM_MANUAL_TWO_FA=true
+IBEAM_MANUAL_TWO_FA_TIMEOUT=300
+```
+
+When enabled and no `IBEAM_TWO_FA_HANDLER` is configured, IBeam will:
+
+1. Drive the login flow up to the second-factor step.
+1. Log instructions to open `https://localhost:5000` and complete the IBKR login manually.
+1. Wait for the gateway session to become authenticated before continuing.
+
+This is intended for setups where the second factor is device-bound and cannot be retrieved programmatically, such as a mobile authenticator app.
 
 ## <a name="how-ibeam-works"></a>How does IBeam work?
 

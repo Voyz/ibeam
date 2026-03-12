@@ -22,6 +22,7 @@ class Target():
         self.type = type
         self.identifier = identifier
         self.variable = variable
+        self.locator_identifier = identifier
 
         if type == 'ID':
             self.by = By.ID
@@ -32,6 +33,13 @@ class Target():
         elif type == 'CLASS_NAME':
             self.by = By.CLASS_NAME
             self._identify = self.identify_by_class
+        elif type == 'PLACEHOLDER':
+            self.by = By.CSS_SELECTOR
+            self.locator_identifier = f'input[placeholder*="{identifier}"]'
+            self._identify = self.identify_by_placeholder
+        elif type == 'TAG':
+            self.by = By.TAG_NAME
+            self._identify = self.identify_by_tag
         elif type == 'NAME':
             self.by = By.NAME
             self._identify = self.identify_by_name
@@ -58,6 +66,12 @@ class Target():
 
     def identify_by_name(self, trigger: WebElement) -> bool:
         return self.identifier in trigger.get_attribute('name')
+
+    def identify_by_tag(self, trigger: WebElement) -> bool:
+        return self.identifier == trigger.tag_name
+
+    def identify_by_placeholder(self, trigger: WebElement) -> bool:
+        return self.identifier in trigger.get_attribute('placeholder')
 
     def identify_by_text(self, trigger: WebElement) -> bool:
         return self.identifier in trigger.text
@@ -99,7 +113,9 @@ def create_targets(cnf: Config) -> Targets:
     targets['TWO_FA'] = Target(cnf.TWO_FA_EL_ID)
     targets['TWO_FA_NOTIFICATION'] = Target(cnf.TWO_FA_NOTIFICATION_EL)
     targets['TWO_FA_INPUT'] = Target(cnf.TWO_FA_INPUT_EL_ID)
-    targets['TWO_FA_SELECT'] = Target(cnf.TWO_FA_SELECT_EL_ID)
+    targets['TWO_FA_INPUT_GENERIC'] = Target('PLACEHOLDER@@Code')
+    if cnf.TWO_FA_SELECT:
+        targets['TWO_FA_SELECT'] = Target(cnf.TWO_FA_SELECT_EL_ID)
     targets['LIVE_PAPER_TOGGLE'] = Target(cnf.LIVE_PAPER_TOGGLE_EL)
 
     return targets
@@ -120,20 +136,20 @@ def identify_target(trigger: WebElement, targets: Targets) -> Optional[Target]:
 
 
 def is_present(target: Target) -> callable:
-    return EC.presence_of_element_located((target.by, target.identifier))
+    return EC.presence_of_element_located((target.by, target.locator_identifier))
 
 
 def is_visible(target: Target) -> callable:
-    return EC.visibility_of_element_located((target.by, target.identifier))
+    return EC.visibility_of_element_located((target.by, target.locator_identifier))
 
 
 def is_clickable(target: Target) -> callable:
-    return EC.element_to_be_clickable((target.by, target.identifier))
+    return EC.element_to_be_clickable((target.by, target.locator_identifier))
 
 
 def has_text(target: Target) -> callable:
-    return text_to_be_present_in_element(target.by, target.identifier)
+    return text_to_be_present_in_element(target.by, target.locator_identifier)
 
 
 def find_element(target: Target, driver: webdriver.Chrome) -> WebElement:
-    return driver.find_element(target.by, target.identifier)
+    return driver.find_element(target.by, target.locator_identifier)

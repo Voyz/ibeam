@@ -9,6 +9,17 @@ def to_bool(value):
     return bool(strtobool(str(value)))
 
 
+def strip_quotes(value):
+    if value is None:
+        return value
+
+    value = str(value).strip()
+    if len(value) >= 2 and value[0] == value[-1] and value[0] in ("'", '"'):
+        return value[1:-1]
+
+    return value
+
+
 INPUTS_DIR = os.environ.get('IBEAM_INPUTS_DIR', '/srv/inputs/')
 """Directory path of Inputs Directory."""
 
@@ -176,10 +187,19 @@ TWO_FA_HANDLER = os.environ.get('IBEAM_TWO_FA_HANDLER', None)
 STRICT_TWO_FA_CODE = to_bool(os.environ.get('IBEAM_STRICT_TWO_FA_CODE', True))
 """Whether to ensure only 2FA code made of 6 digits can be used."""
 
-TWO_FA_SELECT_EL_ID = os.environ.get('IBEAM_TWO_FA_SELECT_EL_ID', 'ID@@xyz-field-bronze-response')
+MANUAL_TWO_FA = to_bool(os.environ.get('IBEAM_MANUAL_TWO_FA', False))
+"""Whether to wait for a user to finish 2FA manually when no handler is configured."""
+
+MANUAL_TWO_FA_TIMEOUT = int(os.environ.get('IBEAM_MANUAL_TWO_FA_TIMEOUT', 300))
+"""How many seconds to wait for manual 2FA completion."""
+
+TWO_FA_SELECT = to_bool(os.environ.get('IBEAM_TWO_FA_SELECT', False))
+"""Whether Gateway requires selecting a 2FA method from a dropdown before continuing."""
+
+TWO_FA_SELECT_EL_ID = strip_quotes(os.environ.get('IBEAM_TWO_FA_SELECT_EL_ID', 'TAG@@select'))
 """HTML element check for if Gateway requires to select the 2FA method."""
 
-TWO_FA_SELECT_TARGET = os.environ.get('IBEAM_TWO_FA_SELECT_TARGET', 'IB Key')
+TWO_FA_SELECT_TARGET = strip_quotes(os.environ.get('IBEAM_TWO_FA_SELECT_TARGET', 'IB Key'))
 """Option that is to be chosen in the 2FA select dropdown"""
 
 CUSTOM_TWO_FA_HANDLER = os.environ.get('IBEAM_CUSTOM_TWO_FA_HANDLER', 'custom_two_fa_handler.CustomTwoFaHandler')
