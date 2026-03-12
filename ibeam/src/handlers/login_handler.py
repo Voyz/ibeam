@@ -1,8 +1,12 @@
+import json
 import logging
+import ssl
 import time
+import urllib.request
 from functools import partial
 from pathlib import Path
 from typing import Optional, cast
+from urllib.error import HTTPError, URLError
 
 from cryptography.fernet import Fernet
 from selenium import webdriver
@@ -113,10 +117,14 @@ class LoginHandler():
                  targets: Targets,
                  base_url: str,
                  route_auth: str,
+                 route_tickle: str,
                  two_fa_select_target: str,
                  strict_two_fa_code: bool,
+                 manual_two_fa: bool,
+                 manual_two_fa_timeout: int,
                  max_immediate_attempts: int,
                  oauth_timeout: int,
+                 request_timeout: int,
                  max_presubmit_buffer: int,
                  min_presubmit_buffer: int,
                  max_failed_auth: int,
@@ -132,10 +140,14 @@ class LoginHandler():
 
         self.base_url = base_url
         self.route_auth = route_auth
+        self.route_tickle = route_tickle
         self.two_fa_select_target = two_fa_select_target
         self.strict_two_fa_code = strict_two_fa_code
+        self.manual_two_fa = manual_two_fa
+        self.manual_two_fa_timeout = manual_two_fa_timeout
         self.max_immediate_attempts = max_immediate_attempts
         self.oauth_timeout = oauth_timeout
+        self.request_timeout = request_timeout
         self.max_presubmit_buffer = max_presubmit_buffer
         self.min_presubmit_buffer = min_presubmit_buffer
         self.max_failed_auth = max_failed_auth
@@ -145,6 +157,36 @@ class LoginHandler():
 
         self.failed_attempts = 0
         self.presubmit_buffer = self.min_presubmit_buffer
+
+    def _wait_for_manual_gateway_authentication(self) -> bool:
+        deadline = time.time() + self.manual_two_fa_timeout
+        ssl_context = ssl._create_unverified_context()
+
+        while time.time() < deadline:
+            try:
+                response = urllib.request.urlopen(
+                    urllib.request.Request(self.base_url + self.route_tickle, method='POST'),
+                    context=ssl_context,
+                    timeout=self.request_timeout,
+                )
+                payload = json.loads(response.read().decode('utf8'))
+                auth_status = payload.get('iserver', {}).get('authStatus', {})
+                if auth_status.get('authenticated'):
+                    return True
+            except (HTTPError, URLError, TimeoutError, json.JSONDecodeError):
+                pass
+
+            time.sleep(5)
+
+        return False
+
+    def _find_two_fa_input_target(self, targets: Targets, driver: webdriver.Chrome) -> Target:
+        for target_name in ('TWO_FA_INPUT', 'TWO_FA_INPUT_GENERIC'):
+            target = targets[target_name]
+            if driver.find_elements(target.by, target.locator_identifier):
+                return target
+
+        return targets['TWO_FA_INPUT']
 
     def step_login(self,
                    targets: Targets,
@@ -198,10 +240,12 @@ class LoginHandler():
         trigger, target = wait_and_identify_trigger(
             has_text(targets['SUCCESS']),
             is_visible(targets['TWO_FA']),
-            is_visible(targets['TWO_FA_SELECT']),
+            is_clickable(targets['TWO_FA_INPUT']),
+            is_clickable(targets['TWO_FA_INPUT_GENERIC']),
             is_visible(targets['TWO_FA_NOTIFICATION']),
             is_visible(targets['ERROR']),
             is_clickable(targets['IBKEY_PROMO']),
+            *( [is_visible(targets['TWO_FA_SELECT'])] if 'TWO_FA_SELECT' in targets else [] ),
         )
 
         return trigger, target
@@ -215,17 +259,43 @@ class LoginHandler():
         _LOGGER.info(f'Required to select a 2FA method.')
         select_el = find_element(targets['TWO_FA_SELECT'], driver)
         select = Select(select_el)
-        select.select_by_visible_text(two_fa_select_target)
+        option_texts = [option.text.strip() for option in select.options if option.text.strip()]
+        selectable_option_texts = [text for text in option_texts if text.lower() != 'select type']
+
+        _LOGGER.info(f'Available 2FA methods: {selectable_option_texts}')
+
+        selected_text = None
+
+        try:
+            select.select_by_visible_text(two_fa_select_target)
+            selected_text = two_fa_select_target
+        except Exception:
+            for option_text in selectable_option_texts:
+                if two_fa_select_target.lower() in option_text.lower():
+                    select.select_by_visible_text(option_text)
+                    selected_text = option_text
+                    break
+
+        if selected_text is None and len(selectable_option_texts) == 1:
+            selected_text = selectable_option_texts[0]
+            select.select_by_visible_text(selected_text)
+
+        if selected_text is None:
+            raise RuntimeError(
+                f'Unable to select 2FA method "{two_fa_select_target}". Available methods: {selectable_option_texts}'
+            )
 
         trigger, target = wait_and_identify_trigger(
             has_text(targets['SUCCESS']),
             is_visible(targets['TWO_FA']),
+            is_clickable(targets['TWO_FA_INPUT']),
+            is_clickable(targets['TWO_FA_INPUT_GENERIC']),
             is_visible(targets['TWO_FA_NOTIFICATION']),
             is_visible(targets['ERROR']),
             is_clickable(targets['IBKEY_PROMO'])
         )
 
-        _LOGGER.info(f'2FA method "{two_fa_select_target}" selected successfully.')
+        _LOGGER.info(f'2FA method "{selected_text}" selected successfully.')
         return trigger, target
 
 
@@ -261,6 +331,22 @@ class LoginHandler():
                     ):
         _LOGGER.info(f'Credentials correct, but Gateway requires two-factor authentication.')
         if two_fa_handler is None:
+            if self.manual_two_fa:
+                _LOGGER.warning(
+                    f'######## ATTENTION! ######## No 2FA handler found. Waiting up to {self.manual_two_fa_timeout} seconds for manual 2FA completion.'
+                )
+                _LOGGER.warning(
+                    f'Open {self.base_url} in your browser, complete the IBKR login manually, and keep IBeam running while it waits for the gateway session to become authenticated.'
+                )
+                save_screenshot(driver, self.outputs_dir, '__manual-two-fa')
+
+                if self._wait_for_manual_gateway_authentication():
+                    _LOGGER.info('Gateway authenticated after manual 2FA completion.')
+                    self.step_success()
+
+                _LOGGER.error('Manual 2FA timeout reached before the gateway session became authenticated.')
+                raise AttemptException(cause='break')
+
             _LOGGER.critical(
                 f'######## ATTENTION! ######## No 2FA handler found. You may define your own 2FA handler or use built-in handlers. See documentation for more: https://github.com/Voyz/ibeam/wiki/Two-Factor-Authentication')
             raise AttemptException(cause='shutdown')
@@ -271,7 +357,8 @@ class LoginHandler():
             _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
             raise AttemptException(cause='break')
         else:
-            two_fa_el, _ = wait_and_identify_trigger(is_clickable(targets['TWO_FA_INPUT']), skip_identify=True)
+            two_fa_input_target = self._find_two_fa_input_target(targets, driver)
+            two_fa_el, _ = wait_and_identify_trigger(is_clickable(two_fa_input_target), skip_identify=True)
 
             two_fa_el.clear()
             two_fa_el.send_keys(two_fa_code)
@@ -324,10 +411,12 @@ class LoginHandler():
         trigger, target = wait_and_identify_trigger(
             has_text(targets['SUCCESS']),
             is_visible(targets['TWO_FA']),
-            is_visible(targets['TWO_FA_SELECT']),
+            is_clickable(targets['TWO_FA_INPUT']),
+            is_clickable(targets['TWO_FA_INPUT_GENERIC']),
             is_visible(targets['TWO_FA_NOTIFICATION']),
             is_visible(targets['ERROR']),
             is_clickable(targets['IBKEY_PROMO']),
+            *( [is_visible(targets['TWO_FA_SELECT'])] if 'TWO_FA_SELECT' in targets else [] ),
         )
 
         return trigger, target
@@ -418,13 +507,13 @@ class LoginHandler():
         if target == targets['ERROR'] and trigger.text == 'You have selected the Live Account Mode, but the specified user is a Paper Trading user. Please select the correct Login mode.':
             trigger, target = self.step_paper_toggle(driver, targets, wait_and_identify_trigger)
 
-        if target == targets['TWO_FA_SELECT']:
+        if 'TWO_FA_SELECT' in targets and target == targets['TWO_FA_SELECT']:
             trigger, target = self.step_select_two_fa(targets, wait_and_identify_trigger, driver, self.two_fa_select_target)
 
         if target == targets['TWO_FA_NOTIFICATION']:
             trigger, target = self.step_two_fa_notification(targets, wait_and_identify_trigger, driver, self.two_fa_handler)
 
-        if target == targets['TWO_FA']:
+        if target == targets['TWO_FA'] or target == targets['TWO_FA_INPUT'] or target == targets['TWO_FA_INPUT_GENERIC']:
             trigger, target = self.step_two_fa(targets, wait_and_identify_trigger, driver, self.two_fa_handler, self.strict_two_fa_code)
 
         if target == targets['IBKEY_PROMO']:
@@ -433,7 +522,7 @@ class LoginHandler():
         if target == targets['ERROR']:
             self.step_error(driver, trigger, self.max_presubmit_buffer, self.max_failed_auth, self.outputs_dir)
 
-        elif target == targets['TWO_FA']:
+        elif target == targets['TWO_FA'] or target == targets['TWO_FA_INPUT'] or target == targets['TWO_FA_INPUT_GENERIC']:
             self.step_failed_two_fa(driver)
 
         elif target == targets['SUCCESS']:

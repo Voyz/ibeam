@@ -28,6 +28,25 @@ from ibeam.src.handlers.inputs_handler import InputsHandler
 
 _LOGGER = logging.getLogger('ibeam')
 
+_SENSITIVE_CONFIG_KEYS = {
+    'ACCOUNT',
+    'PASSWORD',
+    'KEY',
+    'SECRET',
+    'TOKEN',
+}
+
+
+def redact_config(config: dict) -> dict:
+    redacted = {}
+    for key, value in config.items():
+        if any(sensitive_key in key for sensitive_key in _SENSITIVE_CONFIG_KEYS):
+            redacted[key] = '***REDACTED***' if value is not None else None
+        else:
+            redacted[key] = value
+
+    return redacted
+
 def parse_args():
     parser = argparse.ArgumentParser(description='Start, authenticate and verify the IB Gateway.')
     parser.add_argument('-a', '--authenticate', action='store_true', help='Authenticates the existing gateway.')
@@ -100,10 +119,14 @@ if __name__ == '__main__':
         targets=targets,
         base_url=cnf.GATEWAY_BASE_URL,
         route_auth=cnf.ROUTE_AUTH,
+        route_tickle=cnf.ROUTE_TICKLE,
         two_fa_select_target=cnf.TWO_FA_SELECT_TARGET,
         strict_two_fa_code=cnf.STRICT_TWO_FA_CODE,
+        manual_two_fa=cnf.MANUAL_TWO_FA,
+        manual_two_fa_timeout=cnf.MANUAL_TWO_FA_TIMEOUT,
         max_immediate_attempts=cnf.MAX_IMMEDIATE_ATTEMPTS,
         oauth_timeout=cnf.OAUTH_TIMEOUT,
+        request_timeout=cnf.REQUEST_TIMEOUT,
         max_presubmit_buffer=cnf.MAX_PRESUBMIT_BUFFER,
         min_presubmit_buffer=cnf.MIN_PRESUBMIT_BUFFER,
         max_failed_auth=cnf.MAX_FAILED_AUTH,
@@ -149,7 +172,7 @@ if __name__ == '__main__':
     signal.signal(signal.SIGINT, stop)
     signal.signal(signal.SIGTERM, stop)
 
-    _LOGGER.info(f'Configuration:\n{cnf.all_variables}')
+    _LOGGER.info(f'Configuration:\n{redact_config(cnf.all_variables)}')
 
     if args.start:
         pids = process_handler.start_gateway()
