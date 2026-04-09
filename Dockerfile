@@ -1,4 +1,4 @@
-FROM python:3.11.3-slim-bullseye
+FROM python:3.11-slim-bookworm
 
 ENV PATH="/opt/venv/bin:$PATH" \
     JAVA_HOME="/usr/lib/jvm/default-java" \
@@ -24,7 +24,7 @@ RUN \
     # Install apt packages
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y default-jre dbus-x11 xfonts-base xfonts-100dpi \
-        xfonts-75dpi xfonts-cyrillic xfonts-scalable xorg xvfb gtk2-engines-pixbuf nano curl iputils-ping \
+        xfonts-75dpi xfonts-scalable xorg xvfb gtk2-engines-pixbuf nano curl iputils-ping \
         chromium chromium-driver build-essential && \
     # Install python packages
     pip install --upgrade pip setuptools wheel && \
@@ -41,7 +41,7 @@ RUN \
     echo "/opt/venv/bin/activate" >> $SRC_ROOT/activate.sh && \
     # Update file ownership and permissions
     chown -R $USER_NAME:$GROUP_NAME $SRC_ROOT $OUTPUTS_DIR $IBEAM_GATEWAY_DIR && \
-    chmod 744 /opt/venv/bin/activate /srv/ibeam/run.sh $SRC_ROOT/activate.sh    
+    chmod 744 /opt/venv/bin/activate /srv/ibeam/run.sh $SRC_ROOT/activate.sh
 
 WORKDIR $SRC_ROOT
 
