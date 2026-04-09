@@ -7,3 +7,4 @@ ibeam.egg-info
 /dev
 __pycache__
 .idea
+.venv*
