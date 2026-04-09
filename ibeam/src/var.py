@@ -105,7 +105,7 @@ USER_NAME_EL = os.environ.get('IBEAM_USER_NAME_EL', None)
 PASSWORD_EL = os.environ.get('IBEAM_PASSWORD_EL', 'NAME@@password')
 """HTML element name attribute containing the password input field."""
 
-SUBMIT_EL = os.environ.get('IBEAM_SUBMIT_EL', 'CSS_SELECTOR@@.btn.btn-lg.btn-primary')
+SUBMIT_EL = os.environ.get('IBEAM_SUBMIT_EL', 'CSS_SELECTOR@@.btn.btn-lg.xyz-button-login')
 """HTML element name attribute containing the submit button."""
 
 ERROR_EL = os.environ.get('IBEAM_ERROR_EL', None)
