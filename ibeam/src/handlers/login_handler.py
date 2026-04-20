@@ -357,8 +357,15 @@ class LoginHandler():
             _LOGGER.warning(f'No 2FA code returned. Aborting authentication.')
             raise AttemptException(cause='break')
         else:
-            two_fa_input_target = self._find_two_fa_input_target(targets, driver)
-            two_fa_el, _ = wait_and_identify_trigger(is_clickable(two_fa_input_target), skip_identify=True)
+            # Wait for either input element — avoids a race where the IBKR SPA
+            # briefly re-renders between step_select_two_fa detecting the input
+            # and this call. Letting wait_and_identify_trigger accept either
+            # target removes the need for a point-in-time DOM snapshot.
+            two_fa_el, _ = wait_and_identify_trigger(
+                is_clickable(targets['TWO_FA_INPUT']),
+                is_clickable(targets['TWO_FA_INPUT_GENERIC']),
+                skip_identify=True
+            )
 
             two_fa_el.clear()
             two_fa_el.send_keys(two_fa_code)
