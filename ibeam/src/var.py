@@ -23,6 +23,12 @@ GATEWAY_DIR = os.environ.get('IBEAM_GATEWAY_DIR', UNDEFINED)
 CHROME_DRIVER_PATH = os.environ.get('IBEAM_CHROME_DRIVER_PATH', UNDEFINED)
 """Path to the Chrome Driver executable file."""
 
+CHROME_BINARY_PATH = os.environ.get('IBEAM_CHROME_BINARY_PATH', UNDEFINED)
+"""Optional path to the browser binary (e.g. ``/usr/bin/chromium``). Useful when
+Google Chrome is not available on the host and a compatible Chromium build is used
+instead (for example on aarch64 Linux). When unset, Selenium's default Chrome
+lookup is used."""
+
 GATEWAY_STARTUP = int(os.environ.get('IBEAM_GATEWAY_STARTUP', 20))
 """How many seconds to wait for the Gateway to respond after its startup."""
 
