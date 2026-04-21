@@ -8,6 +8,7 @@ from ibeam.src.login.driver import DriverFactory
 from ibeam.src.two_fa_handlers.external_request_handler import ExternalRequestTwoFaHandler
 from ibeam.src.two_fa_handlers.google_msg_handler import GoogleMessagesTwoFaHandler
 from ibeam.src.two_fa_handlers.notification_resend_handler import NotificationResendTwoFaHandler
+from ibeam.src.two_fa_handlers.pyotp_handler import PyotpHandler
 from ibeam.src.two_fa_handlers.two_fa_handler import TwoFaHandler
 
 
@@ -23,6 +24,8 @@ def select(handler_name:str,
         handler = ExternalRequestTwoFaHandler(outputs_dir=outputs_dir)
     elif handler_name == 'NOTIFICATION_RESEND':
         handler = NotificationResendTwoFaHandler(outputs_dir=outputs_dir)
+    elif handler_name == 'PYOTP':
+        handler = PyotpHandler(outputs_dir=outputs_dir)
     elif handler_name == 'CUSTOM_HANDLER':
         handler = load_custom_two_fa_handler(custom_two_fa_handler, inputs_dir)(outputs_dir=outputs_dir)
     else:
