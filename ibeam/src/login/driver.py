@@ -30,7 +30,8 @@ def _new_chrome_driver(driver_path, name: str = 'default', headless: bool = True
     options = webdriver.ChromeOptions()
     if var.CHROME_BINARY_PATH is not var.UNDEFINED:
         options.binary_location = var.CHROME_BINARY_PATH
-    options.add_argument('--disable-dev-shm-usage')
+    if var.DISABLE_DEV_SHM_USAGE:
+        options.add_argument('--disable-dev-shm-usage')
     if headless:
         options.add_argument('--headless')
         options.add_argument('--disable-gpu')

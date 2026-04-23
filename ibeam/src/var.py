@@ -29,6 +29,11 @@ Google Chrome is not available on the host and a compatible Chromium build is us
 instead (for example on aarch64 Linux). When unset, Selenium's default Chrome
 lookup is used."""
 
+DISABLE_DEV_SHM_USAGE = to_bool(os.environ.get('IBEAM_DISABLE_DEV_SHM_USAGE', False))
+"""Whether to pass ``--disable-dev-shm-usage`` to Chrome. Opt-in workaround for
+environments where ``/dev/shm`` is too small (commonly Docker, Kubernetes, CI),
+which would otherwise cause Chrome to crash."""
+
 GATEWAY_STARTUP = int(os.environ.get('IBEAM_GATEWAY_STARTUP', 20))
 """How many seconds to wait for the Gateway to respond after its startup."""
 
