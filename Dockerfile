@@ -25,7 +25,7 @@ RUN \
     apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y default-jre dbus-x11 xfonts-base xfonts-100dpi \
         xfonts-75dpi xfonts-scalable xorg xvfb gtk2-engines-pixbuf nano curl iputils-ping \
-        chromium chromium-driver build-essential && \
+        chromium chromium-driver build-essential tini && \
     # Install python packages
     pip install --upgrade pip setuptools wheel && \
     pip install -r /srv/requirements.txt && \
@@ -51,4 +51,7 @@ USER $USER_NAME
 #ENTRYPOINT ["/srv/ibeam/run.sh"]
 #ENTRYPOINT ["bash"]
 #CMD ["/srv/ibeam/run.sh"]
+# tini as PID 1 reaps Chromium/Selenium orphans that otherwise accumulate as
+# <defunct> zombies (python as PID 1 only reaps its own direct children).
+ENTRYPOINT ["/usr/bin/tini", "--"]
 CMD ["python", "ibeam_starter.py"]
