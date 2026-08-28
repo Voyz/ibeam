@@ -237,7 +237,7 @@ class LoginHandler():
                                  ):
         _LOGGER.info(f'Credentials correct, but Gateway requires notification two-factor authentication.')
 
-        two_fa_handler = cast(two_fa_handler, NotificationResendTwoFaHandler)
+        two_fa_handler = cast(NotificationResendTwoFaHandler, two_fa_handler)
 
         if two_fa_handler is not None:
             two_fa_success = two_fa_handler.interact_with_notification(driver, targets)
