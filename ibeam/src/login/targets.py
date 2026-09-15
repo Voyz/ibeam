@@ -51,7 +51,7 @@ class Target():
         return self.identifier in trigger.get_attribute('id')
 
     def identify_by_css_selector(self, trigger: WebElement) -> bool:
-        return self.identifier.replace('.', ' ').strip() in trigger.get_attribute('class')
+        return trigger.parent.execute_script("return arguments[0].matches(arguments[1])", trigger, self.identifier) # pass the matching to the browser engine to handle complex selectors
 
     def identify_by_class(self, trigger: WebElement) -> bool:
         return self.identifier in trigger.get_attribute('class')
