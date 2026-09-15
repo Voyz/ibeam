@@ -8,6 +8,7 @@ from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.common.exceptions import ElementClickInterceptedException
 
 from ibeam.src.utils.selenium_utils import text_to_be_present_in_element
 from ibeam.src.login.driver import save_screenshot
@@ -20,7 +21,7 @@ _NOTIFICATION_RESEND_RETRIES = int(os.environ.get('IBEAM_NOTIFICATION_RESEND_RET
 _NOTIFICATION_RESEND_INTERVAL = int(os.environ.get('IBEAM_NOTIFICATION_RESEND_INTERVAL', 10))
 """How many times to resend the notification."""
 
-_NOTIFICATION_RESEND_EL = os.environ.get('IBEAM_NOTIFICATION_RESEND_EL', "a[onclick*='resendNotification()']")
+_NOTIFICATION_RESEND_EL = os.environ.get('IBEAM_NOTIFICATION_RESEND_EL', "a.xyz-resendnotification")
 """Css selector for the resend notification button."""
 
 _LOGGER = logging.getLogger('ibeam.' + Path(__file__).stem)
@@ -34,14 +35,23 @@ class NotificationResendTwoFaHandler(TwoFaHandler):
             _LOGGER.error(f'Reached maximum number of notification resend retries: {_NOTIFICATION_RESEND_RETRIES}. Aborting.')
             return False
 
-        try:
-            WebDriverWait(driver, 30).until(EC.element_to_be_clickable((By.CSS_SELECTOR, _NOTIFICATION_RESEND_EL)))
-        except TimeoutException:
-            _LOGGER.error(f'Notification resend element not found: {_NOTIFICATION_RESEND_EL}. Aborting.')
-            return False
+        if depth > 0:
+            try:
+                wait_time = max(30, _NOTIFICATION_RESEND_INTERVAL)
+                WebDriverWait(driver, wait_time).until(EC.element_to_be_clickable((By.CSS_SELECTOR, _NOTIFICATION_RESEND_EL)))
+            except TimeoutException:
+                _LOGGER.error(f'Notification resend element not found: {_NOTIFICATION_RESEND_EL}. Aborting.')
+                return False
 
-        notification_resend_el = driver.find_element_by_css_selector(_NOTIFICATION_RESEND_EL)
-        notification_resend_el.click()
+            # wait for any possible overlays to disappear or animation to appear/realign
+            for _ in range(5):
+                try:
+                    driver.find_element(By.CSS_SELECTOR, _NOTIFICATION_RESEND_EL).click()
+                    break
+                except ElementClickInterceptedException:
+                    time.sleep(1)
+            else:
+                raise Exception("Failed to click after 5 retries")
 
         success_present = text_to_be_present_in_element([(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')], success_text)
 
@@ -56,9 +66,10 @@ class NotificationResendTwoFaHandler(TwoFaHandler):
     def get_two_fa_code(self, driver:webdriver.Chrome) -> Optional[bool]:
         raise NotImplementedError()
 
-    def interact_with_notification(self, driver:webdriver.Chrome, success_text:str) -> Optional[bool]:
+    def interact_with_notification(self, driver: webdriver.Chrome, targets) -> Optional[bool]:
         time.sleep(2)  # give the first notification a short while to arrive first
         try:
+            success_text = targets['SUCCESS'].identifier
             return self.check_and_resend(driver, success_text)
         except Exception as e:
             _LOGGER.exception(f'Exception while handling notification resend 2FA: {e}')

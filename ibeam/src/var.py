@@ -164,7 +164,7 @@ UI_SCALING = float(os.environ.get('IBEAM_UI_SCALING', 1))
 TWO_FA_EL_ID = os.environ.get('IBEAM_TWO_FA_EL_ID', 'CSS_SELECTOR@@input[placeholder="Mobile Authenticator App Code"]')
 """HTML element check for if Gateway will require 2FA code authentication."""
 
-TWO_FA_NOTIFICATION_EL = os.environ.get('IBEAM_TWO_FA_NOTIFICATION_EL', 'CLASS_NAME@@login-step-notification')
+TWO_FA_NOTIFICATION_EL = os.environ.get('IBEAM_TWO_FA_NOTIFICATION_EL', 'CLASS_NAME@@xyzblock-notification')
 """HTML element check for if Gateway will require 2FA notification authentication."""
 
 TWO_FA_INPUT_EL_ID = os.environ.get('IBEAM_TWO_FA_INPUT_EL_ID', 'CSS_SELECTOR@@input[placeholder="Mobile Authenticator App Code"]')
