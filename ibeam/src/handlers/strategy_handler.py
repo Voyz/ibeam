@@ -219,7 +219,7 @@ class StrategyHandler():
                 if attempt == 0:
                     _LOGGER.info(f'Repeating status check attempts another {max_attempts - attempt - 1} times')
 
-        _LOGGER.info(f'Max status check retries reached after {max_attempts} attempts. Consider increasing the retries by setting IBEAM_MAX_STATUS_CHECK_ATTEMPTS environment variable')
+        _LOGGER.info(f'Max status check retries reached after {max_attempts} attempts. Consider increasing the retries by setting IBEAM_MAX_STATUS_CHECK_RETRIES environment variable')
         return status
 
     def _repeatedly_reauthenticate(self, max_attempts=1, condition:callable=condition_authenticated_true):
