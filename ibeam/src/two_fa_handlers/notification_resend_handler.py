@@ -35,27 +35,23 @@ class NotificationResendTwoFaHandler(TwoFaHandler):
             _LOGGER.error(f'Reached maximum number of notification resend retries: {_NOTIFICATION_RESEND_RETRIES}. Aborting.')
             return False
 
-        start_time = time.time()
-        try:
-            wait_time = max(30, _NOTIFICATION_RESEND_INTERVAL)
-            WebDriverWait(driver, wait_time).until(EC.element_to_be_clickable((By.CSS_SELECTOR, _NOTIFICATION_RESEND_EL)))
-        except TimeoutException:
-            _LOGGER.error(f'Notification resend element not found: {_NOTIFICATION_RESEND_EL}. Aborting.')
-            return False
-        # in case the Resend notification element is clickable too soon (or maybe even immediately), wait resend interval until clicking
-        elapsed = time.time() - start_time
-        if elapsed < _NOTIFICATION_RESEND_INTERVAL:
-            time.sleep(_NOTIFICATION_RESEND_INTERVAL - elapsed)
-
-        # wait for any possible overlays to disappear or animation to appear/realign
-        for _ in range(5):
+        if depth > 0:
             try:
-                driver.find_element(By.CSS_SELECTOR, _NOTIFICATION_RESEND_EL).click()
-                break
-            except ElementClickInterceptedException:
-                time.sleep(1)
-        else:
-            raise Exception("Failed to click after 5 retries")
+                wait_time = max(30, _NOTIFICATION_RESEND_INTERVAL)
+                WebDriverWait(driver, wait_time).until(EC.element_to_be_clickable((By.CSS_SELECTOR, _NOTIFICATION_RESEND_EL)))
+            except TimeoutException:
+                _LOGGER.error(f'Notification resend element not found: {_NOTIFICATION_RESEND_EL}. Aborting.')
+                return False
+
+            # wait for any possible overlays to disappear or animation to appear/realign
+            for _ in range(5):
+                try:
+                    driver.find_element(By.CSS_SELECTOR, _NOTIFICATION_RESEND_EL).click()
+                    break
+                except ElementClickInterceptedException:
+                    time.sleep(1)
+            else:
+                raise Exception("Failed to click after 5 retries")
 
         success_present = text_to_be_present_in_element([(By.TAG_NAME, 'pre'), (By.TAG_NAME, 'body')], success_text)
 
