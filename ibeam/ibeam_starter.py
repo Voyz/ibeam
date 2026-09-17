@@ -160,7 +160,7 @@ if __name__ == '__main__':
         while True:
             pass
     elif args.authenticate:
-        success, _ = strategy_handler.try_authenticating()
+        success, _shutdown, _status = strategy_handler.try_authenticating()
         _LOGGER.info(f'Gateway {"" if success else "not "}authenticated.')
     elif args.check:
         status = http_handler.get_status()
