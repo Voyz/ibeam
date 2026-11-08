@@ -66,6 +66,8 @@ docker pull voyz/ibeam
 
 #### Standalone:
 
+Python 3.11 or newer is required.
+
 ```posh
 pip install ibeam
 ```
